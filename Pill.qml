@@ -102,7 +102,9 @@ Item {
 
     /**
      * True when this pill sits on the monitor Hyprland currently has focused.
-     * Drives auto-hide: only a non-focused monitor's idle pill slides away.
+     * Only used to drop the cursor latch on focus loss: `hidden` itself is
+     * central and does not key off monitor focus, so transient (OSD/toast)
+     * appearances retract on their own even on the focused monitor.
      */
     readonly property bool monFocused: {
         const m = Hyprland.focusedMonitor;
@@ -121,16 +123,29 @@ Item {
     }
 
     /**
-     * True when the pill should retract off the top edge: auto-hide is on and
-     * this monitor is not focused, with nothing holding the pill open (a reveal
-     * session, pin, open surface, an in-flight file drop, or the game bar). The
-     * reveal strip above it still catches the pointer, so a hidden pill slides
-     * back in on reach. Deliberately ignores raw `hovered`: the reveal session
-     * flag (with its 350ms grace) is what keeps the pill up while the cursor is
-     * near it, so a cursor sitting on the strip's edge cannot bounce it.
+     * True when a transient overlay owns the pill: an OSD flash (workspace,
+     * volume, track, brightness, battery, record), a notification toast, or a
+     * quick-record overlay. These pop the pill open without the cursor ever
+     * getting involved, so the pill must let them finish and then retract on
+     * its own — transients hold the pill up, but they leave no latch behind.
      */
-    readonly property bool hidden: Flags.autoHide && !monFocused && !revealSession && !expanded
-        && !dragActive && mode !== "game"
+    readonly property bool transientLive: osdActive || toastActive || quickChoosing || quickCounting
+
+    /**
+     * True when the pill should retract off the top edge: auto-hide is on and
+     * nothing is holding the pill open — no reveal session under the cursor, no
+     * expansion (pin, latch or open surface), no in-flight file drop, no game
+     * bar, and no live transient overlay. This is the single central gate for
+     * auto-hide: it deliberately does not key off monitor focus, so any
+     * cursor-less appearance (a workspace switch, an OSD flash, a toast, a
+     * quick-record overlay) retracts by itself once it is done. The reveal
+     * strip above it still catches the pointer, so a hidden pill slides back in
+     * on reach. Deliberately ignores raw `hovered`: the reveal session flag
+     * (with its 350ms grace) is what keeps the pill up while the cursor is near
+     * it, so a cursor sitting on the strip's edge cannot bounce it.
+     */
+    readonly property bool hidden: Flags.autoHide && !revealSession && !expanded && !dragActive
+        && !transientLive && mode !== "game"
 
     /**
      * True while the open surface is waiting on an external auth dialog (the
