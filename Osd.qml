@@ -14,8 +14,6 @@ Item {
     property bool flashing: false
     property string kind: "volume"
     property bool armed: false
-    property bool dirty: false
-    property bool cooling: false
     property int holdExtends: 0
 
     /**
@@ -70,27 +68,11 @@ Item {
     onActiveWsNameChanged: if (activeWsName.length > 0 && !expanded) flash("workspace");
 
     /**
-     * Wait for the track to settle before flashing. Hovering the YouTube grid
-     * autoplays a preview per thumbnail, so the active player's metadata churns
-     * as the cursor moves; the settle timer collapses that storm into the one
-     * track that actually sticks.
+     * Media (track) flashes are intentionally disabled: a playing browser throws
+     * an announce on every title/metadata churn, so any autoplaying feed
+     * (YouTube Shorts, Instagram Reels) would pop the pill open on loop. The
+     * media surface is the one now-playing view; no OSD flash for it.
      */
-    /**
-     * Leading-edge throttle. The first change flashes at once so a real track
-     * switch feels instant, then the cooldown mutes the burst that hovering the
-     * YouTube grid throws off. Anything that lands during the cooldown, or while
-     * the OSD is suppressed (a surface open, the pill pinned), stays `dirty` and
-     * fires when the gate opens, so the stashed-player flash still replays.
-     */
-    function tryShow() {
-        if (cooling)
-            return;
-        if (flash("track")) {
-            dirty = false;
-            cooling = true;
-            cooldownTimer.restart();
-        }
-    }
 
     /**
      * Every pill carries its own Osd but the volume/track/battery signals are
@@ -120,13 +102,8 @@ Item {
         if (suppressed) {
             hideTimer.stop();
             flashing = false;
-        } else if (dirty) {
-            tryShow();
         }
     }
-
-    /** A track announce that lost to live hardware feedback replays once the bar clears. */
-    onFlashingChanged: if (!flashing && dirty) tryShow()
 
     Timer {
         interval: 1500
@@ -134,21 +111,6 @@ Item {
         onTriggered: root.armed = true
     }
 
-    Timer {
-        id: cooldownTimer
-        interval: 1500
-        onTriggered: {
-            root.cooling = false;
-            if (root.dirty)
-                root.tryShow();
-        }
-    }
-
-    /**
-     * Hold a track flash open until its cover decodes, so a cold remote thumbnail
-     * that arrives after the base window still gets seen. Capped so a dead art url
-     * never pins the OSD.
-     */
     Timer {
         id: hideTimer
         interval: 1800
@@ -177,8 +139,6 @@ Item {
         target: Players
         function onAnnounce(player) {
             root.pendingSubject = player;
-            root.dirty = true;
-            root.tryShow();
         }
     }
 

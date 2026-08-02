@@ -562,6 +562,7 @@ Item {
     onSurfaceOpenChanged: if (surfaceOpen) {
         pinned = false;
         revealSession = false;
+        hoverLatch = false;
         revealTimer.stop();
         if (quickHere && ScreenRec.quickChoosing) {
             ScreenRec.quickChoosing = false;
@@ -916,6 +917,24 @@ Item {
             } else {
                 pill.pinned = !pill.pinned;
             }
+        }
+    }
+
+    /**
+     * Right-click toggles the media player from anywhere on the pill: on the
+     * collapsed pill it pops the now-playing surface open, and on the open
+     * media surface it dismisses back to the clock. Other surfaces are left to
+     * their own clicks and the modal backdrop.
+     */
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        enabled: !pill.surfaceOpen || pill.mediaOpen
+        gesturePolicy: TapHandler.WithinBounds
+        onTapped: {
+            if (pill.mediaOpen)
+                pill.requestClose();
+            else
+                pill.requestSurface("media");
         }
     }
 
