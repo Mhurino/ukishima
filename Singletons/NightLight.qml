@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../lib/config.js" as Config
 
 /**
  * 灯 Night-light controller over hyprsunset, the Hyprland blue-light filter.
@@ -16,7 +17,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property string confPath: Quickshell.env("HOME") + "/.config/hypr/hyprsunset.conf"
+    readonly property string confPath: Config.hyprPath("hyprsunset.conf")
 
     function clampTemp(t) {
         return Math.max(2200, Math.min(6000, Math.round(t)));

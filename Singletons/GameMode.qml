@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../lib/config.js" as Config
 
 /**
  * Game mode: one flag that strips Hyprland's eye-candy and quiets the desktop for
@@ -16,7 +17,7 @@ Singleton {
     id: root
 
     readonly property bool active: Flags.gameMode
-    readonly property string script: Quickshell.env("HOME") + "/.config/hypr/scripts/gamemode.sh"
+    readonly property string script: Config.hyprPath("scripts", "gamemode.sh")
     property string pending: ""
 
     onActiveChanged: active ? root.enter() : root.leave()

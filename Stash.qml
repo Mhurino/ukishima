@@ -3,12 +3,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "lib/config.js" as Config
 import "Singletons"
 
 /**
  * 蔵 STASH surface: the window classes that auto-route into the special:stash
  * space (SUPER+S), read from and written back to
- * ~/.config/hypr/modules/stash-apps.lua. Two views share one surface. The list
+ * the Hyprland stash app config path. Two views share one surface. The list
  * view shows each stashed class as an app tile, friendly name and faint raw-class
  * subtitle, with a ✕ to drop it, capped by a dashed "add app" bar. The add view
  * swaps in a fuzzy app search (the launcher's picker) whose pick derives a window
@@ -30,7 +31,7 @@ PillSurface {
 
     signal requestSurface(string name)
 
-    readonly property string stashPath: Quickshell.env("HOME") + "/.config/hypr/modules/stash-apps.lua"
+    readonly property string stashPath: Config.hyprPath("modules", "stash-apps.lua")
 
     property var entries: []
 

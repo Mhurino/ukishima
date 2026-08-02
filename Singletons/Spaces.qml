@@ -2,10 +2,11 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../lib/config.js" as Config
 import "../lib/binds.js" as Binds
 
 /**
- * 場 SPACES store: the single read/writer of ~/.config/hypr/modules/spaces.lua,
+ * 場 SPACES store: the single read/writer of the Hyprland spaces config path,
  * the user-defined special workspaces the Workspaces settings page creates. Each
  * entry is { id, name, desc, key, glyph, apps[] }: id is the special-workspace
  * name (a slug of the display name), key a single Super-prefixed letter, glyph an
@@ -21,8 +22,8 @@ import "../lib/binds.js" as Binds
 Singleton {
     id: root
 
-    readonly property string path: Quickshell.env("HOME") + "/.config/hypr/modules/spaces.lua"
-    readonly property string bindsPath: Quickshell.env("HOME") + "/.config/hypr/modules/binds.lua"
+    readonly property string path: Config.hyprPath("modules", "spaces.lua")
+    readonly property string bindsPath: Config.hyprPath("modules", "binds.lua")
 
     property var list: []
     property string editing: ""

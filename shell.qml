@@ -236,11 +236,11 @@ ShellRoot {
             screen: modelData
             color: "transparent"
             exclusionMode: ExclusionMode.Normal
-            exclusiveZone: Flags.gameMode ? gameBarH : reservedH
+            exclusiveZone: Flags.gameMode ? gameBarH : (Flags.autoHide ? 0 : reservedH)
             aboveWindows: true
 
             anchors { top: true; left: true; right: true }
-            implicitHeight: Flags.gameMode ? gameBarH : reservedH
+            implicitHeight: Flags.gameMode ? gameBarH : (Flags.autoHide ? 0 : reservedH)
 
             mask: emptyReserve
             Region { id: emptyReserve }
@@ -291,8 +291,24 @@ ShellRoot {
 
             anchors { top: true; left: true; right: true; bottom: true }
 
-            mask: monFullscreen ? hiddenRegion : (modal ? fullRegion : pillRegion)
+            mask: monFullscreen ? hiddenRegion : (modal ? fullRegion : (Flags.autoHide ? (pill.revealSession ? revealPillRegion : (pill.expanded ? pillRegion : revealRegion)) : pillRegion))
             Region { id: hiddenRegion }
+
+            /**
+             * The only input left alive while the pill is auto-hidden: a fixed
+             * top-centre strip the pointer can always find. Hovering it slides
+             * the pill back in, whether it is resting on a focused monitor or
+             * retracted off a non-focused one.
+             */
+            Region {
+                id: revealRegion
+                readonly property real revealW: 420 * pill.s
+                readonly property real revealH: 110 * pill.s
+                x: Math.max(0, overlay.width / 2 - revealW / 2)
+                y: 0
+                width: revealW
+                height: revealH
+            }
             Region {
                 id: pillRegion
                 readonly property real baseW: Math.max(pill.width, pill.targetW)
@@ -300,6 +316,29 @@ ShellRoot {
                 y: pill.y
                 width: baseW + pill.inputPadRight
                 height: Math.max(pill.height, pill.targetH)
+            }
+
+            /**
+             * Mask while the pill is being pulled in from the reveal strip. The
+             * plain pillRegion alone would flicker: it follows the pill's morphing
+             * geometry, so a cursor waiting in the strip below the still-growing
+             * pill slips out of the mask, drops the hover, and re-triggers the
+             * reveal in a loop. Unioning the fixed strip keeps the cursor covered
+             * for the whole pull-in; the pill part grows to catch it on the way up.
+             */
+            Region {
+                id: revealPillRegion
+                x: revealRegion.x
+                y: revealRegion.y
+                width: revealRegion.width
+                height: revealRegion.height
+
+                Region {
+                    x: pillRegion.x
+                    y: pillRegion.y
+                    width: pillRegion.width
+                    height: pillRegion.height
+                }
             }
             Region {
                 id: fullRegion
@@ -329,13 +368,27 @@ ShellRoot {
                 }
             }
 
+            Connections {
+                target: Flags
+                function onAutoHideChanged() {
+                    if (!Flags.autoHide) {
+                        pill.revealSession = false;
+                        pill.hovered = false;
+                        pill.hoverLatch = false;
+                    } else {
+                        pill.pinned = false;
+                    }
+                }
+            }
+
             FocusScope {
                 id: focusScope
                 anchors.fill: parent
                 focus: overlay.surfaceOpen || pill.quickChoosing
 
                 HoverHandler {
-                    onHoveredChanged: pill.hovered = hovered
+                    enabled: !overlay.surfaceOpen && !pill.pinned
+                    onHoveredChanged: if (enabled) pill.hovered = hovered
                 }
                 Keys.onEscapePressed: {
                     if (pill.quickChoosing) {
@@ -436,7 +489,7 @@ ShellRoot {
                         }
                     }
                     transform: Translate {
-                        y: overlay.monFullscreen ? -(pill.height + overlay.topGap) : 0
+                        y: (overlay.monFullscreen || pill.hidden) ? -(pill.height + overlay.topGap) : 0
                         Behavior on y {
                             NumberAnimation {
                                 duration: Motion.morph

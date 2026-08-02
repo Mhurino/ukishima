@@ -10,8 +10,9 @@ import "Singletons"
 
 /**
  * 鍵 KEYBINDS surface: a searchable list of the keyboard shortcuts parsed from
- * ~/.config/hypr/modules/binds.lua, each row a combo chip on the left and its
- * name or derived action on the right; hovering a row reveals the underlying
+ * the Hyprland binds config path (defaulting to $XDG_CONFIG_HOME/pill/hypr/modules/binds.lua),
+ * each row a combo chip on the left and its name or derived action on the right;
+ * hovering a row reveals the underlying
  * command. Tapping a row opens a unified form prefilled in EDIT mode — a
  * key-binding field that arms chord capture, a name field and a command field
  * — with Save and Delete. A dashed bar at the bottom opens the same form EMPTY

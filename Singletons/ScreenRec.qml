@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../lib/config.js" as Config
 
 /**
  * Screen-recorder backend, shared by the 録 RECORD surface, the pill's hover
@@ -47,7 +48,7 @@ Singleton {
     readonly property string home: Quickshell.env("HOME")
     readonly property string defaultDir: home + "/Videos/Recordings"
     readonly property string thumbDir: (Quickshell.env("XDG_CACHE_HOME") || (home + "/.cache")) + "/ricelin/rec-thumbs/"
-    readonly property string thumbScript: home + "/.config/hypr/scripts/rec-thumbs.sh"
+    readonly property string thumbScript: Config.hyprPath("scripts", "rec-thumbs.sh")
     readonly property string outDir: {
         var d = Flags.recordDir;
         return d && d.length > 0 ? d : defaultDir;

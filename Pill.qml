@@ -29,6 +29,15 @@ Item {
     property string surface: ""
 
     property bool hovered: false
+    /**
+     * True while a reveal interaction is in flight: the pointer touched the
+     * reveal strip and is still over it or the collapsed pill it pulled in.
+     * The strip sits in the input mask even when the pill is hidden, so this
+     * persists across the strip -> pill transition until the pointer leaves,
+     * keeping the mask covering both and the pill collapsed until it is
+     * clicked.
+     */
+    property bool revealSession: false
     property bool pinned: false
     property bool forcePinned: false
 
@@ -90,6 +99,38 @@ Item {
     }
 
     readonly property bool expanded: surfaceOpen || held || hoverLatch
+
+    /**
+     * True when this pill sits on the monitor Hyprland currently has focused.
+     * Drives auto-hide: only a non-focused monitor's idle pill slides away.
+     */
+    readonly property bool monFocused: {
+        const m = Hyprland.focusedMonitor;
+        return m ? m.name === pill.screenName : false;
+    }
+
+    /**
+     * Auto-hide mode retracts as soon as this monitor loses focus, even if the
+     * cursor is still over the strip or pill: a click only expands the pill
+     * temporarily, so focus loss (or cursor exit, via graceTimer) is what
+     * releases the latch. Outside auto-hide the pill's pin still holds.
+     */
+    onMonFocusedChanged: if (!monFocused && Flags.autoHide) {
+        revealSession = false;
+        hoverLatch = false;
+    }
+
+    /**
+     * True when the pill should retract off the top edge: auto-hide is on and
+     * this monitor is not focused, with nothing holding the pill open (a reveal
+     * session, pin, open surface, an in-flight file drop, or the game bar). The
+     * reveal strip above it still catches the pointer, so a hidden pill slides
+     * back in on reach. Deliberately ignores raw `hovered`: the reveal session
+     * flag (with its 350ms grace) is what keeps the pill up while the cursor is
+     * near it, so a cursor sitting on the strip's edge cannot bounce it.
+     */
+    readonly property bool hidden: Flags.autoHide && !monFocused && !revealSession && !expanded
+        && !dragActive && mode !== "game"
 
     /**
      * True while the open surface is waiting on an external auth dialog (the
@@ -505,6 +546,8 @@ Item {
 
     onSurfaceOpenChanged: if (surfaceOpen) {
         pinned = false;
+        revealSession = false;
+        revealTimer.stop();
         if (quickHere && ScreenRec.quickChoosing) {
             ScreenRec.quickChoosing = false;
             ScreenRec.quickScreenChoosing = false;
@@ -807,11 +850,19 @@ Item {
 
     onHoveredChanged: {
         if (hovered) {
-            if (bootSettled)
+            if (Flags.autoHide && !revealSession && !expanded && !surfaceOpen
+                && !quickChoosing && !quickCounting) {
+                revealSession = true;
+                revealTimer.stop();
+            } else if (bootSettled && !revealSession) {
                 hoverLatch = true;
-            graceTimer.stop();
+                graceTimer.stop();
+            }
         } else {
+            if (!pinned && !surfaceOpen && !revealSession)
+                hoverLatch = false;
             graceTimer.restart();
+            revealTimer.start();
         }
     }
 
@@ -827,10 +878,30 @@ Item {
         }
     }
 
+    /**
+     * Ends a reveal session once the pointer has left the reveal strip and the
+     * collapsed pill (and nothing else holds the pill open). The interval is a
+     * grace window so the strip -> pill handoff never drops the session mid-move.
+     */
+    Timer {
+        id: revealTimer
+        interval: 350
+        onTriggered: {
+            if (!pill.hovered && !pill.pinned && !pill.surfaceOpen)
+                pill.revealSession = false;
+        }
+    }
+
     TapHandler {
         enabled: !pill.surfaceOpen
         gesturePolicy: TapHandler.WithinBounds
-        onTapped: pill.pinned = !pill.pinned
+        onTapped: {
+            if (Flags.autoHide) {
+                pill.hoverLatch = !pill.hoverLatch;
+            } else {
+                pill.pinned = !pill.pinned;
+            }
+        }
     }
 
     property var installQueue: []
@@ -878,7 +949,7 @@ Item {
         pill.installLine = "";
         pill.installProto = "";
         pill.installPct = "";
-        installProc.command = ["bash", Quickshell.env("HOME") + "/.config/hypr/scripts/app-install.sh", "install", next];
+        installProc.command = ["bash", Config.hyprPath("scripts", "app-install.sh"), "install", next];
         installProc.running = true;
     }
 

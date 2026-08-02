@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "lib/config.js" as Config
 import "Singletons"
 
 /**
@@ -28,7 +29,7 @@ SettingsSurface {
     implicitHeight: content.implicitHeight
     rows: []
 
-    readonly property string engine: Quickshell.env("HOME") + "/.config/hypr/scripts/ricelin-update.py"
+    readonly property string engine: Config.hyprPath("scripts", "ricelin-update.py")
 
     property string status: ""
     property string version: ""
