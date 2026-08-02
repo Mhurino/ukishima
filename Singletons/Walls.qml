@@ -2,7 +2,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../lib/config.js" as Config
 
 /**
  * Wallpaper bridge: keeps a warm in-memory snapshot of the wallpaper folder so
@@ -18,8 +17,8 @@ import "../lib/config.js" as Config
  *
  * The folder resolves through one chain, first hit wins: an explicit
  * `wallpaperDir` in flags.json, then the dir wallpaper.sh resolved and wrote
- * to the ricelin-wallpaper-dir state file on its last run, then
- * ~/Ricelin/wallpapers for a first boot before wallpaper.sh init has run.
+ * to the pill-wallpaper-dir state file on its last run, then
+ * ~/Pictures/Wallpapers for a first boot before wallpaper.sh init has run.
  *
  * Entries are plain objects: { path, name, mtime, thumb } where path is the
  * absolute source file, mtime its modification time in epoch seconds and
@@ -33,14 +32,29 @@ Singleton {
     property string current: ""
     property bool pending: false
 
+    /**
+     * True while a refresh pipeline is in flight (thumbs → listing → state).
+     * The wallpaper strip's refresh control spins while it is set, then snaps
+     * back once the state read lands and `refreshDone` fires.
+     */
+    property bool refreshing: false
+
+    /**
+     * Fired once a full refresh pipeline has landed: thumbnails regenerated and
+     * pruned, the listing re-read and `current` re-read from the state file.
+     * Subscribers (the wallpaper strip) use it to re-centre on the wallpaper on
+     * screen, which may have changed while they were closed.
+     */
+    signal refreshDone()
+
     property string resolvedDir: ""
     readonly property string wpDir: Flags.wallpaperDir.length > 0 ? Flags.wallpaperDir
-        : (resolvedDir.length > 0 ? resolvedDir : Quickshell.env("HOME") + "/Ricelin/wallpapers")
-    readonly property string thumbDir: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ricelin-wp-thumbs/"
+        : (resolvedDir.length > 0 ? resolvedDir : Quickshell.env("HOME") + "/Pictures/Wallpapers")
+    readonly property string thumbDir: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/pill-wp-thumbs/"
     readonly property string thumbScript: Config.hyprPath("scripts", "wallpaper-thumbs.sh")
     readonly property string setScript: Config.hyprPath("scripts", "wallpaper.sh")
-    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ricelin-wallpaper"
-    readonly property string dirStateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ricelin-wallpaper-dir"
+    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/pill-wallpaper"
+    readonly property string dirStateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/pill-wallpaper-dir"
 
     onWpDirChanged: refresh()
 
@@ -60,6 +74,7 @@ Singleton {
             pending = true;
             return;
         }
+        refreshing = true;
         /**
          * Re-resolve the folder first when autodetect is in play: it only runs
          * inside wallpaper.sh, so a shell restart used to leave the strip on
@@ -160,6 +175,9 @@ Singleton {
                 if (root.pending) {
                     root.pending = false;
                     Qt.callLater(root.refresh);
+                } else {
+                    root.refreshing = false;
+                    root.refreshDone();
                 }
             }
         }

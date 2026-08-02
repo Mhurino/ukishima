@@ -2,53 +2,49 @@
 
 Pill is a Quickshell widget layer designed for Hyprland systems, with a dynamic-island style interface and a modular settings surface.
 
-This version is structured to run as an independent app rather than as a hardwired patch to a personal Hyprland config tree.
+The project is fully self-contained: the config folder holds the QML surfaces, its own scripts and the Hyprland-compat files it generates, so nothing is copied into or sourced from another dotfiles tree.
 
-## Goals
+## Layout
 
-- no hardcoded dependency on `~/.config/hypr`
-- support independent installation under user-owned config/state/cache directories
-- keep Hyprland integration optional via environment overrides
-- allow future feature work without touching unrelated dotfiles
+All paths resolve at runtime relative to this project folder (`Singletons/Config.qml` self-locates it), so the shell works regardless of where it was launched from or whether it was installed via `install.sh`:
 
-## Default runtime paths
-
-The app reads these environment variables first:
-
-- `PILL_CONFIG_DIR` for app-specific config root
-- `PILL_HYPR_CONFIG_DIR` for compatibility with Hyprland config files
-- `PILL_STATE_DIR` for app state
-- `PILL_CACHE_DIR` for cache files
-
-If unset, the defaults are:
-
-- config: `$XDG_CONFIG_HOME/pill` or `$HOME/.config/pill`
-- Hyprland compatibility root: `$XDG_CONFIG_HOME/pill/hypr` or `$HOME/.config/pill/hypr`
-- state: `$XDG_STATE_HOME/pill` or `$HOME/.local/state/pill`
-- cache: `$XDG_CACHE_HOME/pill` or `$HOME/.cache/pill`
+- shell entry: `shell.qml` (+ the pill body `Pill.qml` at the root)
+- surfaces: `surfaces/` — the QML module of panels the pill morphs into (launcher, wallpaper strip, settings sub-pages, mixer, OSD, toasts, …)
+- components: `components/` — the QML module of reusable widgets (`PillSurface` base, `GlyphIcon`, `SearchField`, settings row kit, …)
+- singletons: `Singletons/` — one per-service QML singleton (`Config`, `Flags`, `Theme`, `Walls`, `Players`, …)
+- helpers: `lib/` — pure JS (`fuzzy.js`, `calc.js`, `binds.js`, …)
+- scripts: `scripts/` — wallpaper set/thumb/search, palette (`wallpaper.sh`, `wallcolors.py`, …)
+- Hyprland-compat outputs: `modules/*.lua`, `hypridle.conf`, `hyprsunset.conf` under this folder
+- state: `$XDG_STATE_HOME/pill` (default `~/.local/state/pill`) — flags, events, wallpaper state, launcher usage
+- cache: `$XDG_CACHE_HOME/pill` (default `~/.cache/pill`) — palette JSON, weather, rec thumbs; wallpaper previews under `pill-wp-thumbs/`
 
 ## Install
-
-Run the included installer:
 
 ```bash
 ./install.sh
 ```
 
-The installer creates app-local config folders under the user directory and prints the environment values you can export before launching the shell.
+This copies the project to `~/.local/share/quickshell/pill` (override with `PILL_INSTALL_ROOT`). The copy is self-contained, so point quickshell at it and run.
 
-## Launch example
+## Launch
 
 ```bash
-export PILL_CONFIG_DIR="$HOME/.config/pill"
-export PILL_HYPR_CONFIG_DIR="$HOME/.config/pill/hypr"
-export PILL_STATE_DIR="$HOME/.local/state/pill"
-export PILL_CACHE_DIR="$HOME/.cache/pill"
-quickshell --config "$HOME/.local/share/quickshell/pill/shell.qml"
+quickshell --config "$HOME/.config/quickshell/pill"
 ```
 
-## Notes
+After an install:
 
-- This repo intentionally does not overwrite `~/.config/hypr` by default.
-- If a machine-specific Hyprland config is needed, it can be supplied through `PILL_HYPR_CONFIG_DIR`.
-- Future features should use these environment roots instead of direct `$HOME/.config/hypr/...` paths.
+```bash
+quickshell --config "$HOME/.local/share/quickshell/pill"
+```
+
+## Hyprland integration
+
+The shell writes generated config files under its own folder (`modules/`, `hypridle.conf`, `hyprsunset.conf`). To load them, `source` those paths from your Hyprland config:
+
+```bash
+source = ~/.config/quickshell/pill/modules/*.lua
+exec-once = hypridle -c ~/.config/quickshell/pill/hypridle.conf
+```
+
+This repo never touches `~/.config/hypr` by default.

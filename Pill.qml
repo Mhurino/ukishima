@@ -9,6 +9,8 @@ import Quickshell.Networking
 import Quickshell.Bluetooth
 import Quickshell.Hyprland
 import "Singletons"
+import "components"
+import "surfaces"
 
 /**
  * The pill body. One element carries every state. Width/height driven by `state`
@@ -821,6 +823,12 @@ Item {
             return recorderIcon.mapToItem(pill, recorderIcon.width / 2, recorderIcon.height + drop * 0.55);
         if (soulTarget === "sysmon")
             return sysmonIcon.mapToItem(pill, sysmonIcon.width / 2, sysmonIcon.height + drop * 0.55);
+        if (soulTarget === "wallpaper")
+            return wallpaperIcon.mapToItem(pill, wallpaperIcon.width / 2, wallpaperIcon.height + drop * 0.55);
+        if (soulTarget === "clipboard")
+            return clipboardIcon.mapToItem(pill, clipboardIcon.width / 2, clipboardIcon.height + drop * 0.55);
+        if (soulTarget === "launcher")
+            return launcherIcon.mapToItem(pill, launcherIcon.width / 2, launcherIcon.height + drop * 0.55);
         if (soulTarget === "ws" && soulWsIndex >= 0) {
             void ws.activeName;
             void ws.width;
@@ -1884,6 +1892,81 @@ Item {
                                 ScreenRec.stop();
                         }
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "recorder"
+                    }
+                }
+
+                Item {
+                    id: wallpaperIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "wallpaper"
+                        color: wallpaperArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: wallpaperArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("wallpaper")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "wallpaper"
+                    }
+                }
+
+                Item {
+                    id: clipboardIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "clipboard"
+                        color: clipboardArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: clipboardArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("clipboard")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "clipboard"
+                    }
+                }
+
+                Item {
+                    id: launcherIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "app-window"
+                        color: launcherArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: launcherArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("launcher")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "launcher"
                     }
                 }
 

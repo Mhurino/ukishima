@@ -3,7 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../lib/config.js" as Config
 
 /**
  * Game mode: one flag that strips Hyprland's eye-candy and quiets the desktop for

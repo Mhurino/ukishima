@@ -2,7 +2,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../lib/config.js" as Config
 import "../lib/binds.js" as Binds
 
 /**

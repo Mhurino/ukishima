@@ -4,12 +4,8 @@ set -eu
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 USER_HOME="${HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"
 INSTALL_ROOT="${PILL_INSTALL_ROOT:-$USER_HOME/.local/share/quickshell/pill}"
-CONFIG_ROOT="${PILL_CONFIG_DIR:-$USER_HOME/.config/pill}"
-HYPER_ROOT="${PILL_HYPR_CONFIG_DIR:-$USER_HOME/.config/pill/hypr}"
-STATE_ROOT="${PILL_STATE_DIR:-$USER_HOME/.local/state/pill}"
-CACHE_ROOT="${PILL_CACHE_DIR:-$USER_HOME/.cache/pill}"
 
-mkdir -p "$INSTALL_ROOT" "$CONFIG_ROOT" "$HYPER_ROOT" "$STATE_ROOT" "$CACHE_ROOT"
+mkdir -p "$INSTALL_ROOT"
 
 if command -v rsync >/dev/null 2>&1; then
   rsync -a --delete "$SCRIPT_DIR/" "$INSTALL_ROOT/"
@@ -17,28 +13,16 @@ else
   cp -a "$SCRIPT_DIR/." "$INSTALL_ROOT/"
 fi
 
-cat > "$CONFIG_ROOT/pill.env" <<EOF
-PILL_CONFIG_DIR="$CONFIG_ROOT"
-PILL_HYPR_CONFIG_DIR="$HYPER_ROOT"
-PILL_STATE_DIR="$STATE_ROOT"
-PILL_CACHE_DIR="$CACHE_ROOT"
-EOF
-
 cat <<EOF
 Pill was prepared for independent install.
 
 Installed app root: $INSTALL_ROOT
-Config root:       $CONFIG_ROOT
-Hypr compat root:  $HYPER_ROOT
-State root:        $STATE_ROOT
-Cache root:        $CACHE_ROOT
+  Config, scripts and Hyprland-compat outputs all resolve inside this
+  folder, so the copy is self-contained and needs no environment setup.
 
-Export these values before running Quickshell:
+State:  \$XDG_STATE_HOME/pill   (default ~/.local/state/pill)
+Cache:  \$XDG_CACHE_HOME/pill   (default ~/.cache/pill)
 
-export PILL_CONFIG_DIR="$CONFIG_ROOT"
-export PILL_HYPR_CONFIG_DIR="$HYPER_ROOT"
-export PILL_STATE_DIR="$STATE_ROOT"
-export PILL_CACHE_DIR="$CACHE_ROOT"
-
-Optional: add the export lines to your shell profile if you want them persistent.
+Launch:
+  quickshell --config "$INSTALL_ROOT"
 EOF
