@@ -58,11 +58,6 @@ Item {
             delay.stop();
             armed = false;
         }
-        if (show) {
-            var tl = mapToGlobal(0, 0);
-            var br = mapToGlobal(width, height);
-            print("TIP-DEBUG bounds:", tl.x, tl.y, br.x, br.y, "w:", width);
-        }
     }
 
     Rectangle {

@@ -560,12 +560,6 @@ PillSurface {
         color: refHover.hovered ? Theme.frameBg : "transparent"
         border.width: refHover.hovered ? 1 : 0
         border.color: Theme.hairSoft
-        Component.onCompleted: {
-            var c = mapToGlobal(width / 2, height / 2);
-            print("REFBTN center:", c.x, c.y, "w:", width);
-            var f = filterRow.mapToGlobal(0, 0);
-            print("FILTERROW rect:", f.x, f.y, "w:", filterRow.width, "h:", filterRow.height);
-        }
 
         GlyphIcon {
             id: refIcon

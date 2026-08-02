@@ -91,7 +91,6 @@ SettingsSurface {
         { item: glyphRow, kind: "toggle", get: function () { return Flags.showGlyphs; }, set: function (v) { Flags.showGlyphs = v; } },
         { item: vizRow, kind: "toggle", get: function () { return Flags.musicViz; }, set: function (v) { Flags.musicViz = v; } },
         { item: paletteRow, kind: "seg", vals: ["light", "dark", "dynamic", "manual"], get: function () { return root.themeMode; }, set: function (v) { root.applyMode(v); } },
-        { item: randomRow, kind: "seg", vals: ["all", "cursor"], get: function () { return Flags.randomScope; }, set: function (v) { Flags.randomScope = v; } },
         { item: wpDirRow, kind: "text", activate: function () {
             wpDirRow.editing = !wpDirRow.editing;
             if (wpDirRow.editing) {
@@ -380,25 +379,11 @@ SettingsSurface {
                         Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
                     }
                 }
-            }
-        }
+}
+    }
 
-        SettingsRow {
-            id: randomRow
-            surface: root
-            name: "Random wallpaper"
-            icon: "monitor"
-
-            SettingsSeg {
-                s: root.s
-                options: [{ label: "All screens", value: "all" }, { label: "Cursor screen", value: "cursor" }]
-                value: Flags.randomScope
-                onPicked: (v) => Flags.randomScope = v
-            }
-        }
-
-        SettingsRow {
-            id: wpDirRow
+    SettingsRow {
+        id: wpDirRow
             surface: root
             name: "Wallpaper folder"
             icon: "wallpaper"
