@@ -1971,27 +1971,27 @@ Item {
                 }
 
                 Item {
-                    id: settingsIcon
+                    id: appearanceIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
 
                     GlyphIcon {
                         anchors.fill: parent
-                        name: "cog"
-                        color: settingsArea.containsMouse ? Theme.cream : Theme.iconDim
+                        name: "palette"
+                        color: appearanceArea.containsMouse ? Theme.cream : Theme.iconDim
                         stroke: 1.6
                     }
 
                     MouseArea {
-                        id: settingsArea
+                        id: appearanceArea
                         anchors.fill: parent
                         anchors.margins: -6 * pill.s
                         hoverEnabled: true
                         enabled: hover.live
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("settings")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "settings"
+                        onClicked: pill.requestSurface("appearance")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "appearance"
                     }
                 }
 
