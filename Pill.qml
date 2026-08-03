@@ -55,23 +55,11 @@ Item {
     readonly property bool wifiOpen: surface === "wifi"
     readonly property bool btOpen: surface === "bt"
     readonly property bool batteryOpen: surface === "battery"
-    readonly property bool settingsOpen: surface === "settings"
-    readonly property bool keybindsOpen: surface === "keybinds"
-    readonly property bool workspacesOpen: surface === "workspaces"
-    readonly property bool stashOpen: surface === "stash"
-    readonly property bool spaceappsOpen: surface === "spaceapps"
     readonly property bool recorderOpen: surface === "recorder"
     readonly property bool sysmonOpen: surface === "sysmon"
     readonly property bool appearanceOpen: surface === "appearance"
-    readonly property bool updatesOpen: surface === "updates"
-    readonly property bool displayOpen: surface === "display"
-    readonly property bool inputOpen: surface === "input"
-    readonly property bool lookOpen: surface === "look"
-    readonly property bool idlelockOpen: surface === "idlelock"
-    readonly property bool animationOpen: surface === "animation"
     readonly property bool fontpickerOpen: surface === "fontpicker"
-    readonly property bool settingsLike: settingsOpen || appearanceOpen || updatesOpen
-        || lookOpen || inputOpen || displayOpen || animationOpen || idlelockOpen || fontpickerOpen
+    readonly property bool settingsLike: appearanceOpen || fontpickerOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -150,14 +138,6 @@ Item {
         && !transientLive && mode !== "game"
 
     /**
-     * True while the open surface is waiting on an external auth dialog (the
-     * updater's pkexec password prompt). The shell drops its modal grab for this
-     * so the polkit window underneath is clickable and typeable, instead of the
-     * backdrop swallowing the reach for it and dismissing the whole pill.
-     */
-    readonly property bool authPending: updatesOpen && ldUpdates.item !== null && ldUpdates.item.applying
-
-    /**
      * The special workspace shown on this pill's monitor, surfaced as a plain word
      * in place of the clock so it is obvious you are looking at the minimized stash
      * or the private space rather than your real desktop. Empty in the normal case.
@@ -217,20 +197,9 @@ Item {
     readonly property real batteryW: 316 * s
     readonly property real wifiW: 272 * s
     readonly property real btW: 286 * s
-    readonly property real settingsW: 392 * s
-    readonly property real keybindsW: 460 * s
-    readonly property real workspacesW: 392 * s
-    readonly property real stashW: 392 * s
-    readonly property real spaceappsW: 392 * s
     readonly property real recorderW: 384 * s
     readonly property real sysmonW: 392 * s
     readonly property real appearanceW: 392 * s
-    readonly property real updatesW: 360 * s
-    readonly property real displayW: 392 * s
-    readonly property real inputW: 392 * s
-    readonly property real lookW: 392 * s
-    readonly property real idlelockW: 392 * s
-    readonly property real animationW: 392 * s
     readonly property real fontpickerW: 360 * s
     readonly property real toastW: 342 * s
     readonly property real quickChooseW: 344 * s
@@ -280,20 +249,9 @@ Item {
         wifi:      { size: () => Qt.size(wifiW, surfaceItem(ldWifi).implicitHeight + 26 * s), ame: () => surfaceItem(ldWifi) },
         bt:        { size: () => Qt.size(btW, surfaceItem(ldBt).implicitHeight + 26 * s), ame: () => surfaceItem(ldBt) },
         battery:   { size: () => Qt.size(batteryW, surfaceItem(ldBattery).implicitHeight + 26 * s), ame: () => surfaceItem(ldBattery) },
-        settings:  { size: () => Qt.size(settingsW, surfaceItem(ldSettings).implicitHeight + 29 * s), ame: () => surfaceItem(ldSettings) },
-        keybinds:  { size: () => Qt.size(keybindsW, surfaceItem(ldKeybinds).implicitHeight + 29 * s), ame: () => surfaceItem(ldKeybinds) },
-        workspaces: { size: () => Qt.size(workspacesW, surfaceItem(ldWorkspaces).implicitHeight + 29 * s), ame: () => surfaceItem(ldWorkspaces) },
-        stash:     { size: () => Qt.size(stashW, surfaceItem(ldStash).implicitHeight + 29 * s), ame: () => surfaceItem(ldStash) },
-        spaceapps: { size: () => Qt.size(spaceappsW, surfaceItem(ldSpaceapps).implicitHeight + 29 * s), ame: () => surfaceItem(ldSpaceapps) },
         recorder:  { size: () => Qt.size(recorderW, surfaceItem(ldRecorder).implicitHeight + 33 * s), ame: () => surfaceItem(ldRecorder) },
         sysmon:    { size: () => Qt.size(sysmonW, surfaceItem(ldSysmon).implicitHeight + 33 * s), ame: () => surfaceItem(ldSysmon) },
         appearance: { size: () => Qt.size(appearanceW, surfaceItem(ldAppearance).implicitHeight + 29 * s), ame: () => surfaceItem(ldAppearance) },
-        updates:    { size: () => Qt.size(updatesW, surfaceItem(ldUpdates).implicitHeight + 29 * s), ame: () => surfaceItem(ldUpdates) },
-        display:    { size: () => Qt.size(displayW, surfaceItem(ldDisplay).implicitHeight + 29 * s), ame: () => surfaceItem(ldDisplay) },
-        input:      { size: () => Qt.size(inputW, surfaceItem(ldInput).implicitHeight + 29 * s), ame: () => surfaceItem(ldInput) },
-        look:       { size: () => Qt.size(lookW, surfaceItem(ldLook).implicitHeight + 29 * s), ame: () => surfaceItem(ldLook) },
-        idlelock:   { size: () => Qt.size(idlelockW, surfaceItem(ldIdlelock).implicitHeight + 29 * s), ame: () => surfaceItem(ldIdlelock) },
-        animation:  { size: () => Qt.size(animationW, surfaceItem(ldAnimation).implicitHeight + 29 * s), ame: () => surfaceItem(ldAnimation) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) }
     })
 
@@ -348,20 +306,8 @@ Item {
      * when none of them is open.
      */
     function rowNavSurface() {
-        if (pill.settingsOpen)
-            return ldSettings.item;
         if (pill.appearanceOpen)
             return ldAppearance.item;
-        if (pill.lookOpen)
-            return ldLook.item;
-        if (pill.inputOpen)
-            return ldInput.item;
-        if (pill.displayOpen)
-            return ldDisplay.item;
-        if (pill.animationOpen)
-            return ldAnimation.item;
-        if (pill.idlelockOpen)
-            return ldIdlelock.item;
         if (pill.fontpickerOpen)
             return ldFontpicker.item;
         return null;
@@ -404,26 +350,6 @@ Item {
     }
 
     /**
-     * Slide the open keybinds list's focused row by `dir` (+1 down, -1 up),
-     * carrying the soul seam. No-op unless the keybinds surface is open.
-     */
-    function keybindsMove(dir) {
-        if (pill.keybindsOpen && ldKeybinds.item)
-            ldKeybinds.item.move(dir);
-    }
-
-    /**
-     * Enter on the open keybinds surface: arm chord capture on the focused row.
-     * No-op unless the keybinds surface is open.
-     */
-    function keybindsActivate() {
-        if (pill.keybindsOpen && ldKeybinds.item)
-            ldKeybinds.item.activate();
-    }
-
-    readonly property bool keybindsListening: pill.keybindsOpen && ldKeybinds.item !== null && ldKeybinds.item.listening
-
-    /**
      * A tile was picked in the standalone quick-record chooser. Screen with several
      * monitors flips to the inline sub-choice; otherwise each source kicks off its
      * resolver (which counts down once the target is ready) and the chooser closes.
@@ -449,58 +375,16 @@ Item {
     }
 
     /**
-     * Step the open surface back one level when its header bar is clicked: a
-     * settings sub-surface returns to the index, the font picker to appearance,
-     * a keybinds form to its list, and any other surface dismisses to the hover
-     * pill. Empty space in the body never triggers this.
+     * Step the open surface back one level when its header bar is clicked: the
+     * font picker returns to appearance, and any other surface dismisses to the
+     * hover pill. Empty space in the body never triggers this.
      */
     function surfaceBack() {
-        if (pill.keybindsOpen) {
-            if (ldKeybinds.item && ldKeybinds.item.formOpen)
-                ldKeybinds.item.closeForm();
-            else
-                pill.requestSurface("settings");
-            return;
-        }
         if (pill.fontpickerOpen) {
             pill.requestSurface("appearance");
             return;
         }
-        if (pill.stashOpen) {
-            if (ldStash.item && ldStash.item.addOpen)
-                ldStash.item.closeAdd();
-            else
-                pill.requestSurface("workspaces");
-            return;
-        }
-        if (pill.spaceappsOpen) {
-            if (ldSpaceapps.item && ldSpaceapps.item.addOpen)
-                ldSpaceapps.item.closeAdd();
-            else
-                pill.requestSurface("workspaces");
-            return;
-        }
-        if (pill.workspacesOpen && ldWorkspaces.item && ldWorkspaces.item.formOpen) {
-            ldWorkspaces.item.closeForm();
-            return;
-        }
-        if (pill.appearanceOpen || pill.updatesOpen || pill.displayOpen || pill.inputOpen || pill.lookOpen || pill.idlelockOpen || pill.animationOpen || pill.workspacesOpen) {
-            pill.requestSurface("settings");
-            return;
-        }
         pill.requestClose();
-    }
-
-    /**
-     * Pop the open keybinds editor form back to the bind list. Returns true when a
-     * form was open and dismissed, false otherwise so Escape closes the surface.
-     */
-    function keybindsBack() {
-        if (pill.keybindsOpen && ldKeybinds.item && ldKeybinds.item.formOpen) {
-            ldKeybinds.item.closeForm();
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -817,8 +701,6 @@ Item {
             return mixerIcon.mapToItem(pill, mixerIcon.width / 2, mixerIcon.height + drop * 0.55);
         if (soulTarget === "power")
             return powerIcon.mapToItem(pill, powerIcon.width / 2, powerIcon.height + drop * 0.55);
-        if (soulTarget === "settings")
-            return settingsIcon.mapToItem(pill, settingsIcon.width / 2, settingsIcon.height + drop * 0.55);
         if (soulTarget === "recorder")
             return recorderIcon.mapToItem(pill, recorderIcon.width / 2, recorderIcon.height + drop * 0.55);
         if (soulTarget === "sysmon")
@@ -2174,71 +2056,6 @@ Item {
     }
 
     Loader {
-        id: ldSettings
-        active: false
-        anchors.fill: parent
-        sourceComponent: Settings {
-            s: pill.s
-            open: pill.settingsOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldKeybinds
-        active: false
-        anchors.fill: parent
-        sourceComponent: Keybinds {
-            s: pill.s
-            open: pill.keybindsOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldWorkspaces
-        active: false
-        anchors.fill: parent
-        sourceComponent: WorkspacesSurface {
-            s: pill.s
-            open: pill.workspacesOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldStash
-        active: false
-        anchors.fill: parent
-        sourceComponent: Stash {
-            s: pill.s
-            open: pill.stashOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldSpaceapps
-        active: false
-        anchors.fill: parent
-        sourceComponent: SpaceApps {
-            s: pill.s
-            open: pill.spaceappsOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
         id: ldRecorder
         active: false
         anchors.fill: parent
@@ -2270,84 +2087,6 @@ Item {
         sourceComponent: Appearance {
             s: pill.s
             open: pill.appearanceOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldUpdates
-        active: false
-        anchors.fill: parent
-        sourceComponent: Updates {
-            s: pill.s
-            open: pill.updatesOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldDisplay
-        active: false
-        anchors.fill: parent
-        sourceComponent: Display {
-            s: pill.s
-            open: pill.displayOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldInput
-        active: false
-        anchors.fill: parent
-        sourceComponent: Input {
-            s: pill.s
-            open: pill.inputOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldLook
-        active: false
-        anchors.fill: parent
-        sourceComponent: Look {
-            s: pill.s
-            open: pill.lookOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldIdlelock
-        active: false
-        anchors.fill: parent
-        sourceComponent: IdleLock {
-            s: pill.s
-            open: pill.idlelockOpen
-            morphCloseness: pill.morphCloseness
-            onRequestClose: pill.requestClose()
-            onRequestSurface: (name) => pill.requestSurface(name)
-        }
-    }
-
-    Loader {
-        id: ldAnimation
-        active: false
-        anchors.fill: parent
-        sourceComponent: AnimationSurface {
-            s: pill.s
-            open: pill.animationOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)

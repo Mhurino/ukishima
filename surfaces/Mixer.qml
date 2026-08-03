@@ -183,6 +183,19 @@ PillSurface {
         objects: [root.sink, root.source].concat(root.outputSinks).concat(root.inputSources).filter(Boolean)
     }
 
+    /**
+     * Keep the internal-backlight fader live: Devices.backlightPct is only
+     * written at startup and on drag, so keyboard changes (swayosd writing the
+     * same sysfs node) never showed up. The Backlight poller sees those writes
+     * within its 1s loop and this mirrors the reading into the fader's value.
+     */
+    Connections {
+        target: Backlight
+        function onChanged() {
+            Devices.backlightPct = Math.round(Backlight.brightness * 100);
+        }
+    }
+
     component IconChip: Rectangle {
         id: chip
         property string glyph: ""
@@ -577,12 +590,13 @@ PillSurface {
             id: volFader
             width: faderRow.colW
             s: root.s
-            icon: "speaker"
+            icon: (root.sink && root.sink.audio && root.sink.audio.muted) ? "speaker-off" : "speaker"
             subLabel: "Volume"
             subPersistent: false
             focused: root.focusIndex === root.faderCount - 2
             value: root.sink && root.sink.audio ? root.sink.audio.volume : 0
             valueLabel: Math.round((root.sink && root.sink.audio ? root.sink.audio.volume : 0) * 100) + "%"
+            muted: root.sink && root.sink.audio ? root.sink.audio.muted : false
             onMoved: (v) => { if (root.sink && root.sink.audio) root.sink.audio.volume = v; }
         }
         VFader {
@@ -597,6 +611,7 @@ PillSurface {
             valueLabel: (root.source && root.source.audio && root.source.audio.muted)
                 ? "off"
                 : (Math.round((root.source && root.source.audio ? root.source.audio.volume : 0) * 100) + "%")
+            muted: root.source && root.source.audio ? root.source.audio.muted : false
             onMoved: (v) => { if (root.source && root.source.audio) root.source.audio.volume = v; }
 
             MouseArea {

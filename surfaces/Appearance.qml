@@ -7,11 +7,11 @@ import "../Singletons"
 import "../components"
 
 /**
- * 相 APPEARANCE sub-surface: the clock format and seconds, the Japanese-glyph
+ * 相 APPEARANCE surface: the clock format and seconds, the Japanese-glyph
  * toggle that gates every surface header, the theme (light or dark pill, dynamic
  * per-wallpaper, or a manually chosen hue), the UI scale and a reduce-motion
- * switch. Reached from the settings index and morphs back to it on an empty click
- * or the back chevron.
+ * switch. Reached from the pill's hover row and folds back into it on an empty
+ * click or the back chevron.
  *
  * Manual palette mode reveals a rainbow hue strip and a dark/light choice; moving
  * either rebuilds the rice colour set from that hue through wallcolors.py --hue
@@ -21,7 +21,7 @@ import "../components"
 SettingsSurface {
     id: root
 
-    backSurface: "settings"
+    backSurface: ""
     implicitHeight: content.implicitHeight
 
     property string hueArg: String(Math.round(Flags.manualHue))

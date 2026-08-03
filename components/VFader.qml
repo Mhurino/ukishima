@@ -17,6 +17,7 @@ Item {
     property string subLabel: ""
     property bool subPersistent: true
     property bool focused: false
+    property bool muted: false
 
     signal moved(real v)
     signal committed(real v)
@@ -74,8 +75,8 @@ Item {
                 height: parent.height * Math.max(0, Math.min(1, root.value))
                 radius: parent.radius
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: root.lit ? Theme.vermLit : Theme.vermDim }
-                    GradientStop { position: 1.0; color: root.lit ? Theme.vermBurn : Theme.vermDimDeep }
+                    GradientStop { position: 0.0; color: root.muted ? Theme.vermDim : (root.lit ? Theme.vermLit : Theme.vermDim) }
+                    GradientStop { position: 1.0; color: root.muted ? Theme.vermDimDeep : (root.lit ? Theme.vermBurn : Theme.vermDimDeep) }
                 }
                 Behavior on height { enabled: !dragArea.pressed; NumberAnimation { duration: Motion.fast } }
             }
@@ -116,7 +117,7 @@ Item {
         anchors.topMargin: 7 * root.s
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.valueLabel
-        color: root.lit ? Theme.cream : Theme.dim
+        color: root.muted ? Theme.dim : (root.lit ? Theme.cream : Theme.dim)
         opacity: root.lit ? 1 : 0
         font.family: Theme.font
         font.pixelSize: 9 * root.s
@@ -135,7 +136,7 @@ Item {
         GlyphIcon {
             anchors.fill: parent
             name: root.icon
-            color: root.lit ? Theme.cream : Theme.iconDim
+            color: root.muted ? Theme.dim : (root.lit ? Theme.cream : Theme.iconDim)
             stroke: 1.7
         }
     }

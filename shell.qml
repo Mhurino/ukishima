@@ -158,8 +158,6 @@ ShellRoot {
         function power(mon: string): void { root.toggleSurface(mon, "power"); }
         function link(mon: string): void { root.toggleSurface(mon, "link"); }
         function battery(mon: string): void { root.toggleSurface(mon, "battery"); }
-        function settings(mon: string): void { root.toggleSurface(mon, "settings"); }
-        function keybinds(mon: string): void { root.toggleSurface(mon, "keybinds"); }
         function recorder(mon: string): void { root.toggleSurface(mon, "recorder"); }
         function screenrec(mon: string): void { root.toggleSurface(mon, "recorder"); }
         function record(mon: string): void { root.toggleSurface(mon, "recorder"); }
@@ -257,7 +255,7 @@ ShellRoot {
             readonly property real topGap: 8 * Flags.topGap * s
             readonly property string surface: root.openMon === modelData.name ? root.openSurface : ""
             readonly property bool surfaceOpen: surface.length > 0
-            readonly property bool modal: pill.authPending ? false : (surfaceOpen || pill.held || pill.quickChoosing)
+            readonly property bool modal: surfaceOpen || pill.held || pill.quickChoosing
 
             /**
              * True while this monitor's active workspace reports a fullscreen
@@ -286,7 +284,7 @@ ShellRoot {
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: ((surfaceOpen || pill.quickChoosing) && !pill.authPending) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: ((surfaceOpen || pill.quickChoosing)) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             WlrLayershell.namespace: "pill"
 
             anchors { top: true; left: true; right: true; bottom: true }
@@ -394,16 +392,14 @@ ShellRoot {
                     if (pill.quickChoosing) {
                         ScreenRec.quickChoosing = false;
                         ScreenRec.quickScreenChoosing = false;
-                    } else if (!pill.keybindsBack()) {
+                    } else {
                         root.close();
                     }
                 }
                 Keys.onUpPressed: (e) => {
-                    if (pill.keybindsOpen && !pill.keybindsListening) { pill.keybindsMove(-1); e.accepted = true; return; }
                     e.accepted = pill.mixerStep(1) || pill.recorderStep(5) || pill.settingsMove(-1);
                 }
                 Keys.onDownPressed: (e) => {
-                    if (pill.keybindsOpen && !pill.keybindsListening) { pill.keybindsMove(1); e.accepted = true; return; }
                     e.accepted = pill.mixerStep(-1) || pill.recorderStep(-5) || pill.settingsMove(1);
                 }
                 Keys.onLeftPressed: (e) => {
@@ -445,9 +441,6 @@ ShellRoot {
                         e.accepted = true;
                     } else if (pill.settingsLike) {
                         if (!e.isAutoRepeat) pill.settingsActivate();
-                        e.accepted = true;
-                    } else if (pill.keybindsOpen && !pill.keybindsListening) {
-                        if (!e.isAutoRepeat) pill.keybindsActivate();
                         e.accepted = true;
                     }
                 }
@@ -514,10 +507,6 @@ ShellRoot {
                 }
                 function onWallpaperSearchingChanged() {
                     if (!pill.wallpaperSearching && overlay.surfaceOpen)
-                        focusScope.forceActiveFocus();
-                }
-                function onKeybindsListeningChanged() {
-                    if (!pill.keybindsListening && overlay.surfaceOpen)
                         focusScope.forceActiveFocus();
                 }
             }
