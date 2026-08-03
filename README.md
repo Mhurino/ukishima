@@ -50,16 +50,6 @@ Ukishima is built on top of [**Ricelin**](https://github.com/Gakuseei/Ricelin) b
 | `xdg-open` (xdg-utils) | opening record folder / files |
 | systemd (user) | keep-awake inhibitor, hyprsunset service |
 
-Arch/CachyOS hints — most of the above are in the repos:
-
-```bash
-sudo pacman -S hyprland hyprsunset imagemagick ffmpeg jq libnotify curl \
-  python networkmanager bluez bluez-utils brightnessctl cava wl-clipboard \
-  slurp xdg-utils
-```
-
-AUR packages: `quickshell`, `awww`, `awww-daemon`, `cliphist`, `cava` (if not in repos), plus the optional ones below.
-
 ### Optional, for full functionality
 
 | Package | Adds |
