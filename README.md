@@ -122,22 +122,24 @@ Ukishima never touches `~/.config/hypr` by default.
 
 ## Keybinds (IPC)
 
-Every surface and action is exposed over quickshell IPC (target `ukishima`), so bind them straight in your Hyprland config instead of calling hyprctl to find the monitor — the monitor argument is optional and an empty one resolves to the focused monitor:
+Every surface and action is exposed over quickshell IPC (target `ukishima`), so bind them straight in your Hyprland config. Quickshell 0.3+ provides this through the `qs` CLI — `quickshell-ipc` was the pre-0.3 name and no longer exists:
 
 ```conf
-bind = SUPER, SPACE,  exec, quickshell-ipc ukishima launcher
-bind = SUPER, C,      exec, quickshell-ipc ukishima clipboard
-bind = SUPER, W,      exec, quickshell-ipc ukishima wallpaper
-bind = SUPER, D,      exec, quickshell-ipc ukishima quickRecord
-bind = SUPER, M,      exec, quickshell-ipc ukishima mixer
-bind = SUPER, B,      exec, quickshell-ipc ukishima battery
-bind = SUPER, G,      exec, quickshell-ipc ukishima gameMode
-bind = SUPER, S,      exec, quickshell-ipc ukishima sysmon
-bind = SUPER, L,      exec, quickshell-ipc ukishima power
-bind = SUPER, ESCAPE, exec, quickshell-ipc ukishima hide
+bind = SUPER, SPACE,  exec, qs -c ukishima ipc call ukishima launcher ""
+bind = SUPER, C,      exec, qs -c ukishima ipc call ukishima clipboard ""
+bind = SUPER, W,      exec, qs -c ukishima ipc call ukishima wallpaper ""
+bind = SUPER, D,      exec, qs -c ukishima ipc call ukishima quickRecord ""
+bind = SUPER, M,      exec, qs -c ukishima ipc call ukishima mixer ""
+bind = SUPER, B,      exec, qs -c ukishima ipc call ukishima battery ""
+bind = SUPER, G,      exec, qs -c ukishima ipc call ukishima gameMode ""
+bind = SUPER, S,      exec, qs -c ukishima ipc call ukishima sysmon ""
+bind = SUPER, L,      exec, qs -c ukishima ipc call ukishima power ""
+bind = SUPER, ESCAPE, exec, qs -c ukishima ipc call ukishima hide
 ```
 
-Available IPC handlers: `launcher`, `wallpaper`, `clipboard`, `mixer`, `calendar`, `media`, `power`, `link`, `battery`, `sysmon`/`system`, `recorder`/`screenrec`/`record`, `quickRecord`, `gameMode`, `peek`, `hide`, `page`, `minimizeWindow`, `restoreWindow`. The `page` handler takes the monitor first (empty = focused) and the surface name second, so surfaces without a dedicated handler open as `quickshell-ipc ukishima page "" wifi`.
+The `""` argument is the monitor — empty means "focused monitor", so no hyprctl lookup is needed. The `-c ukishima` must match how you launch the shell; running from a different path needs the same selection there, e.g. `qs -p /path/to/ukishima ipc call ukishima clipboard ""`.
+
+Available IPC handlers: `launcher`, `wallpaper`, `clipboard`, `mixer`, `calendar`, `media`, `power`, `link`, `battery`, `sysmon`/`system`, `recorder`/`screenrec`/`record`, `quickRecord`, `gameMode`, `peek`, `hide`, `page`, `minimizeWindow`, `restoreWindow`. The `page` handler takes the monitor first (empty = focused) and the surface name second, so surfaces without a dedicated handler open as `qs -c ukishima ipc call ukishima page "" wifi`.
 
 ## Layout
 
