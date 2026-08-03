@@ -6,6 +6,10 @@ Ukishima (浮島, *"floating island"*) is a widget layer for Hyprland built arou
 
 The project is fully self-contained: the config folder holds the QML surfaces, its own scripts and the Hyprland-compat files it generates, so nothing is copied into or sourced from another dotfiles tree.
 
+## Credits
+
+Ukishima is built on top of [**Ricelin**](https://github.com/Gakuseei/Ricelin) by [**Gakuseei**](https://github.com/Gakuseei). The pill concept, the morphing-surface architecture and most of the original shell codebase come from there; this project extends, reworks and rebrands it. All credit for the base code goes to the original author.
+
 ## Features
 
 - **Dynamic island** — one morphing pill per monitor, expanding in place with a bead cursor and smooth morph animations.
@@ -83,7 +87,7 @@ This copies the project to `~/.local/share/quickshell/ukishima` (override with `
 From a clone:
 
 ```bash
-git clone https://github.com/you/ukishima ~/.config/quickshell/ukishima
+git clone https://github.com/amanhex/ukishima ~/.config/quickshell/ukishima
 quickshell --config "$HOME/.config/quickshell/ukishima"
 ```
 
