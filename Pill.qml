@@ -711,6 +711,8 @@ Item {
             return clipboardIcon.mapToItem(pill, clipboardIcon.width / 2, clipboardIcon.height + drop * 0.55);
         if (soulTarget === "launcher")
             return launcherIcon.mapToItem(pill, launcherIcon.width / 2, launcherIcon.height + drop * 0.55);
+        if (soulTarget === "appearance")
+            return appearanceIcon.mapToItem(pill, appearanceIcon.width / 2, appearanceIcon.height + drop * 0.55);
         if (soulTarget === "ws" && soulWsIndex >= 0) {
             void ws.activeName;
             void ws.width;
@@ -1188,7 +1190,7 @@ Item {
         }
 
         /**
-         * Volume/brightness feedback stays visible while gaming as a compact
+         * Volume/brightness/mic feedback stays visible while gaming as a compact
          * chip on the bar's right, since the full OSD face is parked behind
          * game mode in the mode ladder. Notifications stay suppressed.
          */
@@ -1197,7 +1199,7 @@ Item {
             anchors.rightMargin: 18 * pill.s
             anchors.verticalCenter: parent.verticalCenter
             spacing: 9 * pill.s
-            opacity: osd.flashing && (osd.kind === "volume" || osd.kind === "brightness") ? 1 : 0
+            opacity: osd.flashing && (osd.kind === "volume" || osd.kind === "brightness" || osd.kind === "mic") ? 1 : 0
             visible: opacity > 0.01
             Behavior on opacity { NumberAnimation { duration: Motion.fast } }
 
@@ -1205,8 +1207,10 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 14 * pill.s
                 height: 14 * pill.s
-                name: osd.kind === "brightness" ? "sun" : (osd.muted ? "speaker-off" : "speaker")
-                color: osd.kind === "volume" && osd.muted ? Theme.dim : Theme.iconDim
+                name: osd.kind === "brightness" ? "sun"
+                    : (osd.kind === "mic" ? (osd.micMuted ? "mic-off" : "mic")
+                    : (osd.muted ? "speaker-off" : "speaker"))
+                color: (osd.kind === "volume" && osd.muted) || (osd.kind === "mic" && osd.micMuted) ? Theme.dim : Theme.iconDim
                 stroke: 1.7
             }
 
@@ -1221,17 +1225,20 @@ Item {
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: parent.width * (osd.kind === "brightness" ? osd.brightness : osd.volume)
+                    width: parent.width * (osd.kind === "brightness" ? osd.brightness
+                        : (osd.kind === "mic" ? osd.micVolume : osd.volume))
                     radius: parent.radius
-                    color: osd.kind === "volume" && osd.muted ? Theme.vermDim : Theme.vermLit
+                    color: (osd.kind === "volume" && osd.muted) || (osd.kind === "mic" && osd.micMuted) ? Theme.vermDim : Theme.vermLit
                     Behavior on width { NumberAnimation { duration: Motion.fast } }
                 }
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: Math.round((osd.kind === "brightness" ? osd.brightness : osd.volume) * 100) + "%"
-                color: osd.kind === "volume" && osd.muted ? Theme.dim : Theme.cream
+                text: osd.kind === "mic"
+                    ? (osd.micMuted ? "off" : Math.round(osd.micVolume * 100) + "%")
+                    : Math.round((osd.kind === "brightness" ? osd.brightness : osd.volume) * 100) + "%"
+                color: (osd.kind === "volume" && osd.muted) || (osd.kind === "mic" && osd.micMuted) ? Theme.dim : Theme.cream
                 font.family: Theme.font
                 font.pixelSize: 10.5 * pill.s
                 font.weight: Font.DemiBold

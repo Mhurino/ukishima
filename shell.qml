@@ -293,15 +293,19 @@ ShellRoot {
             Region { id: hiddenRegion }
 
             /**
-             * The only input left alive while the pill is auto-hidden: a fixed
-             * top-centre strip the pointer can always find. Hovering it slides
-             * the pill back in, whether it is resting on a focused monitor or
-             * retracted off a non-focused one.
+             * The only input left alive while the pill is auto-hidden: a thin
+             * top-centre edge strip the pointer can always find. Hovering it
+             * slides the pill back in, whether it is resting on a focused
+             * monitor or retracted off a non-focused one. Kept to a few pixels
+             * so the pill only ever appears when the cursor actually touches the
+             * screen edge — passing through the top area deeper down triggers
+             * nothing, and (because the strip doubles as the reveal input mask)
+             * no invisible click-blocking band lingers below the visible pill.
              */
             Region {
                 id: revealRegion
                 readonly property real revealW: 420 * pill.s
-                readonly property real revealH: 110 * pill.s
+                readonly property real revealH: 10 * pill.s
                 x: Math.max(0, overlay.width / 2 - revealW / 2)
                 y: 0
                 width: revealW
