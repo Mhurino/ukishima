@@ -13,7 +13,6 @@ Ukishima is built on top of [**Ricelin**](https://github.com/Gakuseei/Ricelin) b
 ## Features
 
 - **Dynamic island** — one morphing pill per monitor, expanding in place with a bead cursor and smooth morph animations.
-- **Workspace dots** — rule-aware per-monitor dots (hyprctl-backed), the active one a filled vermillion stick; click to focus.
 - **Surfaces** grown from the pill: launcher, calendar, media, mixer, wallpaper strip + online search, screen recorder, clipboard history, wifi + hotspot, bluetooth, battery, power menu, system monitor, settings (appearance, fonts), OSD and toasts.
 - **Wallpaper system** — `awww` backend with a shuffled bag, per-monitor assignment, animated transitions, video wallpapers (`mpvpaper`), and a live palette that retints the whole UI plus the terminal on every change.
 - **Screen recorder** — `gpu-screen-recorder` with slurp window/region picking, countdown, quality presets, audio, and a recent-clips filmstrip.
