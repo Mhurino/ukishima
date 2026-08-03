@@ -130,6 +130,36 @@ PillSurface {
             d.forget();
     }
 
+    /**
+     * Turns the adapter on or off. BlueZ rejects the enable call outright while
+     * RFKILL soft-blocks the controller (the off-blocked state), so first drop
+     * the rfkill block and only then ask BlueZ to power on.
+     */
+    function toggleAdapter() {
+        if (!root.adapter)
+            return;
+        if (root.adapter.enabled) {
+            root.adapter.enabled = false;
+            return;
+        }
+        if (typeof BluetoothAdapterState !== "undefined"
+                && root.adapter.state === BluetoothAdapterState.Blocked) {
+            rfkillProc.command = ["rfkill", "unblock", "bluetooth"];
+            rfkillProc.running = true;
+        } else {
+            root.adapter.enabled = true;
+        }
+    }
+
+    Process {
+        id: rfkillProc
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: function() {
+            root.adapter.enabled = true;
+        }
+    }
+
     function pairDevice(d) {
         if (!d || !d.address || pairProc.running)
             return;
@@ -250,7 +280,7 @@ PillSurface {
                 s: root.s
                 anchors.verticalCenter: parent.verticalCenter
                 on: root.adapter ? root.adapter.enabled === true : false
-                onToggled: if (root.adapter) root.adapter.enabled = !root.adapter.enabled
+                onToggled: root.toggleAdapter()
             }
         }
     }
