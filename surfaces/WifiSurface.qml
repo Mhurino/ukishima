@@ -63,9 +63,9 @@ PillSurface {
     property string revealedPw: ""
     property bool revealResolved: false
 
-    readonly property string hsCon: "PillHotspot"
+    readonly property string hsCon: "UkishimaHotspot"
     readonly property string hsIface: wifiDev ? (wifiDev.name || "wlan0") : "wlan0"
-    property string hsName: "Pill"
+    property string hsName: "Ukishima"
     property string hsPw: ""
     property bool hsActive: false
     property bool hsBusy: false

@@ -1,22 +1,74 @@
-# Pill Quickshell dynamic island
+# 浮島 Ukishima
 
-Pill is a Quickshell widget layer designed for Hyprland systems, with a dynamic-island style interface and a modular settings surface.
+> A dynamic-island Quickshell shell for Hyprland.
+
+Ukishima (浮島, *"floating island"*) is a widget layer for Hyprland built around a single morphing pill at the top of every monitor. Collapsed it is a thin warm-vermillion strip; hover it and it expands in place into a control centre — workspace dots, clock, media, system readouts — and every module grows its own surface out of the pill itself. Nothing ever pops up as a separate panel.
 
 The project is fully self-contained: the config folder holds the QML surfaces, its own scripts and the Hyprland-compat files it generates, so nothing is copied into or sourced from another dotfiles tree.
 
-## Layout
+## Features
 
-All paths resolve at runtime relative to this project folder (`Singletons/Config.qml` self-locates it), so the shell works regardless of where it was launched from or whether it was installed via `install.sh`:
+- **Dynamic island** — one morphing pill per monitor, expanding in place with a bead cursor and smooth morph animations.
+- **Workspace dots** — rule-aware per-monitor dots (hyprctl-backed), the active one a filled vermillion stick; click to focus.
+- **Surfaces** grown from the pill: launcher, calendar, media, mixer, wallpaper strip + online search, screen recorder, clipboard history, wifi + hotspot, bluetooth, battery, power menu, system monitor, settings (appearance, fonts), OSD and toasts.
+- **Wallpaper system** — `awww` backend with a shuffled bag, per-monitor assignment, animated transitions, video wallpapers (`mpvpaper`), and a live palette that retints the whole UI plus the terminal on every change.
+- **Screen recorder** — `gpu-screen-recorder` with slurp window/region picking, countdown, quality presets, audio, and a recent-clips filmstrip.
+- **Extras** — night light (hyprsunset), clipboard manager (cliphist), music visualiser (cava), game mode, quick-record keybind, keep-awake.
 
-- shell entry: `shell.qml` (+ the pill body `Pill.qml` at the root)
-- surfaces: `surfaces/` — the QML module of panels the pill morphs into (launcher, wallpaper strip, settings sub-pages, mixer, OSD, toasts, …)
-- components: `components/` — the QML module of reusable widgets (`PillSurface` base, `GlyphIcon`, `SearchField`, settings row kit, …)
-- singletons: `Singletons/` — one per-service QML singleton (`Config`, `Flags`, `Theme`, `Walls`, `Players`, …)
-- helpers: `lib/` — pure JS (`fuzzy.js`, `calc.js`, `binds.js`, …)
-- scripts: `scripts/` — wallpaper set/thumb/search, palette (`wallpaper.sh`, `wallcolors.py`, …)
-- Hyprland-compat outputs: `modules/*.lua`, `hypridle.conf`, `hyprsunset.conf` under this folder
-- state: `$XDG_STATE_HOME/pill` (default `~/.local/state/pill`) — flags, events, wallpaper state, launcher usage
-- cache: `$XDG_CACHE_HOME/pill` (default `~/.cache/pill`) — palette JSON, weather, rec thumbs; wallpaper previews under `pill-wp-thumbs/`
+## Requirements
+
+- Linux + Wayland
+- **Hyprland** (developed on 0.56.1, works across recent 0.4x/0.5x)
+- **Quickshell** 0.3.0+ built with the Hyprland, Wayland and Io QML modules
+- Qt6 / QtQuick (ships with Quickshell)
+
+## Dependencies
+
+### Core
+
+| Tool | Used for |
+| --- | --- |
+| `quickshell` | shell runtime |
+| `hyprctl` | Hyprland IPC (workspaces, monitors, dispatch, reload) |
+| `jq` | JSON parsing in the helper scripts |
+| `notify-send` (libnotify) | desktop notifications |
+| `curl` | weather, wallpaper search / downloads |
+| `python3` | palette generation (`wallcolors.py`) |
+| `magick` (ImageMagick) | wallpaper thumbnails and palette |
+| `awww` + `awww-daemon` | wallpaper backend |
+| `ffmpeg` | video-wallpaper still extraction |
+| `nmcli` (NetworkManager) | wifi + hotspot surface |
+| `bluetoothctl` (bluez) | bluetooth surface |
+| `brightnessctl` or `light` | backlight control |
+| `cava` | music visualiser |
+| `cliphist` + `wl-clipboard` | clipboard history |
+| `slurp` | window/region picker for screen recording |
+| `hyprsunset` | night light |
+| `xdg-open` (xdg-utils) | opening record folder / files |
+| systemd (user) | keep-awake inhibitor, hyprsunset service |
+
+Arch/CachyOS hints — most of the above are in the repos:
+
+```bash
+sudo pacman -S hyprland hyprsunset imagemagick ffmpeg jq libnotify curl \
+  python networkmanager bluez bluez-utils brightnessctl cava wl-clipboard \
+  slurp xdg-utils
+```
+
+AUR packages: `quickshell`, `awww`, `awww-daemon`, `cliphist`, `cava` (if not in repos), plus the optional ones below.
+
+### Optional, for full functionality
+
+| Package | Adds |
+| --- | --- |
+| `gpu-screen-recorder` | the screen-recording backend (recording is disabled without it) |
+| `mpvpaper` | animated / video wallpapers |
+| `matugen` | Material base16 palettes (always-dark terminal theme) |
+| `ddcutil` | monitor brightness via DDC (external display faders) |
+| `kdialog` / `zenity` | native folder picker for the record output directory |
+| `ghostty` | live terminal palette reload over D-Bus |
+| `fastfetch` | recoloured system readout (needs `~/.config/fastfetch/config.jsonc.in`) |
+| `hypridle` | idle / DPMS lock integration alongside the built-in keep-awake |
 
 ## Install
 
@@ -24,27 +76,82 @@ All paths resolve at runtime relative to this project folder (`Singletons/Config
 ./install.sh
 ```
 
-This copies the project to `~/.local/share/quickshell/pill` (override with `PILL_INSTALL_ROOT`). The copy is self-contained, so point quickshell at it and run.
+This copies the project to `~/.local/share/quickshell/ukishima` (override with `UKISHIMA_INSTALL_ROOT`), and reports any missing dependencies. The copy is self-contained.
 
 ## Launch
 
+From a clone:
+
 ```bash
-quickshell --config "$HOME/.config/quickshell/pill"
+git clone https://github.com/you/ukishima ~/.config/quickshell/ukishima
+quickshell --config "$HOME/.config/quickshell/ukishima"
 ```
 
-After an install:
+After an `install.sh` install:
 
 ```bash
-quickshell --config "$HOME/.local/share/quickshell/pill"
+quickshell --config "$HOME/.local/share/quickshell/ukishima"
 ```
 
 ## Hyprland integration
 
-The shell writes generated config files under its own folder (`modules/`, `hypridle.conf`, `hyprsunset.conf`). To load them, `source` those paths from your Hyprland config:
+The shell writes its generated files under its own folder (`modules/`, `hyprsunset.conf`). To load the blur layer rule, `source` the generated lua from your Hyprland config:
 
-```bash
-source = ~/.config/quickshell/pill/modules/*.lua
-exec-once = hypridle -c ~/.config/quickshell/pill/hypridle.conf
+```conf
+source = ~/.config/quickshell/ukishima/modules/*.lua
 ```
 
-This repo never touches `~/.config/hypr` by default.
+Night light runs as a user service (`hyprsunset`) — create `~/.config/systemd/user/hyprsunset.service` pointing at the installed config and enable it once:
+
+```ini
+[Unit]
+Description=Hyprsunset night light
+
+[Service]
+ExecStart=/usr/bin/hyprsunset --config %h/.config/quickshell/ukishima/hyprsunset.conf
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user enable --now hyprsunset
+```
+
+Ukishima never touches `~/.config/hypr` by default.
+
+## Keybinds (IPC)
+
+Every surface and action is exposed over quickshell IPC (target `ukishima`), so bind them straight in your Hyprland config instead of calling hyprctl to find the monitor — the monitor argument is optional and an empty one resolves to the focused monitor:
+
+```conf
+bind = SUPER, SPACE,  exec, quickshell-ipc ukishima launcher
+bind = SUPER, C,      exec, quickshell-ipc ukishima clipboard
+bind = SUPER, W,      exec, quickshell-ipc ukishima wallpaper
+bind = SUPER, D,      exec, quickshell-ipc ukishima quickRecord
+bind = SUPER, M,      exec, quickshell-ipc ukishima mixer
+bind = SUPER, B,      exec, quickshell-ipc ukishima battery
+bind = SUPER, G,      exec, quickshell-ipc ukishima gameMode
+bind = SUPER, S,      exec, quickshell-ipc ukishima sysmon
+bind = SUPER, L,      exec, quickshell-ipc ukishima power
+bind = SUPER, ESCAPE, exec, quickshell-ipc ukishima hide
+```
+
+Available IPC handlers: `launcher`, `wallpaper`, `clipboard`, `mixer`, `calendar`, `media`, `power`, `link`, `battery`, `sysmon`/`system`, `recorder`/`screenrec`/`record`, `quickRecord`, `gameMode`, `peek`, `hide`, `page`, `minimizeWindow`, `restoreWindow`. The `page` handler takes the monitor first (empty = focused) and the surface name second, so surfaces without a dedicated handler open as `quickshell-ipc ukishima page "" wifi`.
+
+## Layout
+
+All paths resolve at runtime relative to this project folder (`Singletons/Config.qml` self-locates it), so the shell works regardless of where it was launched from:
+
+- shell entry: `shell.qml` (+ the pill body `Pill.qml` at the root)
+- surfaces: `surfaces/` — the panels the pill morphs into
+- components: `components/` — reusable widgets (pill surface base, glyphs, settings kit, …)
+- singletons: `Singletons/` — one per-service singleton (`Config`, `Flags`, `Theme`, `Walls`, `Players`, …)
+- helpers: `lib/` — pure JS (`fuzzy.js`, `calc.js`, `binds.js`, …)
+- scripts: `scripts/` — wallpaper set/thumb/search, palette (`wallpaper.sh`, `wallcolors.py`, …)
+- Hyprland-compat outputs: `modules/*.lua`, `hyprsunset.conf` under this folder
+
+## State & cache
+
+- state: `$XDG_STATE_HOME/ukishima` (default `~/.local/state/ukishima`) — flags, events, wallpaper state, launcher usage
+- cache: `$XDG_CACHE_HOME/ukishima` (default `~/.cache/ukishima`) — palette JSON, weather, rec thumbs; wallpaper previews under `ukishima-wp-thumbs/`

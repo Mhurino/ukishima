@@ -2,11 +2,11 @@
 MAGICK_CONFIGURE_PATH="$(dirname "$0")/magick-policy"
 export MAGICK_CONFIGURE_PATH
 
-flags="${XDG_STATE_HOME:-$HOME/.local/state}/pill/flags.json"
+flags="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
 wpdir=$(jq -r '.wallpaperDir // ""' "$flags" 2>/dev/null || echo "")
-[ -n "$wpdir" ] || wpdir=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/pill-wallpaper-dir" 2>/dev/null || true)
+[ -n "$wpdir" ] || wpdir=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-dir" 2>/dev/null || true)
 [ -n "$wpdir" ] || wpdir="$HOME/Pictures/Wallpapers"
-cache="${XDG_CACHE_HOME:-$HOME/.cache}/pill-wp-thumbs"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/ukishima-wp-thumbs"
 # Each wallpaper folder gets its own subdirectory keyed by the hash of its
 # canonical path, so files that share a basename across folders never stomp
 # each other and switching folders cannot show a stale thumb from the other

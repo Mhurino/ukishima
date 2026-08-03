@@ -6,7 +6,7 @@ import Quickshell
  * Path authority for the pill, kept as one self-locating source of truth. The
  * app root is this file's own directory tree (the quickshell project folder),
  * so nothing depends on where the shell was launched from or on exported
- * PILL_* environment variables. Hyprland-compat outputs (generated modules/*,
+ * UKISHIMA_* environment variables. Hyprland-compat outputs (generated modules/*,
  * hypridle.conf, hyprsunset.conf and scripts/) all resolve under the same
  * project folder; user state and caches land under the standard XDG dirs in
  * the pill's own namespace.
@@ -22,8 +22,8 @@ Singleton {
 
     readonly property string _app: configDir
     readonly property string _hypr: configDir
-    readonly property string _state: root._xdgDir("XDG_STATE_HOME", "/.local/state") + "/pill"
-    readonly property string _cache: root._xdgDir("XDG_CACHE_HOME", "/.cache") + "/pill"
+    readonly property string _state: root._xdgDir("XDG_STATE_HOME", "/.local/state") + "/ukishima"
+    readonly property string _cache: root._xdgDir("XDG_CACHE_HOME", "/.cache") + "/ukishima"
 
     function _localPath(url) {
         var s = String(url);

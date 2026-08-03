@@ -17,7 +17,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/pill/nvibrant-value"
+    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ukishima/nvibrant-value"
 
     property int vibrance: 40
 

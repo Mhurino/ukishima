@@ -101,9 +101,9 @@ download() {
     url="${1:-}"
     [ -n "$url" ] || exit 1
 
-    flags="${XDG_STATE_HOME:-$HOME/.local/state}/pill/flags.json"
+    flags="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
     wpdir=$(jq -r '.wallpaperDir // ""' "$flags" 2>/dev/null || echo "")
-    [ -n "$wpdir" ] || wpdir=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/pill-wallpaper-dir" 2>/dev/null || true)
+    [ -n "$wpdir" ] || wpdir=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-dir" 2>/dev/null || true)
     [ -n "$wpdir" ] || wpdir="$HOME/Pictures/Wallpapers"
     dir="$wpdir/downloads"
     mkdir -p "$dir"

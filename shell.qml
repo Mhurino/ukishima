@@ -8,7 +8,7 @@ import Quickshell.Hyprland
 import "Singletons"
 
 /**
- * Washi pill top shell. Each monitor carries two layer-shell windows:
+ * Ukishima top shell. Each monitor carries two layer-shell windows:
  *
  *  - `reserve` is a zero-content strip that only claims an exclusive zone the
  *    height of the rest pill, so tiled windows always sit below the pill even
@@ -58,7 +58,7 @@ ShellRoot {
     Process {
         id: updatedToast
         command: ["sh", "-c",
-            "m=\"${XDG_STATE_HOME:-$HOME/.local/state}/pill/updated\"; [ -f \"$m\" ] || exit 0; "
+            "m=\"${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/updated\"; [ -f \"$m\" ] || exit 0; "
             + "b=$(cat \"$m\"); rm -f \"$m\"; "
             + "gdbus call --session --dest org.freedesktop.Notifications "
             + "--object-path /org/freedesktop/Notifications "
@@ -80,7 +80,7 @@ ShellRoot {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Background
-        WlrLayershell.namespace: "pill-inhibit"
+        WlrLayershell.namespace: "ukishima-inhibit"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         anchors { top: true; left: true }
         IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
@@ -94,7 +94,7 @@ ShellRoot {
      */
     Process {
         running: Flags.keepAwake
-        command: ["systemd-inhibit", "--what=idle:sleep", "--who=Pill",
+        command: ["systemd-inhibit", "--what=idle:sleep", "--who=Ukishima",
                   "--why=keep awake", "--mode=block", "sleep", "infinity"]
     }
 
@@ -151,7 +151,7 @@ ShellRoot {
     }
 
     IpcHandler {
-        target: "pill"
+        target: "ukishima"
         function mixer(mon: string): void { root.toggleSurface(mon, "mixer"); }
         function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
         function launcher(mon: string): void { root.toggleSurface(mon, "launcher"); }
@@ -285,7 +285,7 @@ ShellRoot {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: ((surfaceOpen || pill.quickChoosing)) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-            WlrLayershell.namespace: "pill"
+            WlrLayershell.namespace: "ukishima"
 
             anchors { top: true; left: true; right: true; bottom: true }
 

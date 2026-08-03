@@ -271,7 +271,7 @@ Item {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-        WlrLayershell.namespace: "pill-tray"
+        WlrLayershell.namespace: "ukishima-tray"
 
         anchors { top: true; left: true; right: true; bottom: true }
 

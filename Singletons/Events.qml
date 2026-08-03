@@ -5,7 +5,7 @@ import Quickshell.Io
 
 /**
  * Local calendar events, persisted as a plain JSON array beside the session
- * flags (~/.local/state/pill/events.json). The in-memory `events` is the
+ * flags (~/.local/state/ukishima/events.json). The in-memory `events` is the
  * source of truth: add/remove mutate it and write the file, which is read back
  * only at startup. The file is deliberately NOT watched — re-reading our own
  * write races the FileView's cached text and dropped the just-added event (it
