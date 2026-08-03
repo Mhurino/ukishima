@@ -472,6 +472,30 @@ Item {
         precision: Flags.clockSeconds ? SystemClock.Seconds : SystemClock.Minutes
     }
 
+    /**
+     * Re-sync the clock when the machine wakes from sleep or lid close.
+     * SystemClock's internal timer is monotonic, so it does not advance while
+     * suspended and the displayed time stays frozen at the pre-sleep minute
+     * until that timer drains. systemd-logind broadcasts PrepareForSleep(true)
+     * before suspending and PrepareForSleep(false) on wake; on the wake signal
+     * we re-enable the clock to force it to re-read the wall clock immediately.
+     */
+    Process {
+        id: sleepWatcher
+        running: true
+        command: ["dbus-monitor", "--system",
+            "type='signal',sender='org.freedesktop.login1',member='PrepareForSleep'"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                if (line.indexOf("boolean false") >= 0) {
+                    sysClock.enabled = false;
+                    sysClock.enabled = true;
+                }
+            }
+        }
+        onExited: () => sleepWatcher.running = true
+    }
+
     property real morphRadius: (mode === "rest" || mode === "hover" || mode === "game") ? restCorner : openCorner
 
     /**

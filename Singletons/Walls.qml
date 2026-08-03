@@ -20,6 +20,16 @@ import Quickshell.Io
  * to the pill-wallpaper-dir state file on its last run, then
  * ~/Pictures/Wallpapers for a first boot before wallpaper.sh init has run.
  *
+ * The pipeline never runs on its own: it is triggered only by the wallpaper
+ * strip's refresh button or an explicit folder change, never when the strip
+ * opens, so thumbnails are generated strictly on demand.
+ *
+ * Thumbs live in per-folder subdirectories of the pill-wp-thumbs cache, each
+ * keyed by the md5 of its wallpaper folder's path. Files sharing a basename
+ * across folders therefore never clobber each other, and switching folders
+ * can't surface a stale thumb from the previous one; each folder's cache is
+ * pruned and regenerated independently.
+ *
  * Entries are plain objects: { path, name, mtime, thumb } where path is the
  * absolute source file, mtime its modification time in epoch seconds and
  * thumb the absolute path of the cached preview png.
@@ -55,8 +65,6 @@ Singleton {
     readonly property string setScript: Config.hyprPath("scripts", "wallpaper.sh")
     readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/pill-wallpaper"
     readonly property string dirStateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/pill-wallpaper-dir"
-
-    onWpDirChanged: refresh()
 
     FileView {
         id: dirFile
@@ -142,22 +150,29 @@ Singleton {
 
     Process {
         id: listProc
-        command: ["sh", "-c", "find \"$1\" -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.gif' -o -iname '*.webp' -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \\) -printf '%T@\\t%p\\n' | sort -rn", "_", root.wpDir]
+        command: ["sh", "-c",
+            "key=$(printf %s \"$1\" | md5sum | cut -d' ' -f1); "
+            + "find \"$1\" -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.gif' -o -iname '*.webp' -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \\) -printf '%T@\\t%p\\n' | sort -rn "
+            + "| awk -F'\\t' -v c=\"$2$key\" '{ n = split($2, p, \"/\"); printf \"%s\\t%s\\t%s\\n\", $1, $2, c \"/\" p[n] \".png\" }'",
+            "_", root.wpDir, root.thumbDir]
         stdout: StdioCollector {
             onStreamFinished: {
                 var lines = this.text.split("\n");
                 var out = [];
                 for (var i = 0; i < lines.length; i++) {
-                    var tab = lines[i].indexOf("\t");
-                    if (tab < 1)
+                    var t1 = lines[i].indexOf("\t");
+                    if (t1 < 1)
                         continue;
-                    var path = lines[i].substring(tab + 1);
+                    var t2 = lines[i].indexOf("\t", t1 + 1);
+                    if (t2 < 0)
+                        continue;
+                    var path = lines[i].substring(t1 + 1, t2);
                     var name = path.substring(path.lastIndexOf("/") + 1);
                     out.push({
                         path: path,
                         name: name,
-                        mtime: parseFloat(lines[i].substring(0, tab)),
-                        thumb: root.thumbDir + name + ".png"
+                        mtime: parseFloat(lines[i].substring(0, t1)),
+                        thumb: lines[i].substring(t2 + 1)
                     });
                 }
                 root.entries = out;
@@ -200,6 +215,4 @@ Singleton {
             stateProc.running = true;
         }
     }
-
-    Component.onCompleted: refresh()
 }

@@ -260,7 +260,6 @@ PillSurface {
         query = "";
         ddgResults = [];
         searchField.text = "";
-        Walls.refresh();
         centerOnCurrent();
         hintShown = false;
         hintDwell.restart();
@@ -541,11 +540,12 @@ PillSurface {
     }
 
     /**
-     * Refresh control, top-right. Re-runs the whole thumbnail pipeline, so
-     * missing previews are generated and stale ones regenerated on demand (the
-     * automatic open-refresh only fixes files that drifted since the last run,
-     * not ones the strip itself outgrew). The glyph spins while the pipeline is
-     * in flight and the strip re-centres on the current wallpaper when it lands.
+     * Refresh control, top-right. The only trigger for the thumbnail pipeline:
+     * re-runs the whole thing, so missing previews are generated and stale ones
+     * regenerated on demand. Opening the strip never refreshes; what is shown
+     * is the last snapshot until this is clicked. The glyph spins while the
+     * pipeline is in flight and the strip re-centres on the current wallpaper
+     * when it lands.
      */
     Rectangle {
         id: refreshBtn
@@ -653,6 +653,7 @@ PillSurface {
             Keys.onPressed: (e) => {
                 if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
                     Flags.wallpaperDir = dirField.text.trim();
+                    Walls.refresh();
                     root.editingDir = false;
                     e.accepted = true;
                 } else if (e.key === Qt.Key_Escape) {

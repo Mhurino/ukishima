@@ -7,16 +7,22 @@ wpdir=$(jq -r '.wallpaperDir // ""' "$flags" 2>/dev/null || echo "")
 [ -n "$wpdir" ] || wpdir=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/pill-wallpaper-dir" 2>/dev/null || true)
 [ -n "$wpdir" ] || wpdir="$HOME/Pictures/Wallpapers"
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/pill-wp-thumbs"
-mkdir -p "$cache"
+# Each wallpaper folder gets its own subdirectory keyed by the hash of its
+# canonical path, so files that share a basename across folders never stomp
+# each other and switching folders cannot show a stale thumb from the other
+# folder. The same hash is reproduced by the pill's listing command.
+key=$(printf %s "$wpdir" | md5sum | cut -d' ' -f1)
+dir="$cache/$key"
+mkdir -p "$dir"
 
-for f in "$cache"/*.png; do
+for f in "$dir"/*.png; do
     [ -e "$f" ] || continue
     base="$(basename "$f" .png)"
     [ -n "$(find "$wpdir" -type f -name "$base" -print -quit)" ] || rm -f "$f"
 done
 
 find "$wpdir" -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.gif' -o -iname '*.webp' -o -iname '*.mp4' -o -iname '*.webm' -o -iname '*.mkv' -o -iname '*.mov' \) | while IFS= read -r src; do
-    thumb="$cache/$(basename "$src").png"
+    thumb="$dir/$(basename "$src").png"
     if [ ! -s "$thumb" ] || [ "$src" -nt "$thumb" ]; then
         case "$src" in
             *.[Mm][Pp]4|*.[Ww][Ee][Bb][Mm]|*.[Mm][Kk][Vv]|*.[Mm][Oo][Vv])
