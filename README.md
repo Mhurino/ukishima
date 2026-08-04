@@ -81,6 +81,18 @@ Ukishima is built on top of [**Ricelin**](https://github.com/Gakuseei/Ricelin) b
 
 This copies the project to `~/.local/share/quickshell/ukishima` (override with `UKISHIMA_INSTALL_ROOT`), and reports any missing dependencies. The copy is self-contained.
 
+## Uninstall
+
+There is no uninstall script; remove the install, state and cache folders manually:
+
+```bash
+rm -rf "$HOME/.local/share/quickshell/ukishima"
+rm -rf "$HOME/.local/state/ukishima"
+rm -rf "$HOME/.cache/ukishima"
+```
+
+Also remove any references you added yourself: the `source = ~/.config/quickshell/ukishima/modules/*.lua` line in your Hyprland config, the `hyprsunset` user service, and any IPC keybinds.
+
 ## Launch
 
 From a clone:
