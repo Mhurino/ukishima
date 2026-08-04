@@ -6,6 +6,16 @@ Ukishima (浮島, *"floating island"*) is a widget layer for Hyprland built arou
 
 The project is fully self-contained: the config folder holds the QML surfaces, its own scripts and the Hyprland-compat files it generates, so nothing is copied into or sourced from another dotfiles tree.
 
+## Preview
+
+<p align="center">
+<img src="preview/mpv-shot0001.jpg" width="70%" alt="Ukishima preview 1">
+<img src="preview/mpv-shot0008.jpg" width="70%" alt="Ukishima preview 2">
+<img src="preview/mpv-shot0010.jpg" width="70%" alt="Ukishima preview 3">
+</p>
+
+See the [full preview gallery](preview/README.md) for all screenshots.
+
 ## Credits
 
 Ukishima is built on top of [**Ricelin**](https://github.com/Gakuseei/Ricelin) by [**Gakuseei**](https://github.com/Gakuseei). The pill concept, the morphing-surface architecture and most of the original shell codebase come from there; this project extends, reworks and rebrands it. All credit for the base code goes to the original author.
