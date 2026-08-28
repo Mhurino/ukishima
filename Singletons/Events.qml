@@ -165,7 +165,16 @@ Component.onCompleted: {
         id: file
         path: root.stateDir + "/events.json"
         blockLoading: false
+        watchChanges: true
         printErrors: false
+
+        onFileChanged: {
+            file.reload();
+        }
+
+        onLoaded: {
+            root.reloadEvents();
+        }
 
         onLoadFailed: function (error) {
             if (error === FileViewError.FileNotFound)
