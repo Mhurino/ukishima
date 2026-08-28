@@ -232,7 +232,7 @@ Singleton {
     }
 
     function buildArgs(captureToken, file) {
-        var args = ["gpu-screen-recorder", "-w", captureToken,
+             var args = ["/usr/bin/gpu-screen-recorder", "-w", captureToken,
                     "-f", String(fps), "-q", qualityPreset[quality] || "high",
                     "-cursor", captureCursor ? "yes" : "no"];
         var a = audioArg();
@@ -459,21 +459,22 @@ Singleton {
      * from anywhere, not just this surface. On a save the recent list re-reads so
      * the new file appears.
      */
-    Process {
-        id: pollProc
-        command: ["pgrep", "-f", "(^|/)gpu-screen-recorder"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var running = this.text.trim().length > 0;
-                if (running !== root.recording) {
-                    root.recording = running;
-                    if (!running)
-                        Qt.callLater(root.refreshRecent);
-                }
+Process {
+    id: pollProc
+    command: ["pgrep", "-f", "/gpu-screen-recorder.*-o .*recording_"]
+    stdout: StdioCollector {
+        onStreamFinished: {
+            var running = this.text.trim().length > 0;
+
+            if (running !== root.recording) {
+                root.recording = running;
+
+                if (!running)
+                    Qt.callLater(root.refreshRecent);
             }
         }
     }
-
+}
     Timer {
         interval: 1000
         running: root.recording || root.recorderOpen

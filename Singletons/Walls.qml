@@ -215,4 +215,5 @@ Singleton {
             stateProc.running = true;
         }
     }
+      Component.onCompleted: Qt.callLater(root.refresh)
 }

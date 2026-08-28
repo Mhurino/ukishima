@@ -36,7 +36,7 @@ Singleton {
      */
     readonly property string config: "[general]\n"
         + "bars = " + bars + "\nframerate = 60\nautosens = 0\nsensitivity = 5500\n"
-        + "[input]\nmethod = pipewire\nsource = auto\n"
+        + "[input]\nmethod = pulse\nsource = auto\n"
         + "[output]\nmethod = raw\nraw_target = /dev/stdout\ndata_format = ascii\n"
         + "ascii_max_range = 1000\nbar_delimiter = 59\nframe_delimiter = 10\n"
         + "channels = mono\nmono_option = average\n"
@@ -45,12 +45,11 @@ Singleton {
     onWantedChanged: cavaProc.running = wanted
     Component.onCompleted: cavaProc.running = wanted
 
-    Process {
-        running: true
-        command: ["sh", "-c", "command -v cava >/dev/null 2>&1"]
-        onExited: (code) => root.available = (code === 0)
-    }
-
+Process {
+    running: true
+    command: ["/usr/bin/cava", "-v"]
+    onExited: (code) => root.available = (code === 0)
+}
     Process {
         id: cavaProc
         command: ["sh", "-c", "printf '%s' \"$1\" | cava -p /dev/stdin", "_", root.config]

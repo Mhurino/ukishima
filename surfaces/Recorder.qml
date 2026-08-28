@@ -85,6 +85,22 @@ PillSurface {
         id: rmClipProc
         onExited: ScreenRec.refreshRecent()
     }
+    Process {
+        id: replayProc
+        command: [
+            "gsr-cli",
+            "-ipc",
+            "/run/user/1000/gsr.sock",
+            "save-replay",
+            "30"
+        ]
+
+        onExited: {
+            if (exitCode === 0)
+                ScreenRec.refreshRecent()
+        }
+   
+}
 
     function fmtTime(sec) {
         var m = Math.floor(sec / 60);
@@ -685,11 +701,14 @@ PillSurface {
         Item {
             id: actionGroup
             width: parent.width
-            height: 44 * root.s
+            height: 94 * root.s
 
             Rectangle {
                 id: actionBar
-                anchors.fill: parent
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 44 * root.s
                 radius: 14 * root.s
                 clip: true
                 gradient: Gradient {
@@ -787,7 +806,7 @@ PillSurface {
                     font.weight: Font.DemiBold
                 }
 
-                MouseArea {
+                               MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.press()
@@ -795,7 +814,39 @@ PillSurface {
             }
 
             Rectangle {
+                id: replayButton
+                anchors.top: actionBar.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: 8 * root.s
+                height: 42 * root.s
+                radius: 14 * root.s
+                color: Theme.cardBot
+                border.width: 1
+                border.color: Theme.border
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Replay 30s"
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 12 * root.s
+                    font.weight: Font.Bold
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (!replayProc.running)
+                            replayProc.running = true;
+                    }
+                }
+            }
+
+            Rectangle {
                 id: chooser
+
                 anchors.fill: parent
                 visible: root.chooserOpen
                 radius: 14 * root.s

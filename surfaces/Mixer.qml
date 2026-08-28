@@ -21,6 +21,55 @@ PillSurface {
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property var source: Pipewire.defaultAudioSource
 
+    readonly property var activeAudioStreams: {
+        void Pipewire.nodes.values;
+        var out = [];
+        var all = Pipewire.nodes.values;
+
+        for (var i = 0; i < all.length; i++) {
+            var n = all[i];
+
+            if (!n || !n.isStream || !n.audio)
+                continue;
+
+            var mediaClass = n.properties
+                ? String(n.properties["media.class"] || "")
+                : "";
+
+            if (mediaClass && mediaClass.indexOf("Audio/Sink") >= 0)
+                continue;
+
+            if (mediaClass && mediaClass.indexOf("Audio/Source") >= 0)
+                continue;
+
+            out.push(n);
+        }
+
+        out.sort(function(a, b) {
+            return root.streamLabel(a).localeCompare(root.streamLabel(b));
+        });
+
+        return out;
+    }
+
+    function streamLabel(node) {
+        if (!node)
+            return "";
+
+        var p = node.properties || {};
+
+        return String(
+            p["application.name"]
+            || p["node.description"]
+            || p["media.name"]
+            || node.description
+            || node.name
+            || "Audio"
+        );
+    }
+
+
+
     /**
      * Output devices the user can make default: real sinks only, never the
      * per-app playback streams. Sorted by label so the list order stays stable
@@ -180,7 +229,11 @@ PillSurface {
     }
 
     PwObjectTracker {
-        objects: [root.sink, root.source].concat(root.outputSinks).concat(root.inputSources).filter(Boolean)
+        objects: [root.sink, root.source]
+            .concat(root.outputSinks)
+            .concat(root.inputSources)
+            .concat(root.activeAudioStreams)
+            .filter(Boolean)
     }
 
     /**
@@ -309,7 +362,7 @@ PillSurface {
                 text: "MIXER"
                 color: Theme.subtle
                 font.family: Theme.font
-                font.pixelSize: 10 * root.s
+                font.pixelSize: 10.5 * root.s
                 font.weight: Font.DemiBold
                 font.capitalization: Font.AllUppercase
                 font.letterSpacing: 1.6 * root.s
@@ -346,13 +399,15 @@ PillSurface {
                 tipDesc: "Block sleep & screen-off"
                 onToggled: Flags.keepAwake = !Flags.keepAwake
             }
-            IconChip {
-                glyph: "sun"
-                on: Flags.nightLightMode !== "off"
-                tipTitle: "Night light"
-                tipDesc: "Warm the screen"
-                onToggled: NightLight.setMode(Flags.nightLightMode === "off" ? "on" : "off")
-            }
+
+IconChip {
+    glyph: "sun"
+    on: false
+    tipTitle: "Night light"
+    tipDesc: "Toggle night light"
+    onToggled: nightLightProc.running = true
+}
+
             IconChip {
                 glyph: "gamepad"
                 on: Flags.gameMode
@@ -484,11 +539,19 @@ PillSurface {
         onPick: (node) => Pipewire.preferredDefaultAudioSink = node
     }
 
-    DeviceMenu {
+            DeviceMenu {
         kind: "in"
         model: root.inputSources
         current: root.source
         onPick: (node) => Pipewire.preferredDefaultAudioSource = node
+    }
+
+    Process {
+        id: nightLightProc
+        command: [
+            "/home/francesco/.config/hypr/UserScripts/scripts/Hyprsunset.sh",
+            "toggle"
+        ]
     }
 
     Row {
@@ -505,7 +568,6 @@ PillSurface {
         Repeater {
             id: brRep
             model: Devices.ddcMonitors
-
             VFader {
                 id: brFader
 
@@ -623,6 +685,119 @@ PillSurface {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: { if (root.source && root.source.audio) root.source.audio.muted = !root.source.audio.muted; }
             }
+        }
+    }
+
+    Column {
+        id: appAudioSection
+        anchors.top: faderRow.bottom
+        anchors.topMargin: 10 * root.s
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 93 * Math.max(4, root.faderCount) * root.s
+        spacing: 7 * root.s
+        visible: root.settled && root.activeAudioStreams.length > 0
+
+        Text {
+            visible: root.activeAudioStreams.length > 0
+            text: "ACTIVE AUDIO"
+            horizontalAlignment: Text.AlignHCenter
+            width: parent.width
+            color: Theme.subtle
+            font.family: Theme.font
+            font.pixelSize: 8.5 * root.s
+            font.weight: Font.DemiBold
+            font.letterSpacing: 1.2 * root.s
+        }
+
+        Repeater {
+            model: root.activeAudioStreams
+
+            delegate: Item {
+    id: appRow
+    required property var modelData
+
+    width: appAudioSection.width
+    height: 22 * root.s
+
+    readonly property real level:
+        appRow.modelData && appRow.modelData.audio
+            ? Math.max(0, Math.min(1, appRow.modelData.audio.volume))
+            : 0
+
+    Row {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 6 * root.s
+
+        Text {
+            width: 70 * root.s
+            text: root.streamLabel(appRow.modelData)
+            color: Theme.cream
+            font.family: Theme.font
+            font.pixelSize: 10 * root.s
+            font.weight: Font.Medium
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
+        }
+
+        Rectangle {
+            id: track
+            width: 118 * root.s
+            height: 4 * root.s
+            radius: 2 * root.s
+            anchors.verticalCenter: parent.verticalCenter
+            color: Theme.threadBg
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: parent.width * appRow.level
+                radius: parent.radius
+                color: appRow.modelData.audio && appRow.modelData.audio.muted
+                    ? Theme.vermDim
+                    : Theme.vermLit
+
+                Behavior on width {
+                    NumberAnimation {
+                        duration: Motion.fast
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+
+                onPressed: (mouse) => {
+                    if (appRow.modelData.audio)
+                        appRow.modelData.audio.volume =
+                            Math.max(0, Math.min(1, mouse.x / width));
+                }
+
+                onPositionChanged: (mouse) => {
+                    if (pressed && appRow.modelData.audio)
+                        appRow.modelData.audio.volume =
+                            Math.max(0, Math.min(1, mouse.x / width));
+                }
+            }
+        }
+
+        Text {
+            width: 35 * root.s
+            text: Math.round(appRow.level * 100) + "%"
+            color: appRow.modelData.audio && appRow.modelData.audio.muted
+                ? Theme.dim
+                : Theme.cream
+            font.family: Theme.font
+            font.pixelSize: 10 * root.s
+            font.weight: Font.DemiBold
+            font.features: ({ "tnum": 1 })
+            horizontalAlignment: Text.AlignRight
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
+}
         }
     }
 

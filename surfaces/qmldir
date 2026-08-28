@@ -16,3 +16,5 @@ SysmonSurface SysmonSurface.qml
 Toast Toast.qml
 Wallpaper Wallpaper.qml
 WifiSurface WifiSurface.qml
+
+Beats Beats.qml

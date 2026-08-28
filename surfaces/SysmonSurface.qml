@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell.Io
 import "../Singletons"
 import "../components"
-
 /**
  * 系 SYSTEM surface: a flat washi card of live machine vitals fed by the Sysmon
  * singleton. The header carries the kanji, label and uptime. Below it sit flame
@@ -18,6 +18,11 @@ import "../components"
  */
 PillSurface {
     id: root
+
+    Process {
+        id: missionCenterProc
+        command: ["flatpak", "run", "io.missioncenter.MissionCenter"]
+    }
 
     mTop: 14
     mLeft: 16
@@ -208,18 +213,48 @@ PillSurface {
                 }
             }
 
-            Text {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                text: Sysmon.uptime
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 9.5 * root.s
-                font.weight: Font.Bold
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 1.1 * root.s
-                font.features: { "tnum": 1 }
+Row {
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    spacing: 10 * root.s
+
+    Text {
+        anchors.verticalCenter: parent.verticalCenter
+        text: Sysmon.uptime
+        color: Theme.dim
+        font.family: Theme.font
+        font.pixelSize: 9.5 * root.s
+        font.weight: Font.Bold
+        font.capitalization: Font.AllUppercase
+        font.letterSpacing: 1.1 * root.s
+        font.features: { "tnum": 1 }
+    }
+
+    Text {
+        id: monitorButton
+        anchors.verticalCenter: parent.verticalCenter
+        text: "MONITOR"
+        color: monitorArea.containsMouse ? Theme.flameGlow : Theme.subtle
+        font.family: Theme.font
+        font.pixelSize: 9 * root.s
+        font.weight: Font.Bold
+        font.capitalization: Font.AllUppercase
+        font.letterSpacing: 1 * root.s
+
+        MouseArea {
+            id: monitorArea
+            anchors.fill: parent
+            anchors.margins: -6 * root.s
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+                if (!missionCenterProc.running)
+                    missionCenterProc.running = true;
             }
+        }
+    }
+}
         }
 
         Item { width: 1; height: 16 * root.s }

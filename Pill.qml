@@ -29,6 +29,7 @@ Item {
     property string screenName: ""
     property var barWindow
     property string surface: ""
+    property bool monFullscreen: false
 
     property bool hovered: false
     /**
@@ -51,6 +52,7 @@ Item {
     readonly property bool wallpaperOpen: surface === "wallpaper"
     readonly property bool powerOpen: surface === "power"
     readonly property bool mediaOpen: surface === "media"
+    readonly property bool beatsOpen: surface === "beats"
     readonly property bool linkOpen: surface === "link"
     readonly property bool wifiOpen: surface === "wifi"
     readonly property bool btOpen: surface === "bt"
@@ -88,8 +90,7 @@ Item {
         onTriggered: pill.bootSettled = true
     }
 
-    readonly property bool expanded: surfaceOpen || held || hoverLatch
-
+   readonly property bool expanded: surfaceOpen || held || hoverLatch
     /**
      * True when this pill sits on the monitor Hyprland currently has focused.
      * Only used to drop the cursor latch on focus loss: `hidden` itself is
@@ -134,8 +135,9 @@ Item {
      * (with its 350ms grace) is what keeps the pill up while the cursor is near
      * it, so a cursor sitting on the strip's edge cannot bounce it.
      */
-    readonly property bool hidden: Flags.autoHide && !revealSession && !expanded && !dragActive
-        && !transientLive && mode !== "game"
+    readonly property bool hidden: monFullscreen
+        || (Flags.autoHide && !revealSession && !expanded && !dragActive
+        && !transientLive && mode !== "game")
 
     /**
      * The special workspace shown on this pill's monitor, surfaced as a plain word
@@ -166,7 +168,6 @@ Item {
     }
     readonly property bool toastActive: Notifs.popups.length > 0
     readonly property bool osdActive: osd.flashing
-
     /**
      * Quick-record overlays belong only to the focused monitor the keybind
      * targeted, so a single chooser and a single countdown toast appear. The
@@ -183,7 +184,13 @@ Item {
     readonly property real hoverPad: 20 * s
     readonly property real hoverW: hoverRow.implicitWidth + 2 * hoverPad
     readonly property real hoverH: 58 * s
-    readonly property real mixerH: 214 * s
+    readonly property real mixerH: {
+        var streams = ldMixer.item ? ldMixer.item.activeAudioStreams.length : 0;
+        var extra = streams > 0
+            ? (31 + streams * 29) * s
+            : 0;
+        return 214 * s + extra;
+    }
     readonly property real launcherW: 360 * s
     readonly property real launcherH: 332 * s
     readonly property real clipboardW: 360 * s
@@ -191,6 +198,18 @@ Item {
     readonly property real wallpaperW: 720 * s
     readonly property real wallpaperH: 172 * s
     readonly property real powerW: 330 * s
+    readonly property real beatsW: 390 * s
+    readonly property real beatsH: {
+        var it = ldBeats.item;
+
+        if (it && it.page === "manage")
+            return 680 * s;
+
+        if (it && it.page === "online")
+            return 520 * s;
+
+        return 244 * s;
+    }
     readonly property real powerH: 150 * s
     readonly property real mediaW: (Players.pickable.length > 1 ? 460 : 390) * s
     readonly property real mediaH: 150 * s
@@ -244,6 +263,7 @@ Item {
         wallpaper: { size: () => { surfaceItem(ldWall); return Qt.size(wallpaperW, wallpaperH); }, ame: () => null },
         power:     { size: () => { surfaceItem(ldPower); return Qt.size(powerW, powerH); }, ame: () => surfaceItem(ldPower) },
         media:     { size: () => { surfaceItem(ldMedia); return Qt.size(mediaW, mediaH); }, ame: () => surfaceItem(ldMedia) },
+        beats:     { size: () => Qt.size(beatsW, beatsH), ame: () => surfaceItem(ldBeats) },
         mixer:     { size: () => Qt.size(93 * Math.max(4, surfaceItem(ldMixer).faderCount) * s, mixerH), ame: () => surfaceItem(ldMixer) },
         link:      { size: () => { const it = surfaceItem(ldLink); return Qt.size(it.desiredW, it.implicitHeight + 26 * s); }, ame: () => surfaceItem(ldLink) },
         wifi:      { size: () => Qt.size(wifiW, surfaceItem(ldWifi).implicitHeight + 26 * s), ame: () => surfaceItem(ldWifi) },
@@ -721,6 +741,8 @@ Item {
             return batteryIcon.mapToItem(pill, batteryIcon.width / 2, batteryIcon.height + drop * 0.55);
         if (soulTarget === "inbox")
             return inboxIcon.mapToItem(pill, inboxIcon.width / 2, inboxIcon.height + drop * 0.55);
+        if (soulTarget === "beats")
+            return beatsIcon.mapToItem(pill, beatsIcon.width / 2, beatsIcon.height + drop * 0.55);
         if (soulTarget === "mixer")
             return mixerIcon.mapToItem(pill, mixerIcon.width / 2, mixerIcon.height + drop * 0.55);
         if (soulTarget === "power")
@@ -1156,6 +1178,16 @@ Item {
 
         Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
 
+        MouseArea {
+            anchors.fill: parent
+            enabled: pill.mode === "game"
+            acceptedButtons: Qt.LeftButton
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                Flags.gameMode = false;
+            }
+        }
+
         Row {
             anchors.left: parent.left
             anchors.leftMargin: 18 * pill.s
@@ -1281,82 +1313,214 @@ Item {
         Row {
             id: restRow
             anchors.centerIn: parent
-            spacing: 9 * pill.s
+            spacing: 8 * pill.s
+            Item {
+                id: restMusic
+                visible: pill.specialView === "" && Flags.musicViz && Cava.active
+                anchors.verticalCenter: parent.verticalCenter
+                width: visible ? 32 * pill.s : 0
+                height: 18 * pill.s
+
+                MusicBars {
+                    anchors.centerIn: parent
+                    s: pill.s
+                    span: 17
+                }
+            }
+
+            Rectangle {
+                visible: pill.specialView === "" && Flags.musicViz && Cava.active
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 12 * pill.s
+                color: Theme.hairSoft
+            }
+            /* WORKSPACE */
+            Workspaces {
+                id: restWs
+                screenName: pill.screenName
+                s: pill.s
+                opacity: 0
+                enabled: true
+                width: 1
+                height: 1
+            }
+
+            Row {
+                id: restWorkspace
+                visible: pill.specialView === "" && restWs.activeName !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4 * pill.s
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 5 * pill.s
+                    radius: height / 2
+                    color: Theme.vermLit
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: restWs.activeName
+                    color: Theme.vermLit
+                    font.family: Theme.font
+                    font.pixelSize: 9.5 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+
+            Rectangle {
+                visible: pill.specialView === ""
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 12 * pill.s
+                color: Theme.hairSoft
+            }
+
+            /* CLOCK */
             Item {
                 id: restKanji
                 visible: pill.specialView === ""
                 anchors.verticalCenter: parent.verticalCenter
-                width: kanjiFill.implicitWidth
-                height: kanjiFill.implicitHeight
-
-                /** Audio leaving the speakers flips the clock glyph over to the live waveform. */
-                readonly property bool barsOn: Flags.musicViz && Cava.active
+                width: 17 * pill.s
+                height: 17 * pill.s
 
                 Text {
-                    anchors.fill: parent
-                    opacity: (Flags.showGlyphs && !restKanji.barsOn) ? 1 : 0
-                    text: kanjiFill.text
-                    color: "transparent"
-                    font: kanjiFill.font
-                    style: Text.Outline
-                    styleColor: Qt.alpha(Theme.vermLit,
-                        Math.min(1, (pill.mode === "rest" || !pill.hoverSoulGate ? 0.5 : 0) + pill.kanjiFlash))
-                    Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
-                }
-
-                Text {
-                    id: kanjiFill
-                    opacity: (Flags.showGlyphs && !restKanji.barsOn) ? 1 : 0
+                    anchors.centerIn: parent
+                    visible: Flags.showGlyphs
                     text: "時"
                     color: Theme.cream
                     font.family: Theme.fontJp
                     font.weight: Font.Medium
                     font.pixelSize: 15 * pill.s
-                    Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
                 }
 
                 GlyphIcon {
                     anchors.centerIn: parent
-                    opacity: (!Flags.showGlyphs && !restKanji.barsOn) ? 1 : 0
+                    visible: !Flags.showGlyphs
                     width: 17 * pill.s
                     height: 17 * pill.s
                     name: "clock"
                     color: Theme.cream
                     stroke: 1.7
-                    Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
-                }
-
-                MusicBars {
-                    id: musicBars
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: kanjiFill.baseline
-                    s: pill.s
-                    opacity: restKanji.barsOn ? 1 : 0
-                    scale: restKanji.barsOn ? 1 : 0.7
-                    Behavior on opacity { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
-                    Behavior on scale { NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard } }
                 }
             }
-            Text {
+
+             Item {
+    id: restClockSlot
+    visible: pill.specialView === ""
+    anchors.verticalCenter: parent.verticalCenter
+    width: clockRow.implicitWidth
+    height: 18 * pill.s
+
+    Row {
+        id: clockRow
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 7 * pill.s
+
+        Text {
+            id: restClockText
+            anchors.verticalCenter: parent.verticalCenter
+            text: clock.hhmm
+            color: Theme.cream
+            font.family: Theme.font
+            font.pixelSize: 16 * pill.s
+            font.weight: Font.DemiBold
+            font.features: ({ "tnum": 1 })
+        }
+
+    }
+}
+
+             Rectangle {
                 visible: pill.specialView === ""
                 anchors.verticalCenter: parent.verticalCenter
-                text: clock.hhmm
-                color: Theme.cream
-                font.family: Theme.font
-                font.pixelSize: 16 * pill.s
-                font.weight: Font.DemiBold
-                font.features: { "tnum": 1 }
+                width: 1
+                height: 12 * pill.s
+                color: Theme.hairSoft
             }
+
+            /* APPS */
             Text {
-                visible: pill.specialView !== ""
+                id: restAppsText
+                visible: pill.specialView === ""
                 anchors.verticalCenter: parent.verticalCenter
-                text: pill.specialView
-                color: Theme.cream
+
+                text: {
+                    var all = Hyprland.toplevels.values;
+                    var names = [];
+                    var seen = ({});
+                    var ws = restWs.activeName;
+
+                    for (var i = 0; i < all.length; i++) {
+                        var t = all[i];
+                        if (!t || !t.workspace || String(t.workspace.id) !== String(ws))
+                            continue;
+
+                        var cls = "";
+                        if (t.lastIpcObject && t.lastIpcObject.class)
+                            cls = String(t.lastIpcObject.class);
+                        else if (t.wayland && t.wayland.appId)
+                            cls = String(t.wayland.appId);
+
+                        if (!cls || seen[cls])
+                            continue;
+
+                        seen[cls] = true;
+
+                        var label = cls;
+                        var apps = DesktopEntries.applications.values;
+
+                        for (var j = 0; j < apps.length; j++) {
+                            var e = apps[j];
+                            if (!e)
+                                continue;
+
+                            var eid = String(e.id || "");
+                            var ename = String(e.name || "");
+
+                            if (eid.toLowerCase() === cls.toLowerCase()) {
+                                if (ename)
+                                    label = ename;
+                                break;
+                            }
+                        }
+
+                        if (label === cls) {
+                            label = label
+                                .replace(/^app[.]/i, "")
+                                .replace(/^org[.]/i, "")
+                                .replace(/^com[.]/i, "")
+                                .replace(/^net[.]/i, "")
+                                .replace(/[._-]+/g, " ");
+
+                            label = label.replace(/\b\w/g, function(c) {
+                                return c.toUpperCase();
+                            });
+                        }
+
+                        names.push(label);
+                    }
+
+                    if (names.length <= 3)
+                        return names.join(" · ");
+
+                    return names.slice(0, 3).join(" · ")
+                        + " +" + (names.length - 3);
+                }
+
+                color: Theme.subtle
                 font.family: Theme.font
-                font.pixelSize: 16 * pill.s
-                font.weight: Font.DemiBold
+                font.pixelSize: 9.5 * pill.s
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+                width: Math.min(210 * pill.s, implicitWidth)
             }
         }
+
+
     }
 
     Item {
@@ -1428,10 +1592,12 @@ Item {
                     anchors.centerIn: parent
                     width: hoverClock.implicitWidth + 22 * pill.s
                     height: hoverClock.implicitHeight + 10 * pill.s
-                    enabled: hover.live
+                   enabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: pill.requestSurface("calendar")
-                }
+onClicked: {
+    console.log("CALENDAR CLOCK CLICK")
+    pill.requestSurface("calendar")
+}                }
             }
 
             Rectangle {
@@ -1458,8 +1624,8 @@ Item {
                     }
                     TapHandler {
                         enabled: hover.live
-                        onTapped: pill.requestSurface("calendar")
-                    }
+ onTapped: pill.requestSurface("calendar")
+                     }
 
                     GlyphIcon {
                         anchors.verticalCenter: parent.verticalCenter
@@ -1702,6 +1868,31 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: pill.requestSurface("link")
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "inbox"
+                    }
+                }
+
+                Item {
+                    id: beatsIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "music"
+                        color: beatsArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: beatsArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("beats")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "beats"
                     }
                 }
 
@@ -2033,6 +2224,19 @@ Item {
         sourceComponent: Media {
             s: pill.s
             open: pill.mediaOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+        }
+    }
+
+
+    Loader {
+        id: ldBeats
+        active: false
+        anchors.fill: parent
+        sourceComponent: Beats {
+            s: pill.s
+            open: pill.beatsOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
         }
