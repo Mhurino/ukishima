@@ -17,6 +17,8 @@ Singleton {
     id: root
 
     readonly property string confPath: Config.hyprPath("hyprsunset.conf")
+    property bool available: false
+    property string pendingMode: ""
 
     function clampTemp(t) {
         return Math.max(2200, Math.min(6000, Math.round(t)));
@@ -75,6 +77,10 @@ Singleton {
     function pushLive() {
         if (ipc.running)
             return;
+        if (!root.available) {
+            ipc.command = root.desiredCmd();
+            return;
+        }
         ipc.command = root.desiredCmd();
         ipc.running = true;
     }
@@ -99,7 +105,23 @@ Singleton {
      * the next clock boundary. Pure off↔on rides the IPC push alone, since its
      * conf is a single all-day profile that only fires at 0:00.
      */
+    function notify(summary, body) {
+        notifyProc.command = ["notify-send", "-a", "Ukishima", summary, body];
+        notifyProc.running = true;
+    }
+
     function setMode(m) {
+        if (m !== "off") {
+            root.pendingMode = m;
+            availProc.running = true;
+            return;
+        }
+
+        root.pendingMode = "";
+        root.applyMode(m);
+    }
+
+    function applyMode(m) {
         var was = Flags.nightLightMode;
         Flags.nightLightMode = m;
         root.commit(was === "scheduled" || m === "scheduled");
@@ -161,4 +183,31 @@ Singleton {
         id: restartProc
         command: ["systemctl", "--user", "restart", "hyprsunset"]
     }
+
+    Process {
+        id: availProc
+        command: ["sh", "-c", "which hyprsunset && pgrep -x hyprsunset >/dev/null"]
+        onExited: function(exitCode) {
+            root.available = (exitCode === 0);
+
+            if (root.available && root.pendingMode !== "") {
+                var m = root.pendingMode;
+                root.pendingMode = "";
+                root.applyMode(m);
+            } else if (!root.available) {
+                root.pendingMode = "";
+                root.notify(
+                    "Night light unavailable",
+                    "hyprsunset is not installed or the service is not running."
+                );
+            }
+        }
+    }
+
+    Process {
+        id: notifyProc
+        command: []
+    }
+
+    Component.onCompleted: availProc.running = true
 }
