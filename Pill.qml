@@ -121,7 +121,7 @@ Item {
      * getting involved, so the pill must let them finish and then retract on
      * its own — transients hold the pill up, but they leave no latch behind.
      */
-    readonly property bool transientLive: toastActive || quickChoosing || quickCounting
+    readonly property bool transientLive: osdActive || toastActive || quickChoosing || quickCounting
 
     /**
      * True when the pill should retract off the top edge: auto-hide is on and
@@ -282,8 +282,9 @@ Item {
         : (Flags.gameMode ? "game"
         : (quickChoosing ? "quickChoose"
         : (quickCounting ? "quickCount"
+        : (osdActive && !held ? "osd"
         : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest"))))))
+        : (expanded ? "hover" : "rest")))))))
 
     /**
      * AppImage drag-install state, live only while a file hovers the resting pill.
@@ -526,6 +527,7 @@ Item {
      * targetSize.
      */
     readonly property var modeSize: ({
+        osd:   () => Qt.size(osd.desiredW, osd.desiredH),
         toast: () => Qt.size(toastW, toastLoader.item ? toastLoader.item.implicitHeight + 24 * s : restH),
         hover: () => Qt.size(hoverW, hoverH),
         quickChoose: () => Qt.size(quickChooseW, quickChooseH),
@@ -2355,12 +2357,21 @@ onClicked: {
 
     Osd {
         id: osd
+        anchors.fill: parent
+        anchors.topMargin: 12 * pill.s
+        anchors.leftMargin: 18 * pill.s
+        anchors.rightMargin: 18 * pill.s
+        anchors.bottomMargin: 12 * pill.s
         s: pill.s
         screenName: pill.screenName
         suppressed: pill.surfaceOpen || pill.held
         expanded: pill.expanded
-        visible: false
-        enabled: false
+        enabled: pill.mode === "osd"
+        opacity: pill.mode === "osd" ? 1 : 0
+        visible: opacity > 0.01
+        Behavior on opacity {
+            NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard }
+        }
     }
 
     Loader {
