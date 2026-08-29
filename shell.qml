@@ -67,12 +67,6 @@ ShellRoot {
             + "Pill 0 '' 'Pill updated' \"$b\" '[]' '{}' 5000 >/dev/null 2>&1"]
     }
 
-    Binding {
-        target: Notifs
-        property: "dnd"
-        value: Flags.dnd
-    }
-
     PanelWindow {
         id: inhibitWin
         visible: Flags.keepAwake
