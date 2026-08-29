@@ -526,7 +526,6 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                     expanded: pill.expanded
                     topFlat: pill.mode === "game" ? 1 : 0
                     suppressed: overlay.surfaceOpen
-                        || overlay.monFullscreen
                         || pill.held
                         || pill.quickChoosing
                         || pill.quickCounting
