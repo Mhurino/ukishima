@@ -47,6 +47,7 @@ Item {
     readonly property bool held: pinned || forcePinned
     readonly property bool mixerOpen: surface === "mixer"
     readonly property bool calendarOpen: surface === "calendar"
+    readonly property bool weatherOpen: surface === "weather"
     readonly property bool launcherOpen: surface === "launcher"
     readonly property bool clipboardOpen: surface === "clipboard"
     readonly property bool wallpaperOpen: surface === "wallpaper"
@@ -258,6 +259,7 @@ Item {
      */
     readonly property var surfaces: ({
         calendar:  { size: () => { const it = surfaceItem(ldCalendar); return Qt.size((it.implicitWidth > 0 ? it.implicitWidth : 282 * s) + 36 * s, it.implicitHeight + 32 * s); }, ame: () => surfaceItem(ldCalendar) },
+        weather:   { size: () => { const it = surfaceItem(ldWeather); return Qt.size((it.implicitWidth > 0 ? it.implicitWidth : 282 * s) + 36 * s, it.implicitHeight + 32 * s); }, ame: () => surfaceItem(ldWeather) },
         launcher:  { size: () => { surfaceItem(ldLauncher); return Qt.size(launcherW, launcherH); }, ame: () => surfaceItem(ldLauncher) },
         clipboard: { size: () => { surfaceItem(ldClip); return Qt.size(clipboardW, clipboardH); }, ame: () => surfaceItem(ldClip) },
         wallpaper: { size: () => { surfaceItem(ldWall); return Qt.size(wallpaperW, wallpaperH); }, ame: () => null },
@@ -1624,7 +1626,7 @@ onClicked: {
                     }
                     TapHandler {
                         enabled: hover.live
- onTapped: pill.requestSurface("calendar")
+ onTapped: pill.requestSurface("weather")
                      }
 
                     GlyphIcon {
@@ -2166,6 +2168,18 @@ onClicked: {
             s: pill.s
             open: pill.calendarOpen
             morphCloseness: pill.morphCloseness
+        }
+    }
+
+    Loader {
+        id: ldWeather
+        active: false
+        anchors.fill: parent
+        sourceComponent: WeatherSurface {
+            s: pill.s
+            open: pill.weatherOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
         }
     }
 
