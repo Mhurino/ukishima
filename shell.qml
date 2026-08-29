@@ -6,6 +6,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "Singletons"
+import "surfaces"
 
 /**
  * Ukishima top shell. Each monitor carries two layer-shell windows:
@@ -513,6 +514,24 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
 
                     onRequestSurface: (name) => root.toggleSurface(overlay.modelData.name, name)
                     onRequestClose: root.close()
+                }
+
+                OsdPopup {
+                    id: osdPopup
+                    anchors.top: parent.top
+                    anchors.topMargin: (pill.mode === "game") ? 0 : overlay.topGap
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    s: overlay.s
+                    screenName: overlay.modelData.name
+                    expanded: pill.expanded
+                    topFlat: pill.mode === "game" ? 1 : 0
+                    suppressed: overlay.surfaceOpen
+                        || overlay.monFullscreen
+                        || pill.held
+                        || pill.quickChoosing
+                        || pill.quickCounting
+                        || pill.mode === "game"
+                        || (pill.toastActive && Notifs.toastCritical)
                 }
             }
 

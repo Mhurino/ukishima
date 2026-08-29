@@ -19,3 +19,4 @@ WifiSurface WifiSurface.qml
 
 Beats Beats.qml
 WeatherSurface WeatherSurface.qml
+OsdPopup OsdPopup.qml
