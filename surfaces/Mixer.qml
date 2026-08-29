@@ -118,18 +118,7 @@ PillSurface {
     property int focusIndex: -1
     readonly property int faderCount: faders.length
     readonly property var faders: {
-        void brRep.count;
-        void blLoader.item;
-        var out = [];
-        for (var i = 0; i < brRep.count; i++) {
-            var f = brRep.itemAt(i);
-            if (f)
-                out.push(f);
-        }
-        if (blLoader.item)
-            out.push(blLoader.item);
-        out.push(vibFader, volFader, micFader);
-        return out;
+        return [vibFader, volFader, micFader];
     }
     readonly property bool surfaceHovered: hoverTracker.hovered
 
@@ -400,13 +389,19 @@ PillSurface {
                 onToggled: Flags.keepAwake = !Flags.keepAwake
             }
 
-IconChip {
-    glyph: "sun"
-    on: false
-    tipTitle: "Night light"
-    tipDesc: "Toggle night light"
-    onToggled: nightLightProc.running = true
-}
+            IconChip {
+                glyph: "sun"
+                on: Flags.nightLightMode === "on"
+                    || (Flags.nightLightMode === "scheduled" && NightLight.windowOpen())
+                tipTitle: "Night light"
+                tipDesc: "Toggle night light"
+                onToggled: {
+                    if (Flags.nightLightMode === "on")
+                        NightLight.setMode("off");
+                    else
+                        NightLight.setMode("on");
+                }
+            }
 
             IconChip {
                 glyph: "gamepad"
@@ -565,75 +560,8 @@ IconChip {
 
         readonly property real colW: width / Math.max(1, root.faderCount)
 
-        Repeater {
-            id: brRep
-            model: Devices.ddcMonitors
-            VFader {
-                id: brFader
 
-                required property var modelData
-                required property int index
 
-                property int pct: 75
-                property real pendingPct: -1
-
-                width: faderRow.colW
-                s: root.s
-                icon: "sun"
-                subLabel: "Brightness"
-                subPersistent: false
-                focused: root.focusIndex === index
-                value: pct / 100
-                valueLabel: pct + "%"
-                onMoved: (v) => pct = Math.max(5, Math.min(100, Math.round(v * 100)))
-                onCommitted: (v) => {
-                    pendingPct = Math.max(5, Math.min(100, Math.round(v * 100)));
-                    brCommit.restart();
-                }
-
-                Timer {
-                    id: brCommit
-                    interval: 160
-                    onTriggered: if (brFader.pendingPct >= 0) {
-                        Devices.setBrightness(brFader.modelData.bus, brFader.pendingPct);
-                        brFader.pendingPct = -1;
-                    }
-                }
-
-                Process {
-                    id: brRead
-                    command: ["timeout", "3", "ddcutil", "getvcp", "10", "--bus", brFader.modelData.bus, "--brief"]
-                    running: true
-                    stdout: StdioCollector {
-                        onStreamFinished: {
-                            var v = Devices.parseBrightness(this.text);
-                            if (v >= 0)
-                                brFader.pct = v;
-                        }
-                    }
-                }
-            }
-        }
-
-        Loader {
-            id: blLoader
-            active: Devices.backlightPresent
-            visible: active
-            width: active ? faderRow.colW : 0
-
-            sourceComponent: VFader {
-                width: faderRow.colW
-                s: root.s
-                icon: "sun"
-                subLabel: "Brightness"
-                subPersistent: false
-                focused: root.focusIndex === brRep.count
-                value: Devices.backlightPct / 100
-                valueLabel: Devices.backlightPct + "%"
-                onMoved: (v) => Devices.backlightPct = Math.max(1, Math.min(100, Math.round(v * 100)))
-                onCommitted: (v) => { root.pendingBacklight = Math.max(1, Math.min(100, Math.round(v * 100))); blDebounce.restart(); }
-            }
-        }
 
         VFader {
             id: vibFader
@@ -642,7 +570,7 @@ IconChip {
             icon: "monitor"
             subLabel: "Vibrance"
             subPersistent: false
-            focused: root.focusIndex === root.faderCount - 3
+            focused: root.focusIndex === 0
             value: Devices.vibrance / 100
             valueLabel: Devices.vibrance + "%"
             onMoved: (v) => Devices.vibrance = Math.round(v * 100)
@@ -655,7 +583,7 @@ IconChip {
             icon: (root.sink && root.sink.audio && root.sink.audio.muted) ? "speaker-off" : "speaker"
             subLabel: "Volume"
             subPersistent: false
-            focused: root.focusIndex === root.faderCount - 2
+            focused: root.focusIndex === 1
             value: root.sink && root.sink.audio ? root.sink.audio.volume : 0
             valueLabel: Math.round((root.sink && root.sink.audio ? root.sink.audio.volume : 0) * 100) + "%"
             muted: root.sink && root.sink.audio ? root.sink.audio.muted : false
@@ -668,7 +596,7 @@ IconChip {
             icon: (root.source && root.source.audio && root.source.audio.muted) ? "mic-off" : "mic"
             subLabel: "Microphone"
             subPersistent: false
-            focused: root.focusIndex === root.faderCount - 1
+            focused: root.focusIndex === 2
             value: root.source && root.source.audio ? root.source.audio.volume : 0
             valueLabel: (root.source && root.source.audio && root.source.audio.muted)
                 ? "off"
