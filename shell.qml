@@ -228,7 +228,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             readonly property real gameBarH: 34 * s
 
             screen: modelData
-            visible: !monFullscreen
+            visible: true
             color: "transparent"
             exclusionMode: ExclusionMode.Normal
             exclusiveZone: Flags.gameMode ? gameBarH : (Flags.autoHide ? 0 : reservedH)
