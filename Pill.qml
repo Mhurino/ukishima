@@ -568,9 +568,34 @@ Item {
         const sf = surfaces[mode];
         if (sf)
             return sf.size();
+
         const f = modeSize[mode];
-        return f ? f() : Qt.size(Math.max(restW, restRow.implicitWidth + 36 * s), restH);
+        if (f)
+            return f();
+
+        /*
+         * Preset a riposo: la loro geometria non dipende dal Custom HUD.
+         * Questo impedisce a workspace/app/Cava del Custom di modificare
+         * la larghezza degli altri preset.
+         */
+        if (Flags.mainDisplay === "minimal")
+            return Qt.size(150 * s, restH);
+
+        if (Flags.mainDisplay === "classic")
+            return Qt.size(275 * s, restH);
+
+        if (Flags.mainDisplay === "system")
+            return Qt.size(305 * s, restH);
+
+        if (Flags.mainDisplay === "strip")
+            return Qt.size(barWindow ? Math.max(0, barWindow.width - 10 * s) : 1920 * s, restH - 6 * s);
+
+        return Qt.size(
+            Math.max(restW, restRow.implicitWidth + 36 * s),
+            restH
+        );
     }
+
     readonly property real targetW: targetSize.width
     readonly property real targetH: targetSize.height
 
@@ -1561,82 +1586,196 @@ Item {
             && pill.mode === "rest"
         opacity: visible ? Math.pow(pill.morphCloseness, 1.5) : 0
 
-        Workspaces {
-            id: mainDisplayWs
-            visible: Flags.mainDisplay === "strip"
-            enabled: visible
-            anchors.left: parent.left
-            anchors.leftMargin: 18 * pill.s
-            anchors.verticalCenter: parent.verticalCenter
-            width: implicitWidth
-            height: implicitHeight
-            screenName: pill.screenName
-            s: pill.s
-        }
-
-        Row {
+        Item {
             id: stripFace
             visible: Flags.mainDisplay === "strip"
-            anchors.right: parent.right
-            anchors.rightMargin: 18 * pill.s
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 14 * pill.s
+            anchors.fill: parent
 
-            Text {
+            Row {
+                id: stripLeft
+                anchors.left: parent.left
+                anchors.leftMargin: 18 * pill.s
                 anchors.verticalCenter: parent.verticalCenter
-                text: Qt.formatDate(clock.now, "d MMM")
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 11 * pill.s
-                font.weight: Font.DemiBold
-            }
+                spacing: 12 * pill.s
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: clock.hhmm
-                color: Theme.cream
-                font.family: Theme.font
-                font.pixelSize: 17 * pill.s
-                font.weight: Font.DemiBold
-                font.features: ({ "tnum": 1 })
-            }
+                Workspaces {
+                    id: stripWs
+                    anchors.verticalCenter: parent.verticalCenter
+                    screenName: pill.screenName
+                    s: pill.s
+                    stickW: 13 * pill.s
+                    dotW: 4 * pill.s
+                    gap: 3 * pill.s
+                }
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: kbLayout.code
-                color: Theme.dim
-                font.family: Theme.font
-                font.pixelSize: 12 * pill.s
-                font.weight: Font.DemiBold
+                Text {
+                    id: stripAppsText
+                    visible: restAppsText.text.length > 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: restAppsText.text
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 10 * pill.s
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
+                    width: Math.min(360 * pill.s, implicitWidth)
+                }
             }
 
             Row {
+                id: stripRight
+                anchors.right: parent.right
+                anchors.rightMargin: 18 * pill.s
                 anchors.verticalCenter: parent.verticalCenter
-                visible: Battery.present
-                spacing: 4 * pill.s
+                spacing: 12 * pill.s
+
+                Row {
+                    id: stripNowPlaying
+                    visible: Players.playing && Players.title.length > 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 7 * pill.s
+
+                    Item {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 22 * pill.s
+                        height: 22 * pill.s
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 6 * pill.s
+                            color: Theme.frameBg
+                            visible: Players.artUrl.length === 0
+                        }
+
+                        Image {
+                            anchors.fill: parent
+                            fillMode: Image.PreserveAspectCrop
+                            source: Players.artUrl
+                            visible: source !== ""
+                            mipmap: true
+                        }
+
+                        GlyphIcon {
+                            anchors.centerIn: parent
+                            width: 15 * pill.s
+                            height: 15 * pill.s
+                            name: "music"
+                            color: Theme.iconDim
+                            stroke: 1.6
+                            visible: Players.artUrl.length === 0
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Players.title
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 10.5 * pill.s
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                        width: Math.min(190 * pill.s, implicitWidth)
+                    }
+                }
+
+
+                Item {
+                    visible: Flags.musicViz && Cava.active
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: visible ? 32 * pill.s : 0
+                    height: 18 * pill.s
+
+                    MusicBars {
+                        anchors.centerIn: parent
+                        s: pill.s
+                        span: 17
+                    }
+                }
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 1
+                    height: 15 * pill.s
+                    color: Theme.hairSoft
+                }
 
                 GlyphIcon {
+                    visible: pill.wifiDev !== null && pill.wifiOn
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: Battery.charging
-                    width: 11 * pill.s
-                    height: 11 * pill.s
-                    name: "bolt"
-                    color: Battery.low ? Theme.vermLit : Theme.dim
-                    stroke: 1.6
+                    width: visible ? 16 * pill.s : 0
+                    height: 16 * pill.s
+                    name: "wifi"
+                    color: Theme.iconDim
+                    stroke: 1.7
+                }
+
+                GlyphIcon {
+                    visible: pill.btAdapter !== null && pill.btOn
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: visible ? 16 * pill.s : 0
+                    height: 16 * pill.s
+                    name: "bluetooth"
+                    color: Theme.iconDim
+                    stroke: 1.7
+                }
+
+                GlyphIcon {
+                    visible: Notifs.unread > 0
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: visible ? 17 * pill.s : 0
+                    height: 17 * pill.s
+                    name: "inbox"
+                    color: Theme.flameGlow
+                    stroke: 1.7
+                }
+
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Qt.formatDate(clock.now, "d MMM")
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 11 * pill.s
+                    font.weight: Font.DemiBold
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Battery.pct + "%"
-                    color: Battery.low ? Theme.vermLit : Theme.dim
+                    text: clock.hhmm
+                    color: Theme.cream
                     font.family: Theme.font
-                    font.pixelSize: 12 * pill.s
+                    font.pixelSize: 17 * pill.s
                     font.weight: Font.DemiBold
                     font.features: ({ "tnum": 1 })
                 }
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: Flags.showGlyphs
+                        text: "時"
+                        color: Theme.cream
+                        font.family: Theme.fontJp
+                        font.weight: Font.Medium
+                        font.pixelSize: 15 * pill.s
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        visible: !Flags.showGlyphs
+                        width: 16 * pill.s
+                        height: 16 * pill.s
+                        name: "clock"
+                        color: Theme.cream
+                        stroke: 1.7
+                    }
+                }
             }
         }
-
         Row {
             id: minimalFace
             visible: Flags.mainDisplay === "minimal"
