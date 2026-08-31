@@ -73,6 +73,32 @@ Item {
     readonly property real wifiLevel: (wifiActive && wifiActive.signalStrength) || 0
     readonly property var btAdapter: (typeof Bluetooth !== "undefined" && Bluetooth) ? Bluetooth.defaultAdapter : null
     readonly property bool btOn: btAdapter ? btAdapter.enabled === true : false
+
+    readonly property var audioSink: {
+        try {
+            return Pipewire.defaultAudioSink;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    readonly property bool headphonesConnected: {
+        var n = audioSink;
+        if (!n)
+            return false;
+
+        var props = n.properties || {};
+        var text = [
+            n.name || "",
+            n.description || "",
+            n.nickname || "",
+            props["node.name"] || "",
+            props["node.description"] || "",
+            props["device.api"] || ""
+        ].join(" ").toLowerCase();
+
+        return /bluez|bluetooth|headphone|headset|earbud|airpod/.test(text);
+    }
     readonly property bool surfaceOpen: surface.length > 0
     property bool hoverLatch: false
 
@@ -98,6 +124,8 @@ Item {
      * central and does not key off monitor focus, so transient (OSD/toast)
      * appearances retract on their own even on the focused monitor.
      */
+    readonly property bool stripBar: Flags.mainDisplay === "strip"
+
     readonly property bool monFocused: {
         const m = Hyprland.focusedMonitor;
         return m ? m.name === pill.screenName : false;
@@ -1314,6 +1342,7 @@ Item {
 
         Row {
             id: restRow
+            visible: pill.specialView === "" && Flags.mainDisplay === "custom"
             anchors.centerIn: parent
             spacing: 8 * pill.s
             Item {
@@ -1523,6 +1552,320 @@ Item {
         }
 
 
+    }
+
+    Item {
+        id: mainDisplayFace
+        anchors.fill: parent
+        visible: pill.specialView === "" && Flags.mainDisplay !== "custom"
+            && pill.mode === "rest"
+        opacity: visible ? Math.pow(pill.morphCloseness, 1.5) : 0
+
+        Workspaces {
+            id: mainDisplayWs
+            visible: Flags.mainDisplay === "strip"
+            enabled: visible
+            anchors.left: parent.left
+            anchors.leftMargin: 18 * pill.s
+            anchors.verticalCenter: parent.verticalCenter
+            width: implicitWidth
+            height: implicitHeight
+            screenName: pill.screenName
+            s: pill.s
+        }
+
+        Row {
+            id: stripFace
+            visible: Flags.mainDisplay === "strip"
+            anchors.right: parent.right
+            anchors.rightMargin: 18 * pill.s
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 14 * pill.s
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Qt.formatDate(clock.now, "d MMM")
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 11 * pill.s
+                font.weight: Font.DemiBold
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: clock.hhmm
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 17 * pill.s
+                font.weight: Font.DemiBold
+                font.features: ({ "tnum": 1 })
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: kbLayout.code
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 12 * pill.s
+                font.weight: Font.DemiBold
+            }
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Battery.present
+                spacing: 4 * pill.s
+
+                GlyphIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: Battery.charging
+                    width: 11 * pill.s
+                    height: 11 * pill.s
+                    name: "bolt"
+                    color: Battery.low ? Theme.vermLit : Theme.dim
+                    stroke: 1.6
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Battery.pct + "%"
+                    color: Battery.low ? Theme.vermLit : Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 12 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+        }
+
+        Row {
+            id: minimalFace
+            visible: Flags.mainDisplay === "minimal"
+            anchors.centerIn: parent
+            spacing: 8 * pill.s
+
+            Item {
+                width: 17 * pill.s
+                height: 17 * pill.s
+                anchors.verticalCenter: parent.verticalCenter
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: Flags.showGlyphs
+                    text: "時"
+                    color: Theme.cream
+                    font.family: Theme.fontJp
+                    font.weight: Font.Medium
+                    font.pixelSize: 15 * pill.s
+                }
+
+                GlyphIcon {
+                    anchors.centerIn: parent
+                    visible: !Flags.showGlyphs
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+                    name: "clock"
+                    color: Theme.cream
+                    stroke: 1.7
+                }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: clock.hhmm
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 16 * pill.s
+                font.weight: Font.DemiBold
+                font.features: ({ "tnum": 1 })
+            }
+        }
+
+        Row {
+            id: classicFace
+            visible: Flags.mainDisplay === "classic"
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 16 * pill.s
+
+            Workspaces {
+                id: classicWs
+                anchors.verticalCenter: parent.verticalCenter
+                screenName: pill.screenName
+                s: pill.s
+                stickW: 13 * pill.s
+                dotW: 4 * pill.s
+                gap: 3 * pill.s
+            }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 15 * pill.s
+                color: Theme.hairSoft
+            }
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 5 * pill.s
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 16 * pill.s
+                    height: 17 * pill.s
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: Flags.showGlyphs
+                        text: "時"
+                        color: Theme.cream
+                        font.family: Theme.fontJp
+                        font.weight: Font.Medium
+                        font.pixelSize: 15 * pill.s
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        visible: !Flags.showGlyphs
+                        width: 16 * pill.s
+                        height: 16 * pill.s
+                        name: "clock"
+                        color: Theme.cream
+                        stroke: 1.7
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: clock.hhmm
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 16 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: Qt.formatDate(clock.now, "d MMM")
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 11 * pill.s
+                font.weight: Font.DemiBold
+            }
+
+            GlyphIcon {
+                visible: headphonesConnected
+                anchors.verticalCenter: parent.verticalCenter
+                width: visible ? 17 * pill.s : 0
+                height: 17 * pill.s
+                name: "headphones"
+                color: Theme.iconDim
+                stroke: 1.7
+            }
+        }
+        Row {
+            id: systemFace
+            visible: Flags.mainDisplay === "system"
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 12 * pill.s
+
+            Workspaces {
+                id: systemWs
+                anchors.verticalCenter: parent.verticalCenter
+                screenName: pill.screenName
+                s: pill.s
+                stickW: 13 * pill.s
+                dotW: 4 * pill.s
+                gap: 3 * pill.s
+            }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 15 * pill.s
+                color: Theme.hairSoft
+            }
+
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 5 * pill.s
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 15 * pill.s
+                    height: 17 * pill.s
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: Flags.showGlyphs
+                        text: "時"
+                        color: Theme.cream
+                        font.family: Theme.fontJp
+                        font.weight: Font.Medium
+                        font.pixelSize: 15 * pill.s
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        visible: !Flags.showGlyphs
+                        width: 15 * pill.s
+                        height: 15 * pill.s
+                        name: "clock"
+                        color: Theme.cream
+                        stroke: 1.7
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: clock.hhmm
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 15 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 15 * pill.s
+                color: Theme.hairSoft
+            }
+
+            GlyphIcon {
+                visible: pill.wifiDev !== null && pill.wifiOn
+                anchors.verticalCenter: parent.verticalCenter
+                width: visible ? 16 * pill.s : 0
+                height: 16 * pill.s
+                name: "wifi"
+                color: Theme.iconDim
+                stroke: 1.7
+            }
+
+            GlyphIcon {
+                visible: pill.btAdapter !== null && pill.btOn
+                anchors.verticalCenter: parent.verticalCenter
+                width: visible ? 16 * pill.s : 0
+                height: 16 * pill.s
+                name: "bluetooth"
+                color: Theme.iconDim
+                stroke: 1.7
+            }
+
+            GlyphIcon {
+                visible: Notifs.unread > 0
+                anchors.verticalCenter: parent.verticalCenter
+                width: visible ? 17 * pill.s : 0
+                height: 17 * pill.s
+                name: "inbox"
+                color: Theme.flameGlow
+                stroke: 1.7
+            }
+        }
     }
 
     Item {

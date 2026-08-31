@@ -17,6 +17,7 @@ Singleton {
     property alias keepAwake: adapter.keepAwake
     property alias time12h: adapter.time12h
     property alias clockSeconds: adapter.clockSeconds
+    property alias mainDisplay: adapter.mainDisplay
     property alias showGlyphs: adapter.showGlyphs
     property alias paletteMode: adapter.paletteMode
     property alias wallpaperDir: adapter.wallpaperDir
@@ -75,6 +76,7 @@ Singleton {
             property bool keepAwake: false
             property bool time12h: false
             property bool clockSeconds: false
+            property string mainDisplay: "minimal"
             property bool showGlyphs: true
             property string paletteMode: "static"
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */

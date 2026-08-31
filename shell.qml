@@ -223,19 +223,22 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             readonly property real restHeight: 38 * s
 
             /** Trimming the reserved band below the pill's bottom lets windows climb, so App gap sets the pill-to-window air without touching the desktop gaps_out. */
-            readonly property real reservedH: Math.max(0, restHeight + topGap - 12 * (1 - Flags.appGap) * s)
+            readonly property real reservedH: Math.max(0, restHeight + (Flags.mainDisplay === "strip" ? 0 : topGap) - 12 * (1 - Flags.appGap) * s)
 
             readonly property real gameBarH: 34 * s
+
+            /** The strip bar and game mode reserve the full band even with auto-hide on. */
+            readonly property bool barLives: Flags.gameMode || Flags.mainDisplay === "strip" || !Flags.autoHide
 
             screen: modelData
             visible: true
             color: "transparent"
             exclusionMode: ExclusionMode.Normal
-            exclusiveZone: Flags.gameMode ? gameBarH : (Flags.autoHide ? 0 : reservedH)
+            exclusiveZone: Flags.gameMode ? gameBarH : (barLives ? reservedH : 0)
             aboveWindows: true
 
             anchors { top: true; left: true; right: true }
-            implicitHeight: Flags.gameMode ? gameBarH : (Flags.autoHide ? 0 : reservedH)
+            implicitHeight: Flags.gameMode ? gameBarH : (barLives ? reservedH : 0)
 
             mask: emptyReserve
             Region { id: emptyReserve }
@@ -301,9 +304,13 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                 ? hiddenRegion
                 : (modal
                     ? fullRegion
-                    : (Flags.autoHide
-                        ? (pill.revealSession ? revealPillRegion : (pill.expanded ? pillRegion : revealRegion))
-                        : pillRegion))
+                    : (pill.stripBar
+                        ? pillRegion
+                        : (Flags.autoHide
+                            ? (pill.revealSession || pill.transientLive
+                                ? revealPillRegion
+                                : (pill.expanded ? pillRegion : revealRegion))
+                            : pillRegion)))
             Region { id: hiddenRegion }
 
             /**
@@ -475,7 +482,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                 Pill {
                     id: pill
                     anchors.top: parent.top
-                    anchors.topMargin: pill.mode === "game" ? 0 : overlay.topGap
+                    anchors.topMargin: (pill.stripBar || pill.mode === "game") ? 0 : overlay.topGap
                     anchors.horizontalCenter: parent.horizontalCenter
 
                     Behavior on anchors.topMargin {
