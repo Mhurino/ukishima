@@ -13,6 +13,7 @@ Rectangle {
     id: seg
 
     property real s: 1
+    property bool compact: false
     property var options: []
     property var value
     signal picked(var value)
@@ -47,8 +48,8 @@ Rectangle {
                 readonly property bool current: seg.value === modelData.value
                 property bool hovered: false
 
-                width: optLabel.implicitWidth + 18 * seg.s
-                height: optLabel.implicitHeight + 12 * seg.s
+                width: optLabel.implicitWidth + (seg.compact ? 7 : 18) * seg.s
+                height: optLabel.implicitHeight + (seg.compact ? 8 : 12) * seg.s
                 radius: 8 * seg.s
                 color: opt.current ? Qt.alpha(Theme.onGlow, 0.16) : (opt.hovered ? Theme.frameBg : "transparent")
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
@@ -59,9 +60,9 @@ Rectangle {
                     text: opt.modelData.label
                     color: opt.current ? Theme.cream : Theme.subtle
                     font.family: Theme.font
-                    font.pixelSize: 10.5 * seg.s
+                    font.pixelSize: (seg.compact ? 9.3 : 10.5) * seg.s
                     font.weight: Font.Bold
-                    font.letterSpacing: 0.3 * seg.s
+                    font.letterSpacing: (seg.compact ? 0.1 : 0.3) * seg.s
                 }
 
                 MouseArea {

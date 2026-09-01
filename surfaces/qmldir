@@ -19,3 +19,6 @@ WifiSurface WifiSurface.qml
 
 Beats Beats.qml
 WeatherSurface WeatherSurface.qml
+DisplaySurface DisplaySurface.qml
+InterfaceSurface InterfaceSurface.qml
+ThemeSurface ThemeSurface.qml

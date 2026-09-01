@@ -61,8 +61,12 @@ Item {
     readonly property bool recorderOpen: surface === "recorder"
     readonly property bool sysmonOpen: surface === "sysmon"
     readonly property bool appearanceOpen: surface === "appearance"
+    readonly property bool displayOpen: surface === "display"
+    readonly property bool themeOpen: surface === "theme"
+    readonly property bool interfaceOpen: surface === "interface"
     readonly property bool fontpickerOpen: surface === "fontpicker"
-    readonly property bool settingsLike: appearanceOpen || fontpickerOpen
+    readonly property bool settingsLike:
+        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -302,6 +306,9 @@ Item {
         recorder:  { size: () => Qt.size(recorderW, surfaceItem(ldRecorder).implicitHeight + 33 * s), ame: () => surfaceItem(ldRecorder) },
         sysmon:    { size: () => Qt.size(sysmonW, surfaceItem(ldSysmon).implicitHeight + 33 * s), ame: () => surfaceItem(ldSysmon) },
         appearance: { size: () => Qt.size(appearanceW, surfaceItem(ldAppearance).implicitHeight + 29 * s), ame: () => surfaceItem(ldAppearance) },
+        display:    { size: () => Qt.size(appearanceW, surfaceItem(ldDisplay).implicitHeight + 29 * s), ame: () => surfaceItem(ldDisplay) },
+        theme:      { size: () => Qt.size(appearanceW, surfaceItem(ldTheme).implicitHeight + 29 * s), ame: () => surfaceItem(ldTheme) },
+        interface:  { size: () => Qt.size(appearanceW, surfaceItem(ldInterface).implicitHeight + 29 * s), ame: () => surfaceItem(ldInterface) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) }
     })
 
@@ -358,6 +365,12 @@ Item {
     function rowNavSurface() {
         if (pill.appearanceOpen)
             return ldAppearance.item;
+        if (pill.displayOpen)
+            return ldDisplay.item;
+        if (pill.themeOpen)
+            return ldTheme.item;
+        if (pill.interfaceOpen)
+            return ldInterface.item;
         if (pill.fontpickerOpen)
             return ldFontpicker.item;
         return null;
@@ -430,7 +443,7 @@ Item {
      * hover pill. Empty space in the body never triggers this.
      */
     function surfaceBack() {
-        if (pill.fontpickerOpen) {
+        if (pill.displayOpen || pill.themeOpen || pill.interfaceOpen || pill.fontpickerOpen) {
             pill.requestSurface("appearance");
             return;
         }
@@ -2818,6 +2831,45 @@ onClicked: {
         sourceComponent: Appearance {
             s: pill.s
             open: pill.appearanceOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldDisplay
+        active: false
+        anchors.fill: parent
+        sourceComponent: DisplaySurface {
+            s: pill.s
+            open: pill.displayOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldTheme
+        active: false
+        anchors.fill: parent
+        sourceComponent: ThemeSurface {
+            s: pill.s
+            open: pill.themeOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldInterface
+        active: false
+        anchors.fill: parent
+        sourceComponent: InterfaceSurface {
+            s: pill.s
+            open: pill.interfaceOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)
