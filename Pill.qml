@@ -312,14 +312,24 @@ Item {
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) }
     })
 
-    readonly property string mode: dragActive ? "dragOver"
-        : (surfaceOpen && surfaces[surface] !== undefined ? surface
-        : (Flags.gameMode ? "game"
-        : (quickChoosing ? "quickChoose"
-        : (quickCounting ? "quickCount"
-        : (osdActive && !held ? "osd"
-        : (toastActive && !held ? "toast"
-        : (expanded ? "hover" : "rest")))))))
+    readonly property string mode: {
+        if (dragActive)
+            return "dragOver";
+        if (surfaceOpen && surfaces[surface] !== undefined)
+            return surface;
+        if (Flags.gameMode)
+            return "game";
+        if (quickChoosing)
+            return "quickChoose";
+        if (quickCounting)
+            return "quickCount";
+        if (toastActive && !held)
+            return "toast";
+        if (expanded)
+            return "hover";
+        return "rest";
+    }
+
 
     /**
      * AppImage drag-install state, live only while a file hovers the resting pill.
