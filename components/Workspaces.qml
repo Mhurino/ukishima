@@ -210,63 +210,30 @@ Item {
                 readonly property string wsName: String(modelData)
                 readonly property bool isActive: workspaces.activeName === wsName
 
-                Layout.preferredWidth: slot.isActive
-                    ? (workspaces.stickW + 20 * workspaces.s)
-                    : workspaces.dotW
-
+                Layout.preferredWidth: slot.isActive ? workspaces.stickW : workspaces.dotW
                 Layout.preferredHeight: 22 * workspaces.s
-
-                Behavior on Layout.preferredWidth {
-                    NumberAnimation {
-                        duration: Motion.fast
-                        easing.type: Motion.easeStandard
-                    }
-                }
+                Behavior on Layout.preferredWidth { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
 
                 Rectangle {
-                    id: wsBar
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: slot.isActive ? workspaces.stickW : workspaces.dotW
+                    anchors.centerIn: parent
+                    width: parent.width
                     height: workspaces.dotW
                     radius: height / 2
                     color: slot.isActive ? Theme.vermLit : Theme.cream
                     opacity: slot.isActive ? 1.0 : (area.containsMouse ? 0.7 : 0.3)
-
-                    Behavior on opacity {
-                        NumberAnimation { duration: Motion.fast }
-                    }
-                }
-
-                Text {
-                    visible: slot.isActive
-                    anchors.left: wsBar.right
-                    anchors.leftMargin: 4 * workspaces.s
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: slot.wsName
-                    color: Theme.vermLit
-                    font.family: Theme.font
-                    font.pixelSize: 8.5 * workspaces.s
-                    font.weight: Font.DemiBold
-                    font.features: ({ "tnum": 1 })
+                    Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                 }
 
                 MouseArea {
                     id: area
                     anchors.fill: parent
+                    anchors.leftMargin: -workspaces.gap / 2
+                    anchors.rightMargin: -workspaces.gap / 2
+                    anchors.topMargin: -8 * workspaces.s
+                    anchors.bottomMargin: -8 * workspaces.s
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    z: 10
-
-                    onClicked: {
-                        var ws = Hyprland.workspaces.values.find(function(w) {
-                            return w && String(w.name) === String(slot.wsName);
-                        });
-
-                        if (ws)
-                            ws.activate();
-                    }
-
+                    onClicked: Hyprland.dispatch("hl.dsp.focus({ workspace = " + slot.wsName + " })")
                     onContainsMouseChanged: {
                         if (containsMouse)
                             workspaces.hoverIndex = slot.index;
@@ -275,7 +242,6 @@ Item {
                     }
                 }
             }
-
         }
     }
 }
