@@ -605,10 +605,10 @@ Item {
             return Qt.size(150 * s, restH);
 
         if (Flags.mainDisplay === "classic")
-            return Qt.size(275 * s, restH);
+            return Qt.size(235 * s, restH);
 
         if (Flags.mainDisplay === "system")
-            return Qt.size(305 * s, restH);
+            return Qt.size(265 * s, restH);
 
         if (Flags.mainDisplay === "strip")
             return Qt.size(barWindow ? Math.max(0, barWindow.width - 10 * s) : 1920 * s, restH - 6 * s);
@@ -1425,31 +1425,15 @@ Item {
                 height: 1
             }
 
-            Row {
-                id: restWorkspace
-                visible: pill.specialView === "" && restWs.activeName !== ""
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 4 * pill.s
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 17 * pill.s
-                    height: 5 * pill.s
-                    radius: height / 2
-                    color: Theme.vermLit
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: restWs.activeName
-                    color: Theme.vermLit
-                    font.family: Theme.font
-                    font.pixelSize: 9.5 * pill.s
-                    font.weight: Font.DemiBold
-                    font.features: ({ "tnum": 1 })
-                }
-            }
-
+Workspaces {
+    id: customWs
+    anchors.verticalCenter: parent.verticalCenter
+    screenName: pill.screenName
+    s: pill.s
+    stickW: 13 * pill.s
+    dotW: 4 * pill.s
+    gap: 3 * pill.s
+}
             Rectangle {
                 visible: pill.specialView === ""
                 anchors.verticalCenter: parent.verticalCenter
