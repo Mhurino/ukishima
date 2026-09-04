@@ -227,12 +227,12 @@ PillSurface {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "BEATS"
+                text: Flags.showGlyphs ? "音  BEATS" : "BEATS"
                 color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 10 * root.s
+                font.family: Flags.showGlyphs ? Theme.fontJp : Theme.font
+                font.pixelSize: Flags.showGlyphs ? 15 * root.s : 10 * root.s
                 font.weight: Font.DemiBold
-                font.letterSpacing: 1.6 * root.s
+                font.letterSpacing: Flags.showGlyphs ? 0 : 1.6 * root.s
             }
 
             Item {
