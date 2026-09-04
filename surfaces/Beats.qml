@@ -230,7 +230,7 @@ PillSurface {
                 text: Flags.showGlyphs ? "音  BEATS" : "BEATS"
                 color: Theme.subtle
                 font.family: Flags.showGlyphs ? Theme.fontJp : Theme.font
-                font.pixelSize: Flags.showGlyphs ? 15 * root.s : 10 * root.s
+                font.pixelSize: 10 * root.s
                 font.weight: Font.DemiBold
                 font.letterSpacing: Flags.showGlyphs ? 0 : 1.6 * root.s
             }
