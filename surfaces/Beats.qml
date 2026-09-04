@@ -245,6 +245,7 @@ PillSurface {
                     font.pixelSize: 10.5 * root.s
                     font.weight: Font.DemiBold
                     font.letterSpacing: 1.6 * root.s
+                    anchors.verticalCenterOffset: 2 * root.s
                 }
             }
 
