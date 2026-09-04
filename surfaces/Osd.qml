@@ -49,7 +49,7 @@ readonly property var sink: Pipewire.defaultAudioSink
     readonly property bool micMuted: source && source.audio ? source.audio.muted : false
     readonly property real micVolume: source && source.audio ? Math.max(0, Math.min(1, source.audio.volume)) : 0
 
-    readonly property real desiredW: kind === "workspace" ? Math.max(120 * s, wsIndicator.implicitWidth + 40 * s)
+    readonly property real desiredW: kind === "workspace" ? Math.max(120 * s, wsIndicator.implicitWidth + 10 * s)
         : (kind === "track" ? 344 * s : 248 * s)
     readonly property real desiredH: kind === "track" ? 64 * s : 44 * s
 
@@ -529,6 +529,7 @@ Connections {
         Workspaces {
             id: wsIndicator
             anchors.centerIn: parent
+            anchors.horizontalCenterOffset: 1 * root.s
             screenName: root.screenName
             s: root.s
             gap: 8 * root.s

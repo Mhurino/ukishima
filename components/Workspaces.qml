@@ -210,13 +210,15 @@ Item {
                 readonly property string wsName: String(modelData)
                 readonly property bool isActive: workspaces.activeName === wsName
 
-                Layout.preferredWidth: slot.isActive ? workspaces.stickW : workspaces.dotW
+                Layout.preferredWidth: slot.isActive
+                    ? workspaces.stickW
+                    : workspaces.dotW
                 Layout.preferredHeight: 22 * workspaces.s
                 Behavior on Layout.preferredWidth { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width
+                    width: slot.isActive ? workspaces.stickW : workspaces.dotW
                     height: workspaces.dotW
                     radius: height / 2
                     color: slot.isActive ? Theme.vermLit : Theme.cream

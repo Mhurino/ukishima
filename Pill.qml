@@ -323,6 +323,8 @@ Item {
             return "quickChoose";
         if (quickCounting)
             return "quickCount";
+        if (osdActive && !held && Flags.mainDisplay !== "strip")
+            return "osd";
         if (toastActive && !held)
             return "toast";
         if (expanded)
@@ -605,10 +607,10 @@ Item {
             return Qt.size(150 * s, restH);
 
         if (Flags.mainDisplay === "classic")
-            return Qt.size(235 * s, restH);
+            return Qt.size(205 * s, restH);
 
         if (Flags.mainDisplay === "system")
-            return Qt.size(265 * s, restH);
+            return Qt.size(215 * s, restH);
 
         if (Flags.mainDisplay === "strip")
             return Qt.size(barWindow ? Math.max(0, barWindow.width - 10 * s) : 1920 * s, restH - 6 * s);
