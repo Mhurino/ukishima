@@ -201,6 +201,11 @@ Item {
     }
     readonly property bool toastActive: Notifs.popups.length > 0
     readonly property bool osdActive: osd.flashing
+
+    onOsdActiveChanged: {
+        if (osdActive && toastActive && !Notifs.toastCritical)
+            Notifs.clearPopups();
+    }
     /**
      * Quick-record overlays belong only to the focused monitor the keybind
      * targeted, so a single chooser and a single countdown toast appear. The
@@ -323,6 +328,8 @@ Item {
             return "quickChoose";
         if (quickCounting)
             return "quickCount";
+        if (toastActive && Notifs.toastCritical && !held)
+            return "toast";
         if (osdActive && !held && Flags.mainDisplay !== "strip")
             return "osd";
         if (toastActive && !held)
@@ -888,7 +895,7 @@ Item {
                 && !quickChoosing && !quickCounting) {
                 revealSession = true;
                 revealTimer.stop();
-            } else if (bootSettled && !revealSession) {
+            } else if (bootSettled && !revealSession && !toastActive) {
                 hoverLatch = true;
                 graceTimer.stop();
             }
