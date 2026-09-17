@@ -249,8 +249,8 @@ Item {
         return 244 * s;
     }
     readonly property real powerH: 150 * s
-    readonly property real mediaW: (Players.pickable.length > 1 ? 460 : 390) * s
-    readonly property real mediaH: 150 * s
+    readonly property real mediaW: 470 * s
+    readonly property real mediaH: 132 * s
     readonly property real batteryW: 316 * s
     readonly property real wifiW: 272 * s
     readonly property real btW: 286 * s
@@ -937,7 +937,9 @@ Item {
         enabled: !pill.surfaceOpen
         gesturePolicy: TapHandler.WithinBounds
         onTapped: {
-            if (Flags.autoHide) {
+            if (Flags.expandTo === "media" && pill.hasMedia) {
+                pill.requestSurface("media");
+            } else if (Flags.autoHide) {
                 pill.hoverLatch = !pill.hoverLatch;
             } else {
                 pill.pinned = !pill.pinned;
@@ -2737,7 +2739,14 @@ onClicked: {
             s: pill.s
             open: pill.mediaOpen
             morphCloseness: pill.morphCloseness
+            topFlat: (pill.mode === "game" || pill.stripBar) ? 1 : 0
+            pinned: pill.pinned
             onRequestClose: pill.requestClose()
+            onRequestPin: pill.forcePinned = !pill.forcePinned
+            onRequestExpand: {
+                pill.requestClose();
+                pill.hoverLatch = true;
+            }
         }
     }
 

@@ -413,6 +413,42 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                     enabled: !overlay.surfaceOpen && !pill.pinned
                     onHoveredChanged: if (enabled) pill.hovered = hovered
                 }
+
+                MouseArea {
+                    id: volumeWheelArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+
+                    property real acc: 0
+
+                    onWheel: (event) => {
+                        var inside = mouseX >= pillRegion.x
+                            && mouseX <= pillRegion.x + pillRegion.width
+                            && mouseY >= pillRegion.y
+                            && mouseY <= pillRegion.y + pillRegion.height;
+
+                        if (!inside || event.modifiers !== Qt.NoModifier) {
+                            acc = 0;
+                            return;
+                        }
+
+                        acc += event.angleDelta.y / 120;
+                        const notches = Math.trunc(acc);
+
+                        if (notches !== 0) {
+                            var sink = pill.audioSink;
+                            if (sink && sink.audio) {
+                                sink.audio.volume = Math.max(
+                                    0,
+                                    Math.min(1, sink.audio.volume + notches * 0.05)
+                                );
+                                acc -= notches;
+                            }
+                        }
+
+                        event.accepted = true;
+                    }
+                }
                 Keys.onEscapePressed: {
                     if (pill.quickChoosing) {
                         ScreenRec.quickChoosing = false;

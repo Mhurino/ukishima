@@ -18,7 +18,7 @@ Singleton {
     property alias time12h: adapter.time12h
     property alias clockSeconds: adapter.clockSeconds
     property alias mainDisplay: adapter.mainDisplay
-    property alias showGlyphs: adapter.showGlyphs
+        property alias showGlyphs: adapter.showGlyphs
     property alias paletteMode: adapter.paletteMode
     property alias wallpaperDir: adapter.wallpaperDir
     property alias randomScope: adapter.randomScope
@@ -77,7 +77,8 @@ Singleton {
             property bool time12h: false
             property bool clockSeconds: false
             property string mainDisplay: "minimal"
-            property bool showGlyphs: true
+            /** What the media card's Expand control opens: "media" keeps the surface as the main screen, "pill" swaps to the expanded pill. */
+                        property bool showGlyphs: true
             property string paletteMode: "static"
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */
             property string wallpaperDir: ""
