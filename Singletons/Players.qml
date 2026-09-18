@@ -198,9 +198,13 @@ Singleton {
         for (var i = 0; i < apps.length; i++) {
             var e = apps[i];
             if (e && e.id && e.id.toLowerCase() === id.toLowerCase() && e.icon)
-                return Quickshell.iconPath(e.icon, "application-x-executable");
+                return root.saneIcon(Quickshell.iconPath(e.icon, "application-x-executable"));
         }
-        return Quickshell.iconPath(id.toLowerCase(), "application-x-executable");
+        return root.saneIcon(Quickshell.iconPath(id.toLowerCase(), "application-x-executable"));
+    }
+
+    function saneIcon(p) {
+        return (p && String(p).indexOf("?fallback=") < 0) ? p : "";
     }
 
     function artUrlFor(p) {
