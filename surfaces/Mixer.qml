@@ -544,7 +544,7 @@ PillSurface {
     Process {
         id: nightLightProc
         command: [
-            "/home/francesco/.config/hypr/UserScripts/scripts/Hyprsunset.sh",
+            Quickshell.env("HOME") + "/.config/hypr/UserScripts/scripts/Hyprsunset.sh",
             "toggle"
         ]
     }

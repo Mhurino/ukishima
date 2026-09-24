@@ -18,7 +18,7 @@ PillSurface {
     property string manageUrl: ""
 
     readonly property string helper:
-        "/home/francesco/.config/hypr/UserScripts/UkishimaBeats.sh"
+        Quickshell.env("HOME") + "/.config/hypr/UserScripts/UkishimaBeats.sh"
 
     property var onlineItems: []
     property var localItems: []
@@ -572,6 +572,15 @@ PillSurface {
                     });
                 }
             }
+        }
+
+        Text {
+            anchors.centerIn: parent
+            visible: root.page === "local" && root.localItems.length === 0
+            text: "No music available"
+            color: Theme.subtle
+            font.family: Theme.font
+            font.pixelSize: 10 * root.s
         }
     }
 }
