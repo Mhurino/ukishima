@@ -684,7 +684,7 @@ PillSurface {
                     anchors.bottomMargin: 7 * root.s
                     clip: true
                     spacing: 5 * root.s
-                    model: root.localItems
+                    model: root.filteredLocalItems
 
                     delegate: Loader {
                         width: ListView.view.width
