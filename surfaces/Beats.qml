@@ -22,6 +22,40 @@ PillSurface {
 
     property var onlineItems: []
     property var localItems: []
+    property string localSearch: ""
+    property var filteredLocalItems: []
+
+    function filterLocalItems() {
+        var query = localSearch.trim().toLowerCase();
+
+        if (!query) {
+            filteredLocalItems = localItems;
+            return;
+        }
+
+        var out = [];
+        for (var i = 0; i < localItems.length; i++) {
+            var item = localItems[i];
+            if (String(item.label).toLowerCase().indexOf(query) !== -1)
+                out.push(item);
+        }
+
+        filteredLocalItems = out;
+    }
+    property bool addingMusicFolder: false
+    property string musicFolderPath: ""
+
+    function addMusicFolder() {
+        var path = musicFolderPath.trim();
+        if (!path)
+            return;
+
+        Quickshell.execDetached([root.helper, "add-dir", path]);
+        musicFolderPath = "";
+        addingMusicFolder = false;
+        loadLocal();
+    }
+
 
     function loadOnline() {
         onlineProc.running = true;
@@ -213,15 +247,17 @@ PillSurface {
                 }
 
                 root.localItems = out;
+                root.filteredLocalItems = out;
             }
         }
     }
 
-    Column {
+    Item {
         anchors.fill: parent
-        spacing: 6 * root.s
 
+        // ── Header ──────────────────────────────────────────────────────
         Row {
+            id: beatsHeader
             width: parent.width
             height: 22 * root.s
 
@@ -262,325 +298,519 @@ PillSurface {
                 visible: root.page !== "main"
 
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.centerIn: parent
+                    width: 36 * root.s
+                    height: 36 * root.s
                     onClicked: root.page = "main"
                 }
             }
         }
 
+        // Tutto il contenuto delle pagine parte sotto l'header.
         Item {
-            width: parent.width
-            height: 1
-        }
+            id: pageArea
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: beatsHeader.bottom
+            anchors.topMargin: 10 * root.s
+            anchors.bottom: parent.bottom
 
-        Column {
-            width: parent.width
-            spacing: 7 * root.s
-            visible: root.page === "main"
-
-            ActionRow {
-                glyph: "music"
-                title: "Online Stations"
-                onActivated: {
-                    root.page = "online";
-                    root.loadOnline();
-                }
-            }
-
-            ActionRow {
-                glyph: "folder"
-                title: "Local Music"
-                onActivated: {
-                    root.page = "local";
-                    root.loadLocal();
-                }
-            }
-
-            Row {
-                width: parent.width
+            // ── Main ────────────────────────────────────────────────────
+            Column {
+                id: mainPage
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 spacing: 7 * root.s
+                visible: root.page === "main"
 
                 ActionRow {
-                    width: (parent.width - 7 * root.s) / 2
-                    glyph: "shuffle"
-                    title: "Shuffle"
-                    onActivated: root.shuffle()
+                    glyph: "music"
+                    title: "Online Stations"
+                    onActivated: {
+                        root.page = "online";
+                        root.loadOnline();
+                    }
                 }
 
                 ActionRow {
-                    width: (parent.width - 7 * root.s) / 2
-                    glyph: "stop"
-                    title: "Stop"
-                    onActivated: root.stop()
+                    glyph: "folder"
+                    title: "Local Music"
+                    onActivated: {
+                        root.page = "local";
+                        root.loadLocal();
+                    }
                 }
-            }
 
-            ActionRow {
-                glyph: "settings"
-                title: "Manage Music"
-                onActivated: root.page = "manage"
-            }
+                Row {
+                    width: parent.width
+                    spacing: 7 * root.s
 
-            Text {
-                width: parent.width
-                height: 18 * root.s
-                text: root.message
-                color: Theme.subtle
-                horizontalAlignment: Text.AlignHCenter
-                visible: text.length > 0
-                font.family: Theme.font
-                font.pixelSize: 9 * root.s
-            }
-        }
-
-        Column {
-            visible: root.page === "manage"
-            width: parent.width
-            spacing: 7 * root.s
-
-            Text {
-                width: parent.width
-                text: "ADD STATION"
-                color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 8.5 * root.s
-                font.weight: Font.DemiBold
-                font.letterSpacing: 1.1 * root.s
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 34 * root.s
-                radius: 8 * root.s
-                color: Theme.frameBg
-                border.width: 1
-                border.color: Theme.border
-
-                TextInput {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10 * root.s
-                    anchors.rightMargin: 10 * root.s
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.manageName
-                    onTextChanged: root.manageName = text
-                    color: Theme.cream
-                    selectionColor: Theme.onGlow
-                    font.family: Theme.font
-                    font.pixelSize: 10 * root.s
-                    verticalAlignment: TextInput.AlignVCenter
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 34 * root.s
-                radius: 8 * root.s
-                color: Theme.frameBg
-                border.width: 1
-                border.color: Theme.border
-
-                TextInput {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10 * root.s
-                    anchors.rightMargin: 10 * root.s
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.manageUrl
-                    onTextChanged: root.manageUrl = text
-                    color: Theme.cream
-                    selectionColor: Theme.onGlow
-                    font.family: Theme.font
-                    font.pixelSize: 10 * root.s
-                    verticalAlignment: TextInput.AlignVCenter
-                }
-            }
-
-            Row {
-                width: parent.width
-                spacing: 7 * root.s
-
-                Rectangle {
-                    width: (parent.width - 7 * root.s) / 2
-                    height: 36 * root.s
-                    radius: 9 * root.s
-                    color: addHover.hovered ? Theme.frameBg : Qt.alpha(Theme.onGlow, 0.10)
-                    border.width: 1
-                    border.color: Theme.frameBorder
-
-                    HoverHandler { id: addHover }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "＋  Add"
-                        color: Theme.cream
-                        font.family: Theme.font
-                        font.pixelSize: 10 * root.s
-                        font.weight: Font.DemiBold
+                    ActionRow {
+                        width: (parent.width - 7 * root.s) / 2
+                        glyph: "shuffle"
+                        title: "Shuffle"
+                        onActivated: root.shuffle()
                     }
 
-                    MouseArea {
+                    ActionRow {
+                        width: (parent.width - 7 * root.s) / 2
+                        glyph: "stop"
+                        title: "Stop"
+                        onActivated: root.stop()
+                    }
+                }
+
+                ActionRow {
+                    glyph: "settings"
+                    title: "Manage Music"
+                    onActivated: root.page = "manage"
+                }
+
+                Text {
+                    width: parent.width
+                    height: 18 * root.s
+                    text: root.message
+                    color: Theme.subtle
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: text.length > 0
+                    font.family: Theme.font
+                    font.pixelSize: 9 * root.s
+                }
+            }
+
+            // ── Manage ──────────────────────────────────────────────────
+            Item {
+                id: managePage
+                anchors.fill: parent
+                visible: root.page === "manage"
+
+                Text {
+                    id: addStationLabel
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    text: "ADD STATION"
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 8.5 * root.s
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.1 * root.s
+                }
+
+                Rectangle {
+                    id: manageNameBox
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: addStationLabel.bottom
+                    anchors.topMargin: 3 * root.s
+                    height: 34 * root.s
+                    radius: 8 * root.s
+                    color: Theme.frameBg
+                    border.width: 1
+                    border.color: Theme.border
+
+                    TextInput {
                         anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.addStation()
+                        anchors.leftMargin: 10 * root.s
+                        anchors.rightMargin: 10 * root.s
+                        color: Theme.cream
+                        selectionColor: Theme.onGlow
+                        font.family: Theme.font
+                        font.pixelSize: 10 * root.s
+                        verticalAlignment: TextInput.AlignVCenter
+                        text: root.manageName
+                        onTextChanged: root.manageName = text
                     }
                 }
 
                 Rectangle {
-                    width: (parent.width - 7 * root.s) / 2
-                    height: 36 * root.s
-                    radius: 9 * root.s
-                    color: backHover.hovered ? Theme.frameBg : "transparent"
+                    id: manageUrlBox
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: manageNameBox.bottom
+                    anchors.topMargin: 3 * root.s
+                    height: 34 * root.s
+                    radius: 8 * root.s
+                    color: Theme.frameBg
                     border.width: 1
                     border.color: Theme.border
 
-                    HoverHandler { id: backHover }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "‹  Back"
+                    TextInput {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10 * root.s
+                        anchors.rightMargin: 10 * root.s
                         color: Theme.cream
+                        selectionColor: Theme.onGlow
                         font.family: Theme.font
                         font.pixelSize: 10 * root.s
-                        font.weight: Font.DemiBold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.page = "main"
+                        verticalAlignment: TextInput.AlignVCenter
+                        text: root.manageUrl
+                        onTextChanged: root.manageUrl = text
                     }
                 }
-            }
 
-            Text {
-                width: parent.width
-                text: "REMOVE / VIEW"
-                color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 8.5 * root.s
-                font.weight: Font.DemiBold
-                font.letterSpacing: 1.1 * root.s
-            }
-
-            ListView {
-                width: parent.width
-                height: 430 * root.s
-                clip: true
-                spacing: 4 * root.s
-                boundsBehavior: Flickable.StopAtBounds
-                model: root.onlineItems
-
-                delegate: Rectangle {
-                    width: ListView.view.width
-                    height: 28 * root.s
-                    radius: 7 * root.s
-                    color: removeHover.hovered ? Theme.frameBg : "transparent"
-                    border.width: 1
-                    border.color: Theme.border
-
-                    HoverHandler { id: removeHover }
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 9 * root.s
-                        anchors.right: removeButton.left
-                        anchors.rightMargin: 6 * root.s
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.label
-                        color: Theme.subtle
-                        font.family: Theme.font
-                        font.pixelSize: 9 * root.s
-                        elide: Text.ElideRight
-                    }
+                Row {
+                    id: manageButtons
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: manageUrlBox.bottom
+                    anchors.topMargin: 4 * root.s
+                    spacing: 7 * root.s
+                    height: 36 * root.s
 
                     Rectangle {
-                        id: removeButton
-                        anchors.right: parent.right
-                        anchors.rightMargin: 4 * root.s
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 22 * root.s
-                        height: 22 * root.s
-                        radius: 6 * root.s
-                        color: "transparent"
+                        width: (parent.width - 7 * root.s) / 2
+                        height: parent.height
+                        radius: 9 * root.s
+                        color: addHover.hovered ? Theme.frameBg : Qt.alpha(Theme.onGlow, 0.10)
+                        border.width: 1
+                        border.color: Theme.frameBorder
+
+                        HoverHandler { id: addHover }
 
                         Text {
                             anchors.centerIn: parent
-                            text: "−"
-                            color: Theme.vermLit
-                            font.pixelSize: 14 * root.s
+                            text: "＋  Add"
+                            color: Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 10 * root.s
+                            font.weight: Font.DemiBold
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.removeStation(modelData.label)
+                            onClicked: root.addStation()
                         }
+                    }
+
+                    Rectangle {
+                        width: (parent.width - 7 * root.s) / 2
+                        height: parent.height
+                        radius: 9 * root.s
+                        color: backHover.hovered ? Theme.frameBg : "transparent"
+                        border.width: 1
+                        border.color: Theme.border
+
+                        HoverHandler { id: backHover }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "‹  Back"
+                            color: Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 10 * root.s
+                            font.weight: Font.DemiBold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.page = "main"
+                        }
+                    }
+                }
+
+                Text {
+                    id: removeViewLabel
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: manageButtons.bottom
+                    anchors.topMargin: 6 * root.s
+                    text: "REMOVE / VIEW"
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 8.5 * root.s
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.1 * root.s
+                }
+
+                ListView {
+                    id: manageStations
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: removeViewLabel.bottom
+                    anchors.topMargin: 3 * root.s
+                    anchors.bottom: manageMessage.top
+                    anchors.bottomMargin: 3 * root.s
+                    clip: true
+                    spacing: 4 * root.s
+                    boundsBehavior: Flickable.StopAtBounds
+                    model: root.onlineItems
+
+                    delegate: Rectangle {
+                        width: ListView.view.width
+                        height: 28 * root.s
+                        radius: 7 * root.s
+                        color: removeHover.hovered ? Theme.frameBg : "transparent"
+                        border.width: 1
+                        border.color: Theme.border
+
+                        HoverHandler { id: removeHover }
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 9 * root.s
+                            anchors.right: removeButton.left
+                            anchors.rightMargin: 6 * root.s
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData.label
+                            color: Theme.subtle
+                            font.family: Theme.font
+                            font.pixelSize: 9 * root.s
+                            elide: Text.ElideRight
+                        }
+
+                        Rectangle {
+                            id: removeButton
+                            anchors.right: parent.right
+                            anchors.rightMargin: 4 * root.s
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 22 * root.s
+                            height: 22 * root.s
+                            radius: 6 * root.s
+                            color: "transparent"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "−"
+                                color: Theme.vermLit
+                                font.pixelSize: 14 * root.s
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.removeStation(modelData.label)
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    id: manageMessage
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 16 * root.s
+                    text: root.message
+                    color: Theme.subtle
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: text.length > 0
+                    font.family: Theme.font
+                    font.pixelSize: 9 * root.s
+                }
+            }
+
+            // ── Online ──────────────────────────────────────────────────
+            ListView {
+                id: onlinePage
+                anchors.fill: parent
+                visible: root.page === "online"
+                clip: true
+                spacing: 5 * root.s
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.onlineItems
+
+                delegate: Loader {
+                    width: ListView.view.width
+                    sourceComponent: mediaRow
+
+                    onLoaded: {
+                        item.label = modelData.label;
+                        item.value = modelData.value;
+                        item.chosen.connect(function() {
+                            root.playOnline(modelData.label);
+                        });
                     }
                 }
             }
 
-            Text {
-                width: parent.width
-                text: root.message
-                color: Theme.subtle
-                horizontalAlignment: Text.AlignHCenter
-                visible: text.length > 0
-                font.family: Theme.font
-                font.pixelSize: 9 * root.s
-            }
-        }
+            // ── Local ───────────────────────────────────────────────────
+            Item {
+                id: localPage
+                anchors.fill: parent
+                visible: root.page === "local"
 
-        ListView {
-            visible: root.page === "online"
-            width: parent.width
-            height: Math.max(160 * root.s, parent.height - y)
-            clip: true
-            spacing: 5 * root.s
-            boundsBehavior: Flickable.StopAtBounds
-            model: root.onlineItems
+                Rectangle {
+                    id: localSearchBox
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 28 * root.s
+                    radius: 8 * root.s
+                    color: Qt.alpha(Theme.tileBg, 0.96)
+                    border.width: 1
+                    border.color: Qt.alpha(Theme.text, 0.28)
 
-            delegate: Loader {
-                width: ListView.view.width
-                sourceComponent: mediaRow
+                    TextInput {
+                        id: localSearchInput
+                        anchors.fill: parent
+                        anchors.leftMargin: 10 * root.s
+                        anchors.rightMargin: 10 * root.s
+                        color: Theme.text
+                        font.family: Theme.font
+                        font.pixelSize: 9 * root.s
+                        verticalAlignment: TextInput.AlignVCenter
+                        selectByMouse: true
+                        clip: true
+                        text: root.localSearch
 
-                onLoaded: {
-                    item.label = modelData.label;
-                    item.value = modelData.value;
-                    item.chosen.connect(function() {
-                        root.playOnline(modelData.label);
-                    });
+                        onTextChanged: {
+                            root.localSearch = text;
+                            root.filterLocalItems();
+                        }
+                    }
+
+                    Text {
+                        anchors.left: localSearchInput.left
+                        anchors.verticalCenter: localSearchInput.verticalCenter
+                        text: "Search music..."
+                        color: Qt.alpha(Theme.text, 0.55)
+                        font.family: Theme.font
+                        font.pixelSize: 9 * root.s
+                        visible: localSearchInput.text.length === 0
+                    }
+                }
+
+                ListView {
+                    id: localList
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: localSearchBox.bottom
+                    anchors.topMargin: 7 * root.s
+                    anchors.bottom: localAddButton.top
+                    anchors.bottomMargin: 7 * root.s
+                    clip: true
+                    spacing: 5 * root.s
+                    model: root.localItems
+
+                    delegate: Loader {
+                        width: ListView.view.width
+                        height: 34 * root.s
+                        sourceComponent: mediaRow
+
+                        onLoaded: {
+                            item.label = modelData.label;
+                            item.value = modelData.value;
+                            item.chosen.connect(function() {
+                                root.playLocal(modelData.value, modelData.label);
+                            });
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: localAddButton
+                    visible: !root.addingMusicFolder
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    width: 150 * root.s
+                    height: 28 * root.s
+                    radius: 8 * root.s
+                    color: Theme.tileBg
+                    border.width: 1
+                    border.color: Theme.border
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "+ Add music folder"
+                        color: Theme.onSurface
+                        font.family: Theme.font
+                        font.pixelSize: 9 * root.s
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.addingMusicFolder = true
+                    }
+                }
+
+                Rectangle {
+                    visible: root.addingMusicFolder
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 42 * root.s
+                    radius: 10 * root.s
+                    color: Theme.tileBg
+                    border.width: 1
+                    border.color: Theme.border
+
+                    TextInput {
+                        id: musicFolderInput
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10 * root.s
+                        anchors.right: addFolderButton.left
+                        anchors.rightMargin: 8 * root.s
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 26 * root.s
+                        text: root.musicFolderPath
+                        color: Theme.text
+                        font.family: Theme.font
+                        font.pixelSize: 10 * root.s
+                        verticalAlignment: TextInput.AlignVCenter
+                        selectByMouse: true
+                        clip: true
+
+                        onTextChanged: root.musicFolderPath = text
+
+                        Keys.onReturnPressed: root.addMusicFolder()
+                        Keys.onEscapePressed: {
+                            root.musicFolderPath = "";
+                            root.addingMusicFolder = false;
+                        }
+
+                        Component.onCompleted: forceActiveFocus()
+                    }
+
+                    Text {
+                        anchors.left: musicFolderInput.left
+                        anchors.verticalCenter: musicFolderInput.verticalCenter
+                        text: "Music folder path..."
+                        color: Qt.alpha(Theme.text, 0.55)
+                        font.family: Theme.font
+                        font.pixelSize: 10 * root.s
+                        visible: musicFolderInput.text.length === 0
+                    }
+
+                    Rectangle {
+                        id: addFolderButton
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6 * root.s
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 42 * root.s
+                        height: 30 * root.s
+                        radius: 8 * root.s
+                        color: Theme.frameBg
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Add"
+                            color: Theme.text
+                            font.family: Theme.font
+                            font.pixelSize: 9 * root.s
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.addMusicFolder()
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: root.localItems.length === 0 && !root.addingMusicFolder
+                    text: "No music available"
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 10 * root.s
                 }
             }
-        }
-
-        ListView {
-            visible: root.page === "local"
-            width: parent.width
-            height: 132 * root.s
-            clip: true
-            spacing: 5 * root.s
-            model: root.localItems
-
-            delegate: Loader {
-                width: ListView.view.width
-                sourceComponent: mediaRow
-
-                onLoaded: {
-                    item.label = modelData.label;
-                    item.value = modelData.value;
-                    item.chosen.connect(function() {
-                        root.playLocal(modelData.value, modelData.label);
-                    });
-                }
-            }
-        }
-
-        Text {
-            anchors.centerIn: parent
-            visible: root.page === "local" && root.localItems.length === 0
-            text: "No music available"
-            color: Theme.subtle
-            font.family: Theme.font
-            font.pixelSize: 10 * root.s
         }
     }
 }
