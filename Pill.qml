@@ -246,6 +246,9 @@ Item {
         if (it && it.page === "online")
             return 520 * s;
 
+        if (it && it.page === "local")
+            return 520 * s;
+
         return 244 * s;
     }
     readonly property real powerH: 150 * s
