@@ -18,6 +18,7 @@ Item {
     property real size: 42
 
     signal activated(var entry)
+    signal closeRequested(var entry)
     signal pinRequested(var entry)
 
     readonly property real tileSize: root.size * s
@@ -194,8 +195,17 @@ Item {
         id: body
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         cursorShape: Qt.PointingHandCursor
         z: 1
-        onClicked: root.activated(root.entry)
+
+        onClicked: (mouse) => {
+            if (mouse.button === Qt.MiddleButton) {
+                root.closeRequested(root.entry);
+                return;
+            }
+
+            root.activated(root.entry);
+        }
     }
 }

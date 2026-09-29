@@ -258,6 +258,25 @@ PanelWindow {
         return null;
     }
 
+    function closeEntry(entry) {
+        if (!entry)
+            return;
+
+        var running = root.runningApps;
+
+        for (var i = 0; i < running.length; i++) {
+            if (String(running[i].entry.id) !== String(entry.id))
+                continue;
+
+            var top = running[i].toplevel;
+
+            if (top && top.wayland) {
+                top.wayland.close();
+                return;
+            }
+        }
+    }
+
     function activateEntry(entry) {
         if (!entry)
             return;
@@ -694,6 +713,9 @@ PanelWindow {
 
                     onActivated:
                         (entry) => root.activateEntry(entry)
+
+                    onCloseRequested:
+                        (entry) => root.closeEntry(entry)
 
                     onPinRequested:
                         (entry) => root.pinEntry(entry)
