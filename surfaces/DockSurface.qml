@@ -21,7 +21,7 @@ SettingsSurface {
         {
             item: sizeRow,
             kind: "seg",
-            vals: [36, 42, 50],
+            vals: [30, 36, 42, 50],
             get: function () { return Flags.dockSize; },
             set: function (v) { Flags.dockSize = v; }
         },
@@ -40,7 +40,7 @@ SettingsSurface {
         {
             item: durationRow,
             kind: "seg",
-            vals: [2, 4, 6, 10],
+            vals: [0.5, 1, 2, 4, 6, 10],
             get: function () { return Flags.dockRevealSeconds; },
             set: function (v) { Flags.dockRevealSeconds = v; }
         }
@@ -55,7 +55,7 @@ SettingsSurface {
 
         SettingsHeader {
             s: root.s
-            glyph: "面"
+            glyph: "埠"
             title: "DOCK"
             showBack: true
         }
@@ -93,6 +93,7 @@ SettingsSurface {
                 s: root.s
                 compact: true
                 options: [
+                    { label: "30", value: 30 },
                     { label: "36", value: 36 },
                     { label: "42", value: 42 },
                     { label: "50", value: 50 }
@@ -139,6 +140,8 @@ SettingsSurface {
                 s: root.s
                 compact: true
                 options: [
+                    { label: "0.5s", value: 0.5 },
+                    { label: "1s", value: 1 },
                     { label: "2s", value: 2 },
                     { label: "4s", value: 4 },
                     { label: "6s", value: 6 },

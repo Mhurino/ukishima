@@ -132,7 +132,7 @@ Singleton {
             property int dockSize: 42
             property list<string> dockApps: []
             property string dockPosition: "bottom"
-            property int dockRevealSeconds: 4
+            property real dockRevealSeconds: 4
         }
     }
 }

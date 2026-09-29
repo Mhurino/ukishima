@@ -110,7 +110,7 @@ SettingsSurface {
         SettingsRow {
             id: dockTile
             surface: root
-            icon: "layers"
+            glyph: "埠"
             name: "Dock"
             sub: "Position, size and visibility"
             last: true

@@ -610,11 +610,33 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             readonly property real reserve:
                 (Flags.dockSize + 12) * s + 6 * s
 
+            readonly property bool monFullscreen: {
+                var tops = Hyprland.toplevels.values;
+
+                for (var i = 0; i < tops.length; i++) {
+                    var t = tops[i];
+
+                    if (!t || !t.activated || !t.monitor)
+                        continue;
+
+                    if (t.monitor.name !== modelData.name)
+                        continue;
+
+                    var wl = t.wayland;
+                    return !!(wl && wl.fullscreen);
+                }
+
+                return false;
+            }
+
             screen: modelData
 
             visible:
                 Flags.dockEnabled
                 && Flags.dockAlwaysVisible
+                && !monFullscreen
+                && Flags.dockPosition !== "top-left"
+                && Flags.dockPosition !== "top-right"
 
             color: "transparent"
 
