@@ -65,8 +65,9 @@ Item {
     readonly property bool themeOpen: surface === "theme"
     readonly property bool interfaceOpen: surface === "interface"
     readonly property bool fontpickerOpen: surface === "fontpicker"
+    readonly property bool dockOpen: surface === "dock"
     readonly property bool settingsLike:
-        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen
+        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || dockOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -317,6 +318,7 @@ Item {
         display:    { size: () => Qt.size(appearanceW, surfaceItem(ldDisplay).implicitHeight + 29 * s), ame: () => surfaceItem(ldDisplay) },
         theme:      { size: () => Qt.size(appearanceW, surfaceItem(ldTheme).implicitHeight + 29 * s), ame: () => surfaceItem(ldTheme) },
         interface:  { size: () => Qt.size(appearanceW, surfaceItem(ldInterface).implicitHeight + 29 * s), ame: () => surfaceItem(ldInterface) },
+        dock:       { size: () => Qt.size(appearanceW, surfaceItem(ldDock).implicitHeight + 29 * s), ame: () => surfaceItem(ldDock) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) }
     })
 
@@ -393,6 +395,8 @@ Item {
             return ldTheme.item;
         if (pill.interfaceOpen)
             return ldInterface.item;
+        if (pill.dockOpen)
+            return ldDock.item;
         if (pill.fontpickerOpen)
             return ldFontpicker.item;
         return null;
@@ -2923,6 +2927,18 @@ onClicked: {
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldDock
+        active: false
+        anchors.fill: parent
+        sourceComponent: DockSurface {
+            s: pill.s
+            open: pill.dockOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
         }
     }
 

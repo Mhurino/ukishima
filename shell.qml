@@ -574,4 +574,85 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             }
         }
     }
+
+    Variants {
+        model: Quickshell.screens
+
+        Loader {
+            id: appDockLoader
+            required property var modelData
+
+            active: true
+            source: "surfaces/AppDock.qml"
+
+            onLoaded: {
+                item.screenTarget = modelData;
+
+                item.launcherRequested.connect(function(mon) {
+                    root.toggleSurface(mon, "launcher");
+                });
+            }
+        }
+    }
+
+
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            id: dockReserve
+
+            required property var modelData
+
+            readonly property real s:
+                modelData ? (modelData.height / 1080) * Flags.uiScale : 1
+
+            readonly property real reserve:
+                (Flags.dockSize + 12) * s + 6 * s
+
+            screen: modelData
+
+            visible:
+                Flags.dockEnabled
+                && Flags.dockAlwaysVisible
+
+            color: "transparent"
+
+            exclusionMode: ExclusionMode.Normal
+            exclusiveZone: reserve
+
+            WlrLayershell.layer: WlrLayer.Background
+            WlrLayershell.namespace: "ukishima-dock-reserve"
+
+            anchors.top:
+                Flags.dockPosition === "top-left"
+                || Flags.dockPosition === "top-right"
+                || Flags.dockPosition === "left"
+                || Flags.dockPosition === "right"
+
+            anchors.bottom:
+                Flags.dockPosition === "bottom"
+                || Flags.dockPosition === "left"
+                || Flags.dockPosition === "right"
+
+            anchors.left:
+                Flags.dockPosition === "bottom"
+                || Flags.dockPosition === "left"
+                || Flags.dockPosition === "top-left"
+                || Flags.dockPosition === "top-right"
+
+            anchors.right:
+                Flags.dockPosition === "bottom"
+                || Flags.dockPosition === "right"
+                || Flags.dockPosition === "top-left"
+                || Flags.dockPosition === "top-right"
+
+            mask: dockReserveMask
+
+            Region {
+                id: dockReserveMask
+            }
+        }
+    }
+
 }

@@ -55,6 +55,12 @@ Singleton {
     property alias nightLightTemp: adapter.nightLightTemp
     property alias nightLightOnMin: adapter.nightLightOnMin
     property alias nightLightOffMin: adapter.nightLightOffMin
+    property alias dockEnabled: adapter.dockEnabled
+    property alias dockAlwaysVisible: adapter.dockAlwaysVisible
+    property alias dockSize: adapter.dockSize
+    property alias dockApps: adapter.dockApps
+    property alias dockPosition: adapter.dockPosition
+    property alias dockRevealSeconds: adapter.dockRevealSeconds
 
     FileView {
         id: file
@@ -119,6 +125,14 @@ Singleton {
             property int nightLightTemp: 4000
             property int nightLightOnMin: 1260
             property int nightLightOffMin: 450
+
+            // Native app dock.
+            property bool dockEnabled: true
+            property bool dockAlwaysVisible: false
+            property int dockSize: 42
+            property list<string> dockApps: []
+            property string dockPosition: "bottom"
+            property int dockRevealSeconds: 4
         }
     }
 }

@@ -1,5 +1,6 @@
 Ame Ame.qml
 AppPickerList AppPickerList.qml
+AppDockItem AppDockItem.qml
 DisplayLabel DisplayLabel.qml
 DisplayPicker DisplayPicker.qml
 Filament Filament.qml

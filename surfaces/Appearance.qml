@@ -23,7 +23,8 @@ SettingsSurface {
         { item: dispTile, kind: "nav", surface: "display" },
         { item: themeTile, kind: "nav", surface: "theme" },
         { item: fontTile, kind: "nav", surface: "fontpicker" },
-        { item: ifaceTile, kind: "nav", surface: "interface" }
+        { item: ifaceTile, kind: "nav", surface: "interface" },
+        { item: dockTile, kind: "nav", surface: "dock" }
     ]
 
     Column {
@@ -96,13 +97,29 @@ SettingsSurface {
             glyph: "面"
             name: "Interface"
             sub: "Scale, motion, auto-hide"
-            last: true
 
             GlyphIcon {
                 width: 16 * root.s
                 height: 16 * root.s
                 name: "chevron-right"
                 color: root.focusRowItem === ifaceTile ? Theme.cream : Theme.iconDim
+                stroke: 1.9
+            }
+        }
+
+        SettingsRow {
+            id: dockTile
+            surface: root
+            icon: "layers"
+            name: "Dock"
+            sub: "Position, size and visibility"
+            last: true
+
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: root.focusRowItem === dockTile ? Theme.cream : Theme.iconDim
                 stroke: 1.9
             }
         }

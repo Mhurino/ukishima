@@ -98,7 +98,8 @@ Item {
         "record": { d: "M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16z", fill: true },
         "gamepad": { d: "M7 11h4 M9 9v4 M15.5 10h.01 M17.5 13h.01 M17 7H7a5 5 0 0 0-5 5l-.9 4.5A2.4 2.4 0 0 0 5.7 18L8 15h8l2.3 3a2.4 2.4 0 0 0 4.6-1.5L22 12a5 5 0 0 0-5-5z", fill: false },
         "wallpaper": { d: "M21 15l-4-4-6.5 6.5 M3 19l5.5-5.5 3 3 M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z M16 8h.01", fill: false },
-        "clipboard": { d: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V5z", fill: false }
+        "clipboard": { d: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V5z", fill: false },
+        "search": { d: "M10.5 4.5a6 6 0 1 0 0 12a6 6 0 0 0 0-12z M15 15l5 5", fill: false },
     })
 
     readonly property var g: glyphs[name] !== undefined ? glyphs[name] : ({ d: "", fill: false })
