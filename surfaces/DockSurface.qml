@@ -40,7 +40,7 @@ SettingsSurface {
         {
             item: durationRow,
             kind: "seg",
-            vals: [0.5, 1, 2, 4, 6, 10],
+            vals: [1, 2, 4, 6, 10],
             get: function () { return Flags.dockRevealSeconds; },
             set: function (v) { Flags.dockRevealSeconds = v; }
         }
@@ -140,7 +140,6 @@ SettingsSurface {
                 s: root.s
                 compact: true
                 options: [
-                    { label: "0.5s", value: 0.5 },
                     { label: "1s", value: 1 },
                     { label: "2s", value: 2 },
                     { label: "4s", value: 4 },
