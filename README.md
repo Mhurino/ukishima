@@ -399,3 +399,27 @@ Original project:
 This repository is an independent personal fork and is not the official Ukishima project.
 
 Original project authors and contributors retain credit for the upstream work. All additional modifications and components in this repository are maintained independently.
+## Screenshots
+
+### Main Shell
+![Main Shell](screenshots/main-shell.png)
+
+### Top Bar
+![Top Bar](screenshots/top-bar.png)
+
+### Application Dock
+![Application Dock](screenshots/top-left-dock.png)
+
+### Audio Controls
+![Per-Application Volume Control](screenshots/audio-select.png)
+
+### Resource Monitor
+![Resource Monitor](screenshots/resource-monitor.png)
+
+### Screen Recording
+![Screen Recording](screenshots/recording.png)
+### Beats
+
+![Beats 1](screenshots/beat-1.png)
+
+![Beats 2](screenshots/beat-2.png)
