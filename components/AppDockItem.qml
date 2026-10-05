@@ -16,6 +16,10 @@ Item {
     property bool workspaceHere: true
     property string workspaceLabel: ""
     property real size: 42
+    property bool tooltipVisible: false
+
+    // Tooltip direction relative to the dock item.
+    property int tooltipGravity: Edges.Top
 
     signal activated(var entry)
     signal closeRequested(var entry)
@@ -23,6 +27,49 @@ Item {
 
     readonly property real tileSize: root.size * s
     readonly property real iconSize: root.size * 0.62 * s
+
+    readonly property string resolvedIconSource: {
+        if (!root.entry)
+            return "";
+
+        var icon = root.entry.icon
+            ? String(root.entry.icon).trim()
+            : "";
+
+        // Absolute path or file:// icon from a desktop entry.
+        if (icon.indexOf("/") === 0 || icon.indexOf("file://") === 0)
+            return icon;
+
+        // Normal themed icon.
+        if (icon.length > 0) {
+            var themed = Quickshell.iconPath(icon, true);
+            if (themed !== "")
+                return themed;
+        }
+
+        // Fallbacks for applications whose desktop entry has no icon.
+        var candidates = [
+            root.entry.startupClass,
+            root.entry.id
+        ];
+
+        for (var i = 0; i < candidates.length; i++) {
+            if (!candidates[i])
+                continue;
+
+            var name = String(candidates[i]).trim();
+
+            if (name.length === 0)
+                continue;
+
+            var path = Quickshell.iconPath(name, true);
+
+            if (path !== "")
+                return path;
+        }
+
+        return "";
+    }
 
     width: tileSize
     height: tileSize
@@ -77,9 +124,7 @@ Item {
         asynchronous: true
         smooth: true
         visible: status === Image.Ready && source !== ""
-        source: root.entry && root.entry.icon
-            ? Quickshell.iconPath(root.entry.icon, true)
-            : ""
+        source: root.resolvedIconSource
     }
 
     GlyphIcon {
@@ -191,6 +236,17 @@ Item {
         }
     }
 
+    Timer {
+        id: tooltipTimer
+        interval: 1000
+        repeat: false
+
+        onTriggered: {
+            if (root.hovered)
+                root.tooltipVisible = true;
+        }
+    }
+
     MouseArea {
         id: body
         anchors.fill: parent
@@ -199,6 +255,16 @@ Item {
         cursorShape: Qt.PointingHandCursor
         z: 1
 
+        onEntered: {
+            root.tooltipVisible = false;
+            tooltipTimer.restart();
+        }
+
+        onExited: {
+            tooltipTimer.stop();
+            root.tooltipVisible = false;
+        }
+
         onClicked: (mouse) => {
             if (mouse.button === Qt.MiddleButton) {
                 root.closeRequested(root.entry);
@@ -206,6 +272,57 @@ Item {
             }
 
             root.activated(root.entry);
+        }
+    }
+
+    PopupWindow {
+        id: titlePopup
+
+        color: "transparent"
+
+        anchor.item: root
+        anchor.gravity: root.tooltipGravity
+        anchor.adjustment: PopupAdjustment.All
+
+        visible:
+            root.tooltipVisible
+            && root.entry
+            && root.entry.name
+            && String(root.entry.name).trim() !== ""
+
+        width: Math.min(
+            280 * root.s,
+            Math.max(
+                72 * root.s,
+                titleText.implicitWidth + 20 * root.s
+            )
+        )
+
+        height: 26 * root.s
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8 * root.s
+            color: Theme.cardTop
+            border.width: 0
+
+            Text {
+                id: titleText
+                anchors.fill: parent
+                anchors.leftMargin: 10 * root.s
+                anchors.rightMargin: 10 * root.s
+
+                text: root.entry ? String(root.entry.name || "") : ""
+
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 11 * root.s
+                font.weight: Font.DemiBold
+
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
         }
     }
 }

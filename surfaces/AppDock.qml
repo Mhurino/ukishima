@@ -50,6 +50,25 @@ PanelWindow {
     readonly property var allEntries:
         DesktopEntries.applications.values
 
+    function fallbackEntry(appId, toplevel) {
+        var id = String(appId || "");
+
+        if (!id)
+            return null;
+
+        var title = id;
+
+        if (toplevel && toplevel.title)
+            title = String(toplevel.title);
+
+        return {
+            id: id,
+            name: title,
+            icon: id,
+            startupClass: id
+        };
+    }
+
     /**
      * One logical entry per application currently visible in this monitor's
      * active workspace. Multiple windows of the same application collapse into
@@ -92,6 +111,10 @@ PanelWindow {
                 continue;
 
             var entry = Apps.resolveEntry(appId, allEntries);
+
+            if (!entry)
+                entry = root.fallbackEntry(appId, t);
+
             if (!entry || !entry.id)
                 continue;
 
@@ -149,6 +172,15 @@ PanelWindow {
         for (var i = 0; i < Flags.dockApps.length; i++) {
             var id = String(Flags.dockApps[i]);
             var entry = Apps.resolveEntryById(id, allEntries);
+
+            if (!entry) {
+                for (var r = 0; r < running.length; r++) {
+                    if (String(running[r].entry.id) === id) {
+                        entry = running[r].entry;
+                        break;
+                    }
+                }
+            }
 
             if (!entry || !entry.id)
                 continue;
@@ -251,7 +283,10 @@ PanelWindow {
 
             var resolved = Apps.resolveEntry(appId, allEntries);
 
-            if (resolved && resolved.id === entry.id)
+            if (resolved && String(resolved.id) === String(entry.id))
+                return t;
+
+            if (String(appId).toLowerCase() === String(entry.id).toLowerCase())
                 return t;
         }
 
@@ -710,6 +745,15 @@ PanelWindow {
                     workspaceHere: modelData.workspaceHere
                     workspaceLabel: modelData.workspaceLabel
                     pinned: root.isPinned(modelData.entry)
+
+                    tooltipGravity:
+                        root.dockAtBottom
+                            ? Edges.Top
+                            : root.dockAtLeft
+                                ? Edges.Right
+                                : root.dockAtRight
+                                    ? Edges.Left
+                                    : Edges.Bottom
 
                     onActivated:
                         (entry) => root.activateEntry(entry)
