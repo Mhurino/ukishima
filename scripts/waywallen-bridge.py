@@ -292,6 +292,108 @@ def display_target(sock, request_id, output):
         raise BridgeError("il display '" + output + "' non è selezionabile in Waywallen")
     return pb_uint(1, found["id"])
 
+
+def palette_source_for_item(item):
+    kind = str(item.get("type", "")).lower()
+    resource = str(item.get("resource", ""))
+    preview = str(item.get("preview", ""))
+    candidate = ""
+
+    if kind == "scene":
+        candidate = preview
+    elif kind == "video":
+        helper = Path(__file__).with_name("waywallen-thumb.sh")
+        if helper.is_file():
+            try:
+                result = subprocess.run(
+                    ["bash", str(helper), str(item.get("id", "")), resource],
+                    capture_output=True, text=True, timeout=26, check=False
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    candidate = result.stdout.strip().splitlines()[-1]
+            except (OSError, subprocess.SubprocessError):
+                pass
+        if not candidate:
+            candidate = preview
+    elif kind == "image":
+        candidate = resource
+    else:
+        candidate = preview
+
+    if candidate:
+        path = Path(candidate).expanduser()
+        if path.is_file():
+            return str(path)
+    return ""
+
+
+def sync_shell_palette(item, state_root):
+    """Keep Ukishima's dynamic/manual palette coherent with Waywallen."""
+    palette_source = palette_source_for_item(item)
+    palette_file = state_root / "ukishima-wallpaper-palette-source"
+
+    if palette_source:
+        tmp = palette_file.with_suffix(".tmp")
+        tmp.write_text(palette_source + "\n", encoding="utf-8")
+        tmp.replace(palette_file)
+    else:
+        try:
+            palette_file.unlink()
+        except FileNotFoundError:
+            pass
+
+    flags_path = state_root / "ukishima" / "flags.json"
+    try:
+        flags = json.loads(flags_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        flags = {}
+
+    wallcolors = Path(__file__).with_name("wallcolors.py")
+    if flags.get("paletteMode") == "manual":
+        mode = "dark" if flags.get("manualDark", True) else "light"
+        args = [
+            sys.executable, str(wallcolors), "--hue",
+            str(flags.get("manualHue", 30)), mode,
+            str(flags.get("manualSat", 0.5))
+        ]
+    elif palette_source:
+        args = [sys.executable, str(wallcolors), palette_source]
+    else:
+        # Niente anteprima leggibile: non sostituire i colori correnti
+        # con una palette neutra generata a partire da scene.pkg.
+        return
+
+    try:
+        result = subprocess.run(
+            args, capture_output=True, text=True, timeout=45, check=False
+        )
+        if result.returncode != 0:
+            print(
+                "Palette Ukishima non aggiornata: " +
+                (result.stderr.strip() or "wallcolors.py ha restituito un errore"),
+                file=sys.stderr
+            )
+            return
+
+        subprocess.run(
+            ["hyprctl", "reload"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5, check=False
+        )
+        subprocess.run(
+            [
+                "busctl", "--user", "call",
+                "com.mitchellh.ghostty", "/com/mitchellh/ghostty",
+                "org.gtk.Actions", "Activate", "sava{sv}",
+                "reload-config", "0", "0"
+            ],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5, check=False
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print("Aggiornamento palette: " + str(exc), file=sys.stderr)
+
+
 def apply_entry(sock, item, output="", request_id=100):
     body = pb_bytes(1, item["id"])
     if output:
@@ -308,6 +410,11 @@ def apply_entry(sock, item, output="", request_id=100):
     state_tmp = state_file.with_suffix(".tmp")
     state_tmp.write_text(resource + "\n", encoding="utf-8")
     state_tmp.replace(state_file)
+    try:
+        sync_shell_palette(item, state_root)
+    except Exception as exc:
+        # La palette non deve impedire l'applicazione del wallpaper.
+        print("Aggiornamento palette Ukishima: " + str(exc), file=sys.stderr)
     print(f"Sfondo impostato con Waywallen: {item['name'] or resource}")
 
 def main():

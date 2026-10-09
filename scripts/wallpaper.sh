@@ -214,6 +214,7 @@ palette_update() {
     fi
     mkdir -p "$(dirname "$STATE")"
     printf '%s\n' "$pic" > "$STATE"
+    printf '%s\n' "$show" > "${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-palette-source"
     pmode=$(jq -r '.paletteMode // "static"' "$flags_file" 2>/dev/null || echo static)
     mkdir -p "$(dirname "$WLOG")"
     if [ "$pmode" = "manual" ]; then

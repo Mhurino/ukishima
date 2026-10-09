@@ -165,6 +165,17 @@ PillSurface {
                 args.push(String(output));
             waywallenApplyProc.command = args;
             waywallenApplyProc.running = true;
+        } else if (Flags.waywallenEnabled) {
+            if (waywallenApplyProc.running)
+                return;
+            var args = [
+                "python3", waywallenBridgeScript,
+                "apply", String(entry.path)
+            ];
+            if (output)
+                args.push(String(output));
+            waywallenApplyProc.command = args;
+            waywallenApplyProc.running = true;
         } else if (output) {
             Walls.apply(entry.path, output);
         } else {
