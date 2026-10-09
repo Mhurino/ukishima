@@ -41,6 +41,9 @@ Singleton {
     property var events: []
     property int nextId: 1
 
+    // Timed reminders: 24 hours, 1 hour and 30 minutes before.
+    readonly property var reminderMinutes: [1440, 720, 60, 30]
+
     /**
      * Birthday-looking titles across the languages Erik's contacts use, so a new
      * entry can suggest yearly and old ones get classified on load. Plain substring
@@ -133,6 +136,226 @@ console.log("UKI EVENTS LOADED:", root.events.length)
         return false;
     }
 
+    function dateKeyFromDate(d) {
+        var y = d.getFullYear();
+        var m = d.getMonth() + 1;
+        var day = d.getDate();
+
+        var mm = m < 10 ? "0" + m : "" + m;
+        var dd = day < 10 ? "0" + day : "" + day;
+
+        return y + "-" + mm + "-" + dd;
+    }
+
+    function reminderState(e) {
+        if (!e.reminderState || typeof e.reminderState !== "object")
+            e.reminderState = {};
+
+        return e.reminderState;
+    }
+
+    function remainingLabel(seconds) {
+        var totalMinutes = Math.max(1, Math.ceil(seconds / 60));
+
+        if (totalMinutes >= 1440) {
+            var days = Math.floor(totalMinutes / 1440);
+            var hours = Math.floor((totalMinutes % 1440) / 60);
+
+            if (hours > 0)
+                return "tra " + days + " g " + hours + " h";
+
+            return "tra " + days + " g";
+        }
+
+        if (totalMinutes >= 60) {
+            var h = Math.floor(totalMinutes / 60);
+            var m = totalMinutes % 60;
+
+            if (m > 0)
+                return "tra " + h + " h " + m + " min";
+
+            return "tra " + h + " h";
+        }
+
+        return "tra " + totalMinutes + " min";
+    }
+
+    function notifyEvent(e, reminderKey, label) {
+        var title = e.text && String(e.text).trim().length > 0
+            ? String(e.text).trim()
+            : "Impegno";
+
+        var state = root.reminderState(e);
+        state[reminderKey] = true;
+
+        var safeKey = String(reminderKey)
+            .replace(/[^a-zA-Z0-9_.-]/g, "_");
+
+        // Atomic directory creation prevents duplicate notifications
+        // when two Quickshell instances are running at the same time.
+        var script =
+            'dir="${XDG_RUNTIME_DIR:-/tmp}/ukishima-calendar-reminders"; ' +
+            'mkdir -p "$dir"; ' +
+            'if mkdir "$dir/$1" 2>/dev/null; then ' +
+            'notify-send --app-name=Ukishima ' +
+            '--urgency=normal ' +
+            '--icon=office-calendar ' +
+            '"Ukishima · Calendario" "$2 · $3"; ' +
+            'fi';
+
+        Quickshell.execDetached([
+            "sh",
+            "-c",
+            script,
+            "ukishima-calendar-reminder",
+            safeKey,
+            title,
+            label
+        ]);
+    }
+
+    function checkReminders() {
+        var now = new Date();
+        var todayKey = root.dateKeyFromDate(now);
+        var tomorrow = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + 1,
+            0,
+            0,
+            0,
+            0
+        );
+        var tomorrowKey = root.dateKeyFromDate(tomorrow);
+        var changed = false;
+
+        for (var i = 0; i < root.events.length; i++) {
+            var e = root.events[i];
+
+            if (!e)
+                continue;
+
+            var state = root.reminderState(e);
+            var occurrenceDate = "";
+            var eventStart = null;
+
+            // =================================================
+            // ALL DAY
+            // L'inizio effettivo è 00:00 del giorno dell'evento.
+            // =================================================
+            if (!e.time || String(e.time).trim() === "") {
+
+                if (!e.recur) {
+                    if (String(e.date || "") !== tomorrowKey)
+                        continue;
+
+                    occurrenceDate = tomorrowKey;
+                } else {
+                    if (!root.covers(e, tomorrowKey))
+                        continue;
+
+                    occurrenceDate = tomorrowKey;
+                }
+
+                eventStart = new Date(
+                    tomorrow.getFullYear(),
+                    tomorrow.getMonth(),
+                    tomorrow.getDate(),
+                    0,
+                    0,
+                    0,
+                    0
+                );
+
+            } else {
+
+                // =================================================
+                // EVENTO CON ORARIO
+                // =================================================
+
+                if (!e.recur) {
+                    occurrenceDate = String(e.date || "");
+
+                    if (occurrenceDate !== todayKey)
+                        continue;
+                } else {
+                    if (!root.covers(e, todayKey))
+                        continue;
+
+                    occurrenceDate = todayKey;
+                }
+
+                var parts = String(e.time).split(":");
+
+                if (parts.length < 2)
+                    continue;
+
+                var hour = Number(parts[0]);
+                var minute = Number(parts[1]);
+
+                if (!isFinite(hour) || !isFinite(minute))
+                    continue;
+
+                if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+                    continue;
+
+                eventStart = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    hour,
+                    minute,
+                    0,
+                    0
+                );
+            }
+
+            if (!eventStart)
+                continue;
+
+            var diffSec = Math.floor(
+                (eventStart.getTime() - now.getTime()) / 1000
+            );
+
+            if (diffSec < 0)
+                continue;
+
+            // We check every 30 seconds, so a 90-second window gives
+            // enough tolerance without firing an old reminder.
+            for (var r = 0; r < root.reminderMinutes.length; r++) {
+
+                var threshold = Number(root.reminderMinutes[r]);
+                var thresholdSec = threshold * 60;
+
+                if (diffSec <= thresholdSec
+                    && diffSec > thresholdSec - 90) {
+
+                    var reminderKey =
+                        String(e.id)
+                        + "@"
+                        + occurrenceDate
+                        + "@"
+                        + threshold;
+
+                    if (state[reminderKey])
+                        continue;
+
+                    root.notifyEvent(
+                        e,
+                        reminderKey,
+                        root.remainingLabel(diffSec)
+                    );
+
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (changed)
+            root.persist();
+    }
+
     /** Append an event and persist; reassigns `events` so bindings refresh. */
     function add(dateStr, endDate, time, endTime, text, recur) {
         var next = root.events.slice();
@@ -143,7 +366,8 @@ console.log("UKI EVENTS LOADED:", root.events.length)
             time: time || "",
             endTime: endTime || "",
             text: text || "",
-            recur: recur || ""
+            recur: recur || "",
+            lastNotifiedKey: ""
         });
         root.nextId += 1;
         root.events = next;
@@ -161,6 +385,15 @@ Component.onCompleted: {
     console.log("UKI EVENTS COUNT:", root.events.length)
 }
 
+    Timer {
+        id: reminderTimer
+        interval: 30000
+        repeat: true
+        running: true
+
+        onTriggered: root.checkReminders()
+    }
+
     FileView {
         id: file
         path: root.stateDir + "/events.json"
@@ -174,6 +407,7 @@ Component.onCompleted: {
 
         onLoaded: {
             root.reloadEvents();
+            Qt.callLater(root.checkReminders);
         }
 
         onLoadFailed: function (error) {

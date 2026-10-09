@@ -17,6 +17,7 @@ Item {
     property string workspaceLabel: ""
     property real size: 42
     property bool tooltipVisible: false
+    property bool confirmVisible: false
 
     // Tooltip direction relative to the dock item.
     property int tooltipGravity: Edges.Top
@@ -24,6 +25,7 @@ Item {
     signal activated(var entry)
     signal closeRequested(var entry)
     signal pinRequested(var entry)
+    signal unpinRequested(var entry)
 
     readonly property real tileSize: root.size * s
     readonly property real iconSize: root.size * 0.62 * s
@@ -251,7 +253,7 @@ Item {
         id: body
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         z: 1
 
@@ -266,6 +268,16 @@ Item {
         }
 
         onClicked: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+                tooltipTimer.stop();
+                root.tooltipVisible = false;
+
+                    if (root.pinned || root.running)
+                    root.confirmVisible = true;
+
+                return;
+            }
+
             if (mouse.button === Qt.MiddleButton) {
                 root.closeRequested(root.entry);
                 return;
@@ -290,7 +302,7 @@ Item {
             && root.entry.name
             && String(root.entry.name).trim() !== ""
 
-        width: Math.min(
+        implicitWidth: Math.min(
             280 * root.s,
             Math.max(
                 72 * root.s,
@@ -298,7 +310,7 @@ Item {
             )
         )
 
-        height: 26 * root.s
+        implicitHeight: 26 * root.s
 
         Rectangle {
             anchors.fill: parent
@@ -325,4 +337,181 @@ Item {
             }
         }
     }
+
+    PopupWindow {
+        id: removePopup
+
+        color: "transparent"
+        grabFocus: true
+
+        onVisibleChanged: {
+            if (!visible)
+                root.confirmVisible = false;
+        }
+
+        anchor.item: root
+        anchor.gravity: root.tooltipGravity
+        anchor.adjustment: PopupAdjustment.All
+
+        visible: root.confirmVisible && root.entry
+                 && (root.pinned || root.running)
+
+        implicitWidth: popupContent.implicitWidth + 16 * root.s
+        implicitHeight: popupContent.implicitHeight + 12 * root.s
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8 * root.s
+            color: Theme.cardTop
+            border.width: 0
+
+            Column {
+                id: popupContent
+                anchors.centerIn: parent
+                spacing: 4 * root.s
+
+                readonly property real buttonWidth: 24 * root.s
+                readonly property real buttonHeight: 20 * root.s
+                readonly property real rowSpacing: 5 * root.s
+                readonly property real labelWidth: removeLabel.implicitWidth
+
+                Row {
+                    id: removeRow
+                    visible: root.pinned
+                    spacing: popupContent.rowSpacing
+
+                    Text {
+                        id: removeLabel
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Remove from dock?"
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                        font.weight: Font.DemiBold
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: yesArea.containsMouse
+                            ? Qt.alpha(Theme.vermLit, 0.24)
+                            : Qt.alpha(Theme.vermLit, 0.12)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Yes"
+                            color: Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 9 * root.s
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            id: yesArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: {
+                                root.confirmVisible = false;
+                                root.unpinRequested(root.entry);
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: noArea.containsMouse
+                            ? Qt.alpha(Theme.cream, 0.11)
+                            : Qt.alpha(Theme.cream, 0.055)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "No"
+                            color: Theme.subtle
+                            font.family: Theme.font
+                            font.pixelSize: 9 * root.s
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            id: noArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.confirmVisible = false
+                        }
+                    }
+                }
+
+                Row {
+                    id: closeRow
+                    visible: root.running
+                    spacing: popupContent.rowSpacing
+
+                    Text {
+                        width: root.pinned
+                            ? popupContent.labelWidth
+                            : closeLabel.implicitWidth
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Close app"
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                        font.weight: Font.DemiBold
+                    }
+
+                    Item {
+                        visible: root.pinned
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: closeArea.containsMouse
+                            ? Qt.alpha(Theme.vermLit, 0.24)
+                            : Qt.alpha(Theme.vermLit, 0.12)
+
+                        GlyphIcon {
+                            anchors.centerIn: parent
+                            width: 11 * root.s
+                            height: 11 * root.s
+                            name: "close"
+                            color: closeArea.containsMouse
+                                ? Theme.cream
+                                : Theme.vermLit
+                            stroke: 1.8
+                        }
+
+                        MouseArea {
+                            id: closeArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: {
+                                root.confirmVisible = false;
+                                root.closeRequested(root.entry);
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: closeLabel
+                        visible: false
+                        text: "Close app"
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                    }
+                }
+            }
+        }
+    }
+
 }

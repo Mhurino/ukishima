@@ -47,6 +47,8 @@ Item {
     readonly property bool held: pinned || forcePinned
     readonly property bool mixerOpen: surface === "mixer"
     readonly property bool calendarOpen: surface === "calendar"
+    // Keep calendar reminders alive even when the Calendar surface is closed.
+    readonly property int calendarEventsAlive: Events.events.length
     readonly property bool weatherOpen: surface === "weather"
     readonly property bool launcherOpen: surface === "launcher"
     readonly property bool clipboardOpen: surface === "clipboard"

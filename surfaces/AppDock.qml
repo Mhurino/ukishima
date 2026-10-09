@@ -265,6 +265,17 @@ PanelWindow {
         Flags.dockApps = next;
     }
 
+    function unpinEntry(entry) {
+        if (!entry || !entry.id)
+            return;
+
+        var id = String(entry.id);
+
+        Flags.dockApps = Flags.dockApps.filter(function(appId) {
+            return String(appId) !== id;
+        });
+    }
+
     function findRunningEntry(entry) {
         if (!entry || !entry.id)
             return null;
@@ -763,6 +774,9 @@ PanelWindow {
 
                     onPinRequested:
                         (entry) => root.pinEntry(entry)
+
+                    onUnpinRequested:
+                        (entry) => root.unpinEntry(entry)
                 }
             }
         }
