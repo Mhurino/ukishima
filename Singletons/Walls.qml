@@ -63,6 +63,7 @@ Singleton {
     readonly property string thumbDir: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ukishima/wp-thumbs/"
     readonly property string thumbScript: Config.hyprPath("scripts", "wallpaper-thumbs.sh")
     readonly property string setScript: Config.hyprPath("scripts", "wallpaper.sh")
+    readonly property string waywallenBridgeScript: Config.hyprPath("scripts", "waywallen-bridge.py")
     readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ukishima-wallpaper"
     readonly property string dirStateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ukishima-wallpaper-dir"
 
@@ -113,15 +114,33 @@ Singleton {
 
     function apply(path, output) {
         var out = output === undefined ? "" : output;
-        if (applyProc.running) {
+        if (applyProc.running || waywallenApplyProc.running) {
             queuedApply = path;
             queuedOutput = out;
+            return;
+        }
+        if (Flags.waywallenEnabled) {
+            var cmd = ["python3", root.waywallenBridgeScript, "apply", path];
+            if (out.length > 0)
+                cmd.push(out);
+            waywallenApplyProc.command = cmd;
+            waywallenApplyProc.running = true;
             return;
         }
         applyProc.command = out.length > 0
             ? ["bash", root.setScript, "set", path, out]
             : ["bash", root.setScript, "set", path];
         applyProc.running = true;
+    }
+
+    function runQueuedApply() {
+        if (!queuedApply.length)
+            return;
+        var next = queuedApply;
+        var nextOut = queuedOutput;
+        queuedApply = "";
+        queuedOutput = "";
+        Qt.callLater(function() { root.apply(next, nextOut); });
     }
 
     function trash(path) {
@@ -201,18 +220,24 @@ Singleton {
     Process {
         id: applyProc
         onExited: {
-            if (root.queuedApply.length) {
-                var next = root.queuedApply;
-                var nextOut = root.queuedOutput;
-                root.queuedApply = "";
-                root.queuedOutput = "";
-                applyProc.command = nextOut.length > 0
-                    ? ["bash", root.setScript, "set", next, nextOut]
-                    : ["bash", root.setScript, "set", next];
-                applyProc.running = true;
-                return;
-            }
             stateProc.running = true;
+            Qt.callLater(root.runQueuedApply);
+        }
+    }
+
+    Process {
+        id: waywallenApplyProc
+        command: []
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                Quickshell.execDetached([
+                    "notify-send", "--app-name=Ukishima", "Waywallen",
+                    "Non riesco ad applicare lo sfondo. Verifica che la cartella sia aggiunta in Waywallen → Libraries."
+                ]);
+            } else {
+                stateProc.running = true;
+            }
+            Qt.callLater(root.runQueuedApply);
         }
     }
       Component.onCompleted: Qt.callLater(root.refresh)

@@ -4,6 +4,7 @@ singleton Flags Flags.qml
 singleton Notifs Notifs.qml
 singleton Cliphist Cliphist.qml
 singleton Walls Walls.qml
+singleton Waywallen Waywallen.qml
 singleton Devices Devices.qml
 singleton Battery Battery.qml
 singleton Backlight Backlight.qml

@@ -40,6 +40,8 @@ ShellRoot {
     Component.onCompleted: {
         refresh();
         Devices.restore();
+        if (Flags.waywallenEnabled)
+            Qt.callLater(function() { Waywallen.ensureStarted(); });
         void GameMode.active;
         void Dyn.surface;
     }

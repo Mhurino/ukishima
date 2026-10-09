@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 flags_file="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
 WPDIR=$(jq -r '.wallpaperDir // ""' "$flags_file" 2>/dev/null || echo "")
 if [ -z "$WPDIR" ]; then
@@ -18,6 +19,15 @@ RESOLVED="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-dir"
 printf '%s\n' "$WPDIR" > "$RESOLVED"
 # No-op mode for the QML side: re-resolve the folder and exit before touching any daemon state.
 [ "${1:-}" = "resolve" ] && exit 0
+
+# Let Waywallen own the background when the integration is enabled.
+waywallen_enabled=$(jq -r ".waywallenEnabled // false" "$flags_file" 2>/dev/null || echo false)
+if [ "$waywallen_enabled" = "true" ] && [ "${1:-}" != "force-init" ]; then
+    if [ "${1:-}" != "init" ]; then
+        python3 "$SCRIPT_DIR/waywallen-bridge.py" random || true
+    fi
+    exit 0
+fi
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper"
 MAP="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-map"
 BAG="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima-wallpaper-bag"
@@ -250,6 +260,7 @@ awww query >/dev/null 2>&1 || daemon_was_running=false
 ensure_daemon || exit 0
 
 cmd="${1:-}"
+[ "$cmd" = "force-init" ] && cmd="init"
 target=""
 
 if [ "$cmd" = "init" ]; then

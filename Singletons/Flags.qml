@@ -21,6 +21,8 @@ Singleton {
         property alias showGlyphs: adapter.showGlyphs
     property alias paletteMode: adapter.paletteMode
     property alias wallpaperDir: adapter.wallpaperDir
+    property alias waywallenEnabled: adapter.waywallenEnabled
+    property alias waywallenWallpaperDir: adapter.waywallenWallpaperDir
     property alias randomScope: adapter.randomScope
     property alias uiScale: adapter.uiScale
     property alias reduceMotion: adapter.reduceMotion
@@ -88,6 +90,10 @@ Singleton {
             property string paletteMode: "static"
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */
             property string wallpaperDir: ""
+            /** Optional Waywallen Flatpak wallpaper integration. */
+            property bool waywallenEnabled: false
+            /** Extra folder Waywallen Flatpak may read. */
+            property string waywallenWallpaperDir: ""
             /** Super+B random target: "all" repaints every monitor, "cursor" only the one under the pointer. */
             property string randomScope: "all"
             property real uiScale: 1.0

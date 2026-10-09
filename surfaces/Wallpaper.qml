@@ -40,6 +40,7 @@ PillSurface {
     property bool searching: false
     property string query: ""
     property var ddgResults: []
+    property var waywallenEntries: []
 
     /** Inline folder edit in the header: true while the path field holds focus. */
     property bool editingDir: false
@@ -87,14 +88,88 @@ PillSurface {
     }
 
     readonly property var localItems: {
+        var all = [];
+        var seen = {};
+
+        for (var i = 0; i < Walls.entries.length; i++) {
+            var local = Walls.entries[i];
+            all.push(local);
+            seen[String(local.path)] = true;
+        }
+
+        if (Flags.waywallenEnabled) {
+            for (var j = 0; j < waywallenEntries.length; j++) {
+                var ww = waywallenEntries[j];
+                if (!ww || !ww.path || !ww.waywallenId || seen[String(ww.path)])
+                    continue;
+                all.push(ww);
+                seen[String(ww.path)] = true;
+            }
+        }
+
         if (kindFilter === "all")
-            return Walls.entries;
+            return all;
+
         var wantMotion = kindFilter === "motion";
-        var out = [];
-        for (var i = 0; i < Walls.entries.length; i++)
-            if (isMotion(Walls.entries[i].path) === wantMotion)
-                out.push(Walls.entries[i]);
-        return out;
+        var filtered = [];
+        for (var k = 0; k < all.length; k++) {
+            var entry = all[k];
+            var motion = entry.waywallenId !== undefined
+                ? true
+                : /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path);
+            if (motion === wantMotion)
+                filtered.push(entry);
+        }
+        return filtered;
+    }
+
+    readonly property string waywallenBridgeScript:
+        Config.hyprPath("scripts", "waywallen-bridge.py")
+    readonly property string waywallenThumbScript:
+        Config.hyprPath("scripts", "waywallen-thumb.sh")
+
+    function refreshWaywallenCatalog() {
+        if (!Flags.waywallenEnabled) {
+            waywallenEntries = [];
+            return;
+        }
+        if (waywallenListProc.running)
+            return;
+        waywallenListProc.command = ["python3", waywallenBridgeScript, "list"];
+        waywallenListProc.running = true;
+    }
+
+    function catalogThumbSource(value) {
+        var source = String(value || "");
+        if (!source.length)
+            return "";
+        if (source.indexOf("://") >= 0
+                || source.indexOf("qrc:/") === 0
+                || source.indexOf("image:/") === 0)
+            return source;
+        return "file://" + source;
+    }
+
+    function applyEntry(entry, output) {
+        if (!entry)
+            return;
+
+        if (entry.waywallenId !== undefined) {
+            if (waywallenApplyProc.running)
+                return;
+            var args = [
+                "python3", waywallenBridgeScript,
+                "apply-id", String(entry.waywallenId)
+            ];
+            if (output)
+                args.push(String(output));
+            waywallenApplyProc.command = args;
+            waywallenApplyProc.running = true;
+        } else if (output) {
+            Walls.apply(entry.path, output);
+        } else {
+            Walls.apply(entry.path);
+        }
     }
 
     /**
@@ -213,7 +288,7 @@ PillSurface {
             dlProc.command = ["bash", root.searchScript, "download", entry.image];
             dlProc.running = true;
         } else {
-            Walls.apply(entry.path);
+            applyEntry(entry, "");
         }
     }
 
@@ -263,6 +338,14 @@ PillSurface {
         centerOnCurrent();
         hintShown = false;
         hintDwell.restart();
+        refreshWaywallenCatalog();
+    }
+
+    Connections {
+        target: Flags
+        function onWaywallenEnabledChanged() {
+            root.refreshWaywallenCatalog();
+        }
     }
 
     Connections {
@@ -347,7 +430,7 @@ PillSurface {
         if (focusIndex < 0 || focusIndex >= itemCount)
             return "";
         var e = items[focusIndex];
-        return (e && e.path !== undefined) ? e.path : "";
+        return (e && e.path !== undefined && e.waywallenId === undefined) ? e.path : "";
     }
 
     onFocusedLocalPathChanged: dimsDebounce.restart()
@@ -381,6 +464,50 @@ PillSurface {
                 }
             }
         }
+    }
+
+    Process {
+        id: waywallenListProc
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var parsed = [];
+                try {
+                    var value = JSON.parse(this.text);
+                    if (Array.isArray(value))
+                        parsed = value;
+                } catch (e) {
+                    parsed = [];
+                }
+
+                var out = [];
+                if (Flags.waywallenEnabled) {
+                    for (var i = 0; i < parsed.length; i++) {
+                        var item = parsed[i];
+                        var type = String(item.type || "").toLowerCase();
+                        // Le immagini restano nella lista locale tradizionale.
+                        if (!item.id || !item.resource || type === "image")
+                            continue;
+                        out.push({
+                            path: String(item.resource),
+                            thumb: String(item.preview || ""),
+                            name: String(item.name || ""),
+                            waywallenId: String(item.id),
+                            waywallenType: type,
+                            mtime: 0
+                        });
+                    }
+                }
+
+                root.waywallenEntries = out;
+                if (root.active && !(root.searching && root.query.length > 0))
+                    Qt.callLater(root.centerOnCurrent);
+            }
+        }
+    }
+
+    Process {
+        id: waywallenApplyProc
+        command: []
     }
 
     Timer {
@@ -722,7 +849,51 @@ PillSurface {
              * file with the same name, or a source replaced in place) would
              * otherwise keep showing the stale cached frame.
              */
-            readonly property string thumbSource: remote ? thumb : ("file://" + thumb + "?v=" + (modelData.mtime !== undefined ? Math.round(modelData.mtime) : 0))
+            readonly property bool waywallen: modelData.waywallenId !== undefined
+            property string generatedThumb: ""
+            property bool thumbnailAttempted: false
+
+            function requestWaywallenThumb() {
+                if (!waywallen
+                        || String(modelData.waywallenType || "").toLowerCase() !== "video"
+                        || thumb.length > 0
+                        || generatedThumb.length > 0
+                        || thumbnailAttempted
+                        || ao > 5)
+                    return;
+
+                thumbnailAttempted = true;
+                thumbnailProc.command = [
+                    "bash", root.waywallenThumbScript,
+                    String(modelData.waywallenId), String(modelData.path)
+                ];
+                thumbnailProc.running = true;
+            }
+
+            onVisibleChanged: if (visible) requestWaywallenThumb()
+            Component.onCompleted: if (visible) requestWaywallenThumb()
+
+            Process {
+                id: thumbnailProc
+                command: []
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        var path = this.text.trim();
+                        if (path.length > 0 && path.charAt(0) === "/")
+                            tile.generatedThumb = path;
+                    }
+                }
+            }
+
+            readonly property string thumbSource: remote
+                ? thumb
+                : waywallen
+                    ? (thumb.length > 0
+                        ? root.catalogThumbSource(thumb)
+                        : (generatedThumb.length > 0
+                            ? root.catalogThumbSource(generatedThumb)
+                            : ""))
+                    : ("file://" + thumb + "?v=" + (modelData.mtime !== undefined ? Math.round(modelData.mtime) : 0))
 
             /**
              * Live preview gating: only the focused tile plays, and only once
@@ -741,7 +912,9 @@ PillSurface {
                 : (root.dimsCache[modelData.path] !== undefined ? root.dimsCache[modelData.path] : "")
             readonly property bool motion: remote
                 ? (modelData.preview !== undefined || isGif)
-                : /\.(gif|mp4|webm|mkv|mov)$/i.test(modelData.path)
+                : waywallen
+                    ? true
+                    : /\.(gif|mp4|webm|mkv|mov)$/i.test(modelData.path)
 
             readonly property real off: index - root.pos
             readonly property real ao: Math.abs(off)
@@ -939,8 +1112,8 @@ PillSurface {
             HeatHold {
                 id: trashHeat
                 tapThreshold: 0.25
-                enabled: !tile.remote
-                onConfirmed: if (!tile.remote) Walls.trash(tile.modelData.path)
+                enabled: !tile.remote && !tile.waywallen
+                onConfirmed: if (!tile.remote && !tile.waywallen) Walls.trash(tile.modelData.path)
                 onTapped: root.activate()
             }
 
@@ -951,12 +1124,12 @@ PillSurface {
                 onPressed: {
                     if (!tile.focused)
                         return;
-                    if (tile.remote)
+                    if (tile.remote || tile.waywallen)
                         root.activate();
                     else
                         trashHeat.press();
                 }
-                onReleased: if (tile.focused && !tile.remote) trashHeat.release()
+                onReleased: if (tile.focused && !tile.remote && !tile.waywallen) trashHeat.release()
                 onExited: trashHeat.cancel()
                 onClicked: if (!tile.focused) root.focusIndex = tile.index
             }
@@ -1036,7 +1209,7 @@ PillSurface {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Walls.apply(tile.modelData.path, mrect.modelData.name)
+                                onClicked: root.applyEntry(tile.modelData, mrect.modelData.name)
                             }
                         }
                     }
