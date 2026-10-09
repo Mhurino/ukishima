@@ -268,6 +268,38 @@ The configuration system is intended to keep user-facing settings separate from 
 
 ---
 
+# Wallpaper Integration: Waywallen and Wallpaper Engine
+
+This fork can optionally connect Ukishima to [Waywallen](https://github.com/waywallen/waywallen), allowing wallpapers from Waywallen's catalog to be browsed and applied from Ukishima's wallpaper strip.
+
+## Waywallen
+
+The optional integration provides:
+
+* Browsing and applying wallpapers listed in Waywallen's catalog from the Ukishima wallpaper picker
+* Support for catalog entries such as videos and plugin-provided wallpaper types
+* Wallpaper preview thumbnails when the source provides them; video thumbnails can be generated locally when needed
+* Shell palette updates based on the selected wallpaper when dynamic palette mode is enabled
+
+Install and configure Waywallen separately. Enable the Waywallen integration from Ukishima's appearance/theme settings. Waywallen's daemon and its Hyprland layer-shell display client must be running for plugin-rendered wallpapers to appear on the desktop.
+
+## Wallpaper Engine through Steam
+
+Wallpaper Engine content can be exposed to Waywallen through the external [Open Wallpaper Engine plugin](https://github.com/waywallen/open-wallpaper-engine). It provides a scene renderer and a web renderer for supported Wallpaper Engine content.
+
+### Setup
+
+1. Install Waywallen and install the Open Wallpaper Engine plugin using its [official releases](https://github.com/waywallen/open-wallpaper-engine/releases) and the plugin's instructions.
+2. In Waywallen, add the relevant Steam Workshop or Wallpaper Engine content directory under **Libraries** and allow the library scan to finish.
+3. Ensure Waywallen has filesystem access to that library. With Flatpak, grant access to custom directories when needed.
+4. Enable Waywallen in Ukishima, open the wallpaper strip, and refresh the catalog if necessary.
+
+The plugin's upstream README states that its prebuilt releases support the Flatpak and AppImage editions of Waywallen. Source builds and distribution-packaged versions may require a separately built or packaged plugin; follow the plugin's current instructions.
+
+Only items successfully discovered by Waywallen and supported by the installed renderer/plugin will work. Preview availability varies by source. Waywallen manages rendering and transitions for wallpapers applied through its catalog, while Ukishima continues to manage its local wallpaper workflow.
+
+---
+
 # Kanji and Glyph Mode
 
 Ukishima provides an optional glyph/Kanji-oriented interface mode.
