@@ -7,6 +7,7 @@ LAYER_BIN="$HOME/.local/bin/waywallen-layer-shell"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 DAEMON_UNIT="ukishima-waywallen.service"
 LAYER_UNIT="ukishima-waywallen-layer-shell.service"
+PALETTE_UNIT="ukishima-waywallen-palette.service"
 TMP_WORKDIR=""
 cleanup() { if [ -n "$TMP_WORKDIR" ] && [ -d "$TMP_WORKDIR" ]; then rm -rf -- "$TMP_WORKDIR"; fi; }
 trap cleanup EXIT
@@ -66,9 +67,10 @@ install_layer_shell() {
     TMP_WORKDIR=""
 }
 write_units() {
-    local flatpak_bin bash_bin script_path
+    local flatpak_bin bash_bin script_path python_bin
     flatpak_bin="$(command -v flatpak)"
     bash_bin="$(command -v bash)"
+    python_bin="$(command -v python3)"
     script_path="$SCRIPT_DIR/waywallen.sh"
     mkdir -p "$UNIT_DIR"
     cat > "$UNIT_DIR/$DAEMON_UNIT" <<EOF
@@ -100,6 +102,23 @@ RestartSec=3
 [Install]
 WantedBy=default.target
 EOF
+
+    cat > "$UNIT_DIR/$PALETTE_UNIT" <<EOF
+[Unit]
+Description=Synchronize Ukishima palette with Waywallen wallpapers
+Requires=$DAEMON_UNIT
+After=$DAEMON_UNIT
+PartOf=$DAEMON_UNIT
+
+[Service]
+Type=simple
+ExecStart=$python_bin "$SCRIPT_DIR/waywallen-palette-watch.py"
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+EOF
 }
 prepare_services() {
     require_flatpak
@@ -119,15 +138,15 @@ enable_integration() {
     prepare_services
     awww kill >/dev/null 2>&1 || true
     pkill -x mpvpaper >/dev/null 2>&1 || true
-    systemctl --user enable --now "$DAEMON_UNIT" "$LAYER_UNIT"
+    systemctl --user enable --now "$DAEMON_UNIT" "$LAYER_UNIT" "$PALETTE_UNIT"
     notify "Waywallen attivato e configurato per l'avvio automatico."
 }
 start_integration() {
     prepare_services
-    systemctl --user enable --now "$DAEMON_UNIT" "$LAYER_UNIT"
+    systemctl --user enable --now "$DAEMON_UNIT" "$LAYER_UNIT" "$PALETTE_UNIT"
 }
 disable_integration() {
-    systemctl --user disable --now "$LAYER_UNIT" "$DAEMON_UNIT" >/dev/null 2>&1 || true
+    systemctl --user disable --now "$PALETTE_UNIT" "$LAYER_UNIT" "$DAEMON_UNIT" >/dev/null 2>&1 || true
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     flatpak kill "$APP_ID" >/dev/null 2>&1 || true
     bash "$SCRIPT_DIR/wallpaper.sh" force-init >/dev/null 2>&1 || true

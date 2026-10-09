@@ -283,6 +283,39 @@ The optional integration provides:
 
 Install and configure Waywallen separately. Enable the Waywallen integration from Ukishima's appearance/theme settings. Waywallen's daemon and its Hyprland layer-shell display client must be running for plugin-rendered wallpapers to appear on the desktop.
 
+### Automatic shell palette synchronization
+
+The `ukishima-waywallen-palette.service` keeps the Ukishima shell colors in sync when wallpapers are changed directly in the Waywallen application, not only when they are selected through Ukishima's `Super+W` wallpaper picker.
+
+The service listens to Waywallen's local WebSocket presentation events, identifies the active wallpaper in the catalog, and reuses Ukishima's existing palette-generation logic. Depending on the selected wallpaper and its available image or preview, it updates the palette and reloads the supported shell configurations.
+
+The monitor is a lightweight Python process running as a user-level systemd service. It starts automatically with the user session once enabled.
+
+#### Enable the service
+
+From the repository root, run:
+
+```bash
+bash scripts/enable-waywallen-palette-sync.sh
+```
+
+The script validates the Python and Bash files, configures the Waywallen integration through the existing setup script, and enables and starts `ukishima-waywallen-palette.service`. The Waywallen daemon and layer-shell integration are also started as part of this setup.
+
+#### Check status and logs
+
+```bash
+systemctl --user status ukishima-waywallen-palette.service --no-pager
+journalctl --user -u ukishima-waywallen-palette.service -f
+```
+
+#### Disable automatic synchronization
+
+```bash
+systemctl --user disable --now ukishima-waywallen-palette.service
+```
+
+Run the enable script again to restore automatic synchronization. Wallpapers without a readable source image or preview may not provide enough information to generate a new palette.
+
 ## Wallpaper Engine through Steam
 
 Wallpaper Engine content can be exposed to Waywallen through the external [Open Wallpaper Engine plugin](https://github.com/waywallen/open-wallpaper-engine). It provides a scene renderer and a web renderer for supported Wallpaper Engine content.
