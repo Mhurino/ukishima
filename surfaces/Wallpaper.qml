@@ -41,6 +41,9 @@ PillSurface {
     property string query: ""
     property var ddgResults: []
     property var waywallenEntries: []
+    property bool waywallenInitialScanDone: false
+    property bool waywallenRefreshPending: false
+    property bool waywallenRequestWasScan: false
 
     /** Inline folder edit in the header: true while the path field holds focus. */
     property bool editingDir: false
@@ -114,8 +117,10 @@ PillSurface {
         var filtered = [];
         for (var k = 0; k < all.length; k++) {
             var entry = all[k];
+            var waywallenType = String(entry.waywallenType || "").toLowerCase();
             var motion = entry.waywallenId !== undefined
-                ? true
+                ? (waywallenType !== "image"
+                    || /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path))
                 : /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path);
             if (motion === wantMotion)
                 filtered.push(entry);
@@ -128,14 +133,29 @@ PillSurface {
     readonly property string waywallenThumbScript:
         Config.hyprPath("scripts", "waywallen-thumb.sh")
 
-    function refreshWaywallenCatalog() {
+    function refreshWaywallenCatalog(forceScan) {
         if (!Flags.waywallenEnabled) {
             waywallenEntries = [];
+            waywallenInitialScanDone = false;
+            waywallenRefreshPending = false;
+            waywallenRequestWasScan = false;
             return;
         }
-        if (waywallenListProc.running)
+
+        var shouldScan = forceScan === true || !waywallenInitialScanDone;
+        if (waywallenListProc.running) {
+            if (shouldScan)
+                waywallenRefreshPending = true;
             return;
-        waywallenListProc.command = ["python3", waywallenBridgeScript, "list"];
+        }
+
+        if (shouldScan)
+            waywallenInitialScanDone = true;
+
+        waywallenRequestWasScan = shouldScan;
+        waywallenListProc.command = [
+            "python3", waywallenBridgeScript, shouldScan ? "refresh" : "list"
+        ];
         waywallenListProc.running = true;
     }
 
@@ -355,7 +375,8 @@ PillSurface {
     Connections {
         target: Flags
         function onWaywallenEnabledChanged() {
-            root.refreshWaywallenCatalog();
+            root.waywallenInitialScanDone = false;
+            root.refreshWaywallenCatalog(Flags.waywallenEnabled);
         }
     }
 
@@ -479,6 +500,20 @@ PillSurface {
 
     Process {
         id: waywallenListProc
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0 && root.waywallenRequestWasScan)
+                root.waywallenInitialScanDone = false;
+            root.waywallenRequestWasScan = false;
+
+            if (root.waywallenRefreshPending) {
+                root.waywallenRefreshPending = false;
+                Qt.callLater(function() {
+                    root.refreshWaywallenCatalog(true);
+                });
+            }
+        }
+
         stdout: StdioCollector {
             onStreamFinished: {
                 var parsed = [];
@@ -495,12 +530,12 @@ PillSurface {
                     for (var i = 0; i < parsed.length; i++) {
                         var item = parsed[i];
                         var type = String(item.type || "").toLowerCase();
-                        // Le immagini restano nella lista locale tradizionale.
-                        if (!item.id || !item.resource || type === "image")
+                        // Include anche le immagini del catalogo Waywallen.
+                        if (!item.id || !item.resource)
                             continue;
                         out.push({
                             path: String(item.resource),
-                            thumb: String(item.preview || ""),
+                            thumb: String(item.preview || (type === "image" ? item.resource : "")),
                             name: String(item.name || ""),
                             waywallenId: String(item.id),
                             waywallenType: type,
@@ -709,7 +744,7 @@ PillSurface {
             Behavior on color { ColorAnimation { duration: Motion.fast } }
 
             RotationAnimation on rotation {
-                running: Walls.refreshing
+                running: Walls.refreshing || waywallenListProc.running
                 from: 0
                 to: 360
                 duration: 900
@@ -732,7 +767,10 @@ PillSurface {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: Walls.refresh()
+            onClicked: {
+                Walls.refresh();
+                root.refreshWaywallenCatalog(true);
+            }
         }
 
         Tooltip {
@@ -924,7 +962,7 @@ PillSurface {
             readonly property bool motion: remote
                 ? (modelData.preview !== undefined || isGif)
                 : waywallen
-                    ? true
+                    ? (String(modelData.waywallenType || "").toLowerCase() !== "image" || isGif)
                     : /\.(gif|mp4|webm|mkv|mov)$/i.test(modelData.path)
 
             readonly property real off: index - root.pos

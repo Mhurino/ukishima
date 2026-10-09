@@ -9,6 +9,9 @@ BUS = "org.waywallen.waywallen.Daemon"
 OBJ = "/org/waywallen/waywallen/Daemon"
 IFACE = "org.waywallen.waywallen.Daemon1"
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+# Eventi asincroni ricevuti durante le richieste al daemon.
+PENDING_EVENTS = []
 class BridgeError(RuntimeError): pass
 
 def varint(value):
@@ -170,8 +173,12 @@ def request(sock, request_id, request_field, body=b""):
     deadline = time.monotonic() + 12
     while time.monotonic() < deadline:
         frame = ws_recv_message(sock)
-        # ServerFrame.response is field 1; field 2 carries asynchronous events.
-        response = first(parse_fields(frame), 1, 2)
+        # Conserva gli eventi ricevuti prima della risposta alla richiesta.
+        frame_fields = parse_fields(frame)
+        event = first(frame_fields, 2, 2)
+        if event is not None:
+            PENDING_EVENTS.append(event)
+        response = first(frame_fields, 1, 2)
         if response is None: continue
         parsed = parse_fields(response)
         rid = first(parsed, 1, 0, 0)
@@ -203,6 +210,45 @@ def list_wallpapers(sock, request_id):
 def scan_library(sock, request_id):
     # WallpaperScanRequest is field 20; scanning is asynchronous.
     request(sock, request_id, 20)
+
+
+def wait_for_scan(sock, timeout=45):
+    """Attende l'evento WallpaperSyncFinished del daemon Waywallen."""
+    deadline = time.monotonic() + timeout
+    previous_timeout = sock.gettimeout()
+
+    try:
+        while time.monotonic() < deadline:
+            if PENDING_EVENTS:
+                event_bytes = PENDING_EVENTS.pop(0)
+            else:
+                sock.settimeout(max(0.1, deadline - time.monotonic()))
+                try:
+                    frame_fields = parse_fields(ws_recv_message(sock))
+                except socket.timeout:
+                    break
+
+                event_bytes = first(frame_fields, 2, 2)
+                if event_bytes is None:
+                    continue
+
+            event_fields = parse_fields(event_bytes)
+            sync = first(event_fields, 11, 2)
+            if sync is None:
+                continue
+
+            sync_fields = parse_fields(sync)
+            error = text_field(sync_fields, 2)
+            if error:
+                raise BridgeError("Scansione Waywallen non riuscita: " + error)
+
+            return int(first(sync_fields, 1, 0, 0))
+    finally:
+        sock.settimeout(previous_timeout)
+
+    raise BridgeError(
+        f"Timeout in attesa della scansione Waywallen ({timeout}s)"
+    )
 
 def normal_path(value):
     value = str(value or "")
@@ -418,13 +464,22 @@ def apply_entry(sock, item, output="", request_id=100):
     print(f"Sfondo impostato con Waywallen: {item['name'] or resource}")
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("apply", "apply-id", "list", "random"):
-        raise BridgeError("uso: waywallen-bridge.py list | apply FILE [DISPLAY] | apply-id ID [DISPLAY] | random")
+    if len(sys.argv) < 2 or sys.argv[1] not in (
+        "apply", "apply-id", "list", "refresh", "random"
+    ):
+        raise BridgeError(
+            "uso: waywallen-bridge.py list | refresh | apply FILE [DISPLAY] "
+            "| apply-id ID [DISPLAY] | random"
+        )
     mode = sys.argv[1]
     sock = connect_ws()
     try:
         if mode == "list":
             print(json.dumps(list_wallpapers(sock, 1), ensure_ascii=False))
+        elif mode == "refresh":
+            scan_library(sock, 1)
+            wait_for_scan(sock)
+            print(json.dumps(list_wallpapers(sock, 2), ensure_ascii=False))
         elif mode == "apply-id":
             if len(sys.argv) < 3:
                 raise BridgeError("per apply-id serve l'ID del wallpaper")
