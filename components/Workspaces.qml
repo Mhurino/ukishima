@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 import Quickshell.Hyprland
 import "../Singletons"
 
@@ -48,13 +47,6 @@ Item {
     property var range: []
     property string activeName: ""
 
-    property string activeWs: ""
-    property var wsList: []
-
-    function refreshData() {
-        proc.running = true;
-    }
-
     function rebuild() {
         var out = [];
         var seen = ({});
@@ -68,7 +60,7 @@ Item {
             }
         }
 
-        var wss = workspaces.wsList;
+        var wss = WorkspaceData.wsList;
         for (var i = 0; i < wss.length; i++) {
             var w = wss[i];
             if (w && w.id >= 1 && w.monitor === screenName && !seen[w.id]) {
@@ -76,11 +68,12 @@ Item {
                 out.push(w.id);
             }
         }
-        var a = parseInt(workspaces.activeWs);
+        var activeWs = WorkspaceData.activeByMonitor[screenName] || "";
+        var a = parseInt(activeWs);
         if (a >= 1 && !seen[a])
             out.push(a);
         out.sort(function (x, y) { return x - y; });
-        activeName = workspaces.activeWs;
+        activeName = activeWs;
         if (!rangesEqual(range, out))
             range = out;
         if (hoverIndex >= range.length)
@@ -118,83 +111,17 @@ Item {
         return Qt.point(slotCenterX(Math.max(0, activeIndex)), height / 2);
     }
 
-    property int bootTries: 0
-
-    /**
-     * The first hyprctl fetch runs on load, but a slow compositor reply could
-     * still beat us to the first frame. Poll briefly until a snapshot lands
-     * (or give up after the window), then rely on events from there on.
-     */
-    Timer {
-        id: bootPoll
-        interval: 250
-        repeat: true
-        running: true
-        onTriggered: {
-            workspaces.refreshData();
-            workspaces.bootTries += 1;
-            if (workspaces.wsList.length > 0 || workspaces.bootTries >= 8)
-                bootPoll.running = false;
-        }
-    }
-
-    Component.onCompleted: refreshData()
-    onScreenNameChanged: refreshData()
-
-    // Una sola lettura di monitor e workspace per ogni gruppo di eventi.
-    Timer {
-        id: hyprlandRefreshDebounce
-        interval: 40
-        repeat: false
-        onTriggered: workspaces.refreshData()
-    }
+    Component.onCompleted: rebuild()
+    onScreenNameChanged: rebuild()
 
     Connections {
-        target: Hyprland
-        function onRawEvent(event) {
-            var n = event.name;
-            if (n === "workspace" || n === "workspacev2"
-                || n === "createworkspace" || n === "destroyworkspace"
-                || n === "moveworkspace" || n === "renameworkspace"
-                || n === "focusedmon" || n === "focusedmonv2"
-                || n === "monitoradded" || n === "monitorremoved")
-                if (!hyprlandRefreshDebounce.running) hyprlandRefreshDebounce.start();
-        }
+        target: WorkspaceData
+        function onSnapshotChanged() { workspaces.rebuild(); }
     }
 
     Connections {
         target: Workspacerules
         function onByMonitorChanged() { workspaces.rebuild() }
-    }
-
-    Process {
-        id: proc
-        command: ["sh", "-c", "hyprctl monitors -j; printf '@@@'; hyprctl workspaces -j"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var text = this.text;
-                var sep = text.indexOf("@@@");
-                var monJson = sep >= 0 ? text.slice(0, sep) : "[]";
-                var wsJson = sep >= 0 ? text.slice(sep + 3) : text;
-                var act = "";
-                try {
-                    var mons = JSON.parse(monJson);
-                    for (var m = 0; m < mons.length; m++) {
-                        if (mons[m] && mons[m].name === workspaces.screenName && mons[m].activeWorkspace)
-                            act = String(mons[m].activeWorkspace.name);
-                    }
-                } catch (e) { }
-                var list = [];
-                try {
-                    var arr = JSON.parse(wsJson);
-                    for (var w = 0; w < arr.length; w++)
-                        list.push({ id: arr[w].id, monitor: arr[w].monitor || "" });
-                } catch (e) { }
-                workspaces.activeWs = act;
-                workspaces.wsList = list;
-                workspaces.rebuild();
-            }
-        }
     }
 
     implicitWidth: row.implicitWidth

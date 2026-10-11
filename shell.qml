@@ -30,6 +30,7 @@ ShellRoot {
     property string openMon: ""
     property string openSurface: ""
     property string peekMon: ""
+    property string warmPreloadMonitor: ""
 
     function refresh() {
         Hyprland.refreshMonitors();
@@ -37,9 +38,36 @@ ShellRoot {
         Hyprland.refreshToplevels();
     }
 
+    property bool pendingMonitorRefresh: false
+    property bool pendingWorkspaceRefresh: false
+    property bool pendingToplevelRefresh: false
+
+    function queueRefresh(monitors, workspaces, toplevels) {
+        pendingMonitorRefresh = pendingMonitorRefresh || monitors;
+        pendingWorkspaceRefresh = pendingWorkspaceRefresh || workspaces;
+        pendingToplevelRefresh = pendingToplevelRefresh || toplevels;
+        if (!modelRefreshDebounce.running)
+            modelRefreshDebounce.start();
+    }
+
+    function refreshPendingModels() {
+        var monitors = pendingMonitorRefresh;
+        var workspaces = pendingWorkspaceRefresh;
+        var toplevels = pendingToplevelRefresh;
+        pendingMonitorRefresh = false;
+        pendingWorkspaceRefresh = false;
+        pendingToplevelRefresh = false;
+        if (monitors) Hyprland.refreshMonitors();
+        if (workspaces) Hyprland.refreshWorkspaces();
+        if (toplevels) Hyprland.refreshToplevels();
+    }
+
     Component.onCompleted: {
         refresh();
         Devices.restore();
+        warmPreloadMonitor = Hyprland.focusedMonitor
+            ? Hyprland.focusedMonitor.name
+            : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
         if (Flags.waywallenEnabled)
             Qt.callLater(function() { Waywallen.ensureStarted(); });
         void GameMode.active;
@@ -96,22 +124,23 @@ ShellRoot {
     }
 
     /**
-     * Only these raw events can change what the pill renders (per-monitor
-     * active workspace, minimized toplevels, monitor hotplug). Everything
-     * else (window drags, resizes, title spam) must not trigger the triple
-     * model refresh, which costs three Hyprland IPC round-trips.
+     * Route events to only the models they invalidate. Workspace/focus and
+     * monitor changes can affect all three models; window-only changes need
+     * to refresh toplevels without reparsing monitors and workspaces.
      */
-    readonly property var refreshEvents: ({
+    readonly property var refreshAllEvents: ({
         workspace: true, workspacev2: true,
         createworkspace: true, createworkspacev2: true,
         destroyworkspace: true, destroyworkspacev2: true,
         moveworkspace: true, moveworkspacev2: true,
         renameworkspace: true, activespecial: true,
         focusedmon: true, focusedmonv2: true,
-        openwindow: true, closewindow: true,
-        movewindow: true, movewindowv2: true,
-        fullscreen: true,
         monitoradded: true, monitoraddedv2: true, monitorremoved: true
+    })
+
+    readonly property var refreshToplevelEvents: ({
+        openwindow: true, closewindow: true,
+        movewindow: true, movewindowv2: true, fullscreen: true
     })
 
     // Accorpa gli eventi Hyprland ravvicinati in un solo aggiornamento.
@@ -119,14 +148,16 @@ ShellRoot {
         id: modelRefreshDebounce
         interval: 40
         repeat: false
-        onTriggered: root.refresh()
+        onTriggered: root.refreshPendingModels()
     }
 
     Connections {
         target: Hyprland
         function onRawEvent(event) {
-            if (root.refreshEvents[event.name])
-                if (!modelRefreshDebounce.running) modelRefreshDebounce.start();
+            if (root.refreshAllEvents[event.name])
+                root.queueRefresh(true, true, true);
+            else if (root.refreshToplevelEvents[event.name])
+                root.queueRefresh(false, false, true);
         }
     }
 
@@ -539,6 +570,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                     }
                     s: overlay.s
                     screenName: overlay.modelData.name
+                    preloadSurfaces: root.warmPreloadMonitor === overlay.modelData.name
                     barWindow: overlay
                     surface: overlay.surface
                     monFullscreen: overlay.monFullscreen

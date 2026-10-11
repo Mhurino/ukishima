@@ -27,6 +27,7 @@ Item {
 
     property real s: 1
     property string screenName: ""
+    property bool preloadSurfaces: false
     property var barWindow
     property string surface: ""
     property bool monFullscreen: false
@@ -2692,7 +2693,9 @@ onClicked: {
      */
     Timer {
         interval: 2500
-        running: true
+        // Keep the warm cache on one startup monitor; other monitors
+        // create these surfaces lazily when the user first opens them.
+        running: pill.preloadSurfaces
         onTriggered: {
             ldMixer.active = true;
             ldMedia.active = true;
