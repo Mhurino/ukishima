@@ -114,11 +114,19 @@ ShellRoot {
         monitoradded: true, monitoraddedv2: true, monitorremoved: true
     })
 
+    // Accorpa gli eventi Hyprland ravvicinati in un solo aggiornamento.
+    Timer {
+        id: modelRefreshDebounce
+        interval: 40
+        repeat: false
+        onTriggered: root.refresh()
+    }
+
     Connections {
         target: Hyprland
         function onRawEvent(event) {
             if (root.refreshEvents[event.name])
-                root.refresh();
+                if (!modelRefreshDebounce.running) modelRefreshDebounce.start();
         }
     }
 
@@ -284,7 +292,6 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             }
 
             onMonFullscreenChanged: {
-                console.log("UKISHIMA FULLSCREEN:", modelData.name, monFullscreen);
                 if (monFullscreen) {
                     if (root.openMon === modelData.name) root.close();
                     if (root.peekMon === modelData.name) root.peekMon = "";
@@ -537,14 +544,6 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                     monFullscreen: overlay.monFullscreen
                     forcePinned: root.peekMon === overlay.modelData.name
 
-                    opacity: 1
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Motion.morph
-                            easing.type: Motion.easeMorph
-                            easing.bezierCurve: Motion.morphCurve
-                        }
-                    }
                     transform: Translate {
                         y: pill.hidden ? -(pill.height + overlay.topGap) : 0
                         Behavior on y {
@@ -584,7 +583,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             id: appDockLoader
             required property var modelData
 
-            active: true
+            active: Flags.dockEnabled
             source: "surfaces/AppDock.qml"
 
             onLoaded: {

@@ -130,14 +130,15 @@ Item {
         id: mrow
 
         property var entryData
+        readonly property var ed: entryData || ({})
         property real indent: 0
         property bool expanded: false
         signal activated()
 
-        height: entryData.isSeparator ? 9 * tray.s : 32 * tray.s
+        height: ed.isSeparator ? 9 * tray.s : 32 * tray.s
 
         Rectangle {
-            visible: mrow.entryData.isSeparator
+            visible: mrow.ed.isSeparator
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.right: parent.right
@@ -148,11 +149,11 @@ Item {
         }
 
         Rectangle {
-            visible: !mrow.entryData.isSeparator
+            visible: !mrow.ed.isSeparator
             anchors.fill: parent
             anchors.leftMargin: mrow.indent
             radius: 8 * tray.s
-            color: mrowArea.containsMouse && mrow.entryData.enabled
+            color: mrowArea.containsMouse && mrow.ed.enabled
                 ? Theme.frameBg : "transparent"
 
             Rectangle {
@@ -163,7 +164,7 @@ Item {
                 height: parent.height * 0.46
                 radius: width / 2
                 color: Theme.vermLit
-                opacity: mrowArea.containsMouse && mrow.entryData.enabled ? 1 : 0
+                opacity: mrowArea.containsMouse && mrow.ed.enabled ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Motion.fast } }
             }
 
@@ -172,10 +173,10 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 16 * tray.s
-                readonly property bool isCheck: mrow.entryData.buttonType === QsMenuButtonType.CheckBox
-                readonly property bool isRadio: mrow.entryData.buttonType === QsMenuButtonType.RadioButton
+                readonly property bool isCheck: mrow.ed.buttonType === QsMenuButtonType.CheckBox
+                readonly property bool isRadio: mrow.ed.buttonType === QsMenuButtonType.RadioButton
                 readonly property bool present: isCheck || isRadio
-                readonly property bool checked: mrow.entryData.checkState === Qt.Checked
+                readonly property bool checked: mrow.ed.checkState === Qt.Checked
                 visible: present
                 width: present ? 11 * tray.s : 0
                 height: 11 * tray.s
@@ -199,25 +200,25 @@ Item {
                 anchors.left: stateBox.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: stateBox.present ? 8 * tray.s : 0
-                width: mrow.entryData.icon ? 15 * tray.s : 0
+                width: mrow.ed.icon ? 15 * tray.s : 0
                 height: 15 * tray.s
-                source: mrow.entryData.icon
+                source: mrow.ed.icon || ""
                 sourceSize.width: 30
                 sourceSize.height: 30
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 cache: true
-                visible: mrow.entryData.icon
+                visible: mrow.ed.icon
             }
 
             Text {
                 anchors.left: entryIcon.right
-                anchors.leftMargin: mrow.entryData.icon ? 9 * tray.s : 0
+                anchors.leftMargin: mrow.ed.icon ? 9 * tray.s : 0
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: chevron.visible ? chevron.left : parent.right
                 anchors.rightMargin: 14 * tray.s
-                text: mrow.entryData.text
-                color: !mrow.entryData.enabled ? Theme.dim
+                text: mrow.ed.text
+                color: !mrow.ed.enabled ? Theme.dim
                     : (mrowArea.containsMouse ? Theme.cream : Theme.creamMenu)
                 font.family: Theme.font
                 font.pixelSize: 13 * tray.s
@@ -230,7 +231,7 @@ Item {
                 anchors.right: parent.right
                 anchors.rightMargin: 10 * tray.s
                 anchors.verticalCenter: parent.verticalCenter
-                visible: mrow.entryData.hasChildren === true
+                visible: mrow.ed.hasChildren === true
                 width: 10 * tray.s
                 height: 10 * tray.s
                 name: "chevron-right"
@@ -244,7 +245,7 @@ Item {
                 id: mrowArea
                 anchors.fill: parent
                 hoverEnabled: true
-                enabled: mrow.entryData.enabled
+                enabled: mrow.ed.enabled
                 cursorShape: Qt.PointingHandCursor
                 onClicked: mrow.activated()
             }

@@ -642,14 +642,14 @@ PillSurface {
                     radius: 8 * root.s
                     color: Qt.alpha(Theme.tileBg, 0.96)
                     border.width: 1
-                    border.color: Qt.alpha(Theme.text, 0.28)
+                    border.color: Qt.alpha(Theme.cream, 0.28)
 
                     TextInput {
                         id: localSearchInput
                         anchors.fill: parent
                         anchors.leftMargin: 10 * root.s
                         anchors.rightMargin: 10 * root.s
-                        color: Theme.text
+                        color: Theme.cream
                         font.family: Theme.font
                         font.pixelSize: 9 * root.s
                         verticalAlignment: TextInput.AlignVCenter
@@ -667,7 +667,7 @@ PillSurface {
                         anchors.left: localSearchInput.left
                         anchors.verticalCenter: localSearchInput.verticalCenter
                         text: "Search music..."
-                        color: Qt.alpha(Theme.text, 0.55)
+                        color: Qt.alpha(Theme.cream, 0.55)
                         font.family: Theme.font
                         font.pixelSize: 9 * root.s
                         visible: localSearchInput.text.length === 0
@@ -716,7 +716,7 @@ PillSurface {
                     Text {
                         anchors.centerIn: parent
                         text: "+ Add music folder"
-                        color: Theme.onSurface
+                        color: Theme.cream
                         font.family: Theme.font
                         font.pixelSize: 9 * root.s
                     }
@@ -748,7 +748,7 @@ PillSurface {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 26 * root.s
                         text: root.musicFolderPath
-                        color: Theme.text
+                        color: Theme.cream
                         font.family: Theme.font
                         font.pixelSize: 10 * root.s
                         verticalAlignment: TextInput.AlignVCenter
@@ -770,7 +770,7 @@ PillSurface {
                         anchors.left: musicFolderInput.left
                         anchors.verticalCenter: musicFolderInput.verticalCenter
                         text: "Music folder path..."
-                        color: Qt.alpha(Theme.text, 0.55)
+                        color: Qt.alpha(Theme.cream, 0.55)
                         font.family: Theme.font
                         font.pixelSize: 10 * root.s
                         visible: musicFolderInput.text.length === 0
@@ -789,7 +789,7 @@ PillSurface {
                         Text {
                             anchors.centerIn: parent
                             text: "Add"
-                            color: Theme.text
+                            color: Theme.cream
                             font.family: Theme.font
                             font.pixelSize: 9 * root.s
                         }

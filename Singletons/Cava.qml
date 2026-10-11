@@ -26,7 +26,7 @@ Singleton {
     property bool active: false
 
     property bool available: false
-    readonly property bool wanted: Flags.musicViz && available
+    readonly property bool wanted: Flags.musicViz && available && audioPlaying
 
     /**
      * autosens is off so a silent browser holding the sink stays at zero bars
@@ -95,5 +95,77 @@ Process {
         id: idle
         interval: 450
         onTriggered: root.active = false
+    }
+
+    /**
+     * On-demand capture: cava only runs while some stream is actually playing.
+     * `pactl subscribe` sits idle until the audio graph changes; each burst of
+     * events is debounced, then one JSON query decides whether any sink input is
+     * uncorked and unmuted. Turning off is delayed so track changes don't thrash
+     * the cava process.
+     */
+    property bool audioPlaying: false
+    readonly property bool watching: Flags.musicViz && available
+
+    Connections {
+        target: root
+        function onWatchingChanged() {
+            audioWatch.running = root.watching;
+            if (!root.watching)
+                root.audioPlaying = false;
+        }
+    }
+
+    Process {
+        id: audioWatch
+        command: ["pactl", "subscribe"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                if (line.indexOf("sink-input") >= 0 || line.indexOf("server") >= 0)
+                    audioCheck.restart();
+            }
+        }
+        onRunningChanged: if (running) audioCheck.restart()
+        onExited: if (root.watching) audioWatchRestart.restart()
+    }
+
+    Timer {
+        id: audioWatchRestart
+        interval: 3000
+        onTriggered: if (root.watching) audioWatch.running = true
+    }
+
+    Timer {
+        id: audioCheck
+        interval: 250
+        onTriggered: audioQuery.running = true
+    }
+
+    Timer {
+        id: audioOff
+        interval: 4000
+        onTriggered: root.audioPlaying = false
+    }
+
+    Process {
+        id: audioQuery
+        command: ["pactl", "--format=json", "list", "sink-inputs"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let playing = false;
+                try {
+                    const arr = JSON.parse(text);
+                    playing = arr.some(i => i.corked === false && i.mute !== true);
+                } catch (e) {
+                    return;
+                }
+                if (playing) {
+                    audioOff.stop();
+                    root.audioPlaying = true;
+                } else if (root.audioPlaying) {
+                    audioOff.restart();
+                }
+            }
+        }
     }
 }

@@ -141,6 +141,14 @@ Item {
     Component.onCompleted: refreshData()
     onScreenNameChanged: refreshData()
 
+    // Una sola lettura di monitor e workspace per ogni gruppo di eventi.
+    Timer {
+        id: hyprlandRefreshDebounce
+        interval: 40
+        repeat: false
+        onTriggered: workspaces.refreshData()
+    }
+
     Connections {
         target: Hyprland
         function onRawEvent(event) {
@@ -150,7 +158,7 @@ Item {
                 || n === "moveworkspace" || n === "renameworkspace"
                 || n === "focusedmon" || n === "focusedmonv2"
                 || n === "monitoradded" || n === "monitorremoved")
-                workspaces.refreshData();
+                if (!hyprlandRefreshDebounce.running) hyprlandRefreshDebounce.start();
         }
     }
 

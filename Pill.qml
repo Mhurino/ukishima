@@ -571,6 +571,13 @@ Item {
      * before suspending and PrepareForSleep(false) on wake; on the wake signal
      * we re-enable the clock to force it to re-read the wall clock immediately.
      */
+    Timer {
+        id: sleepRestart
+        interval: 5000
+        repeat: false
+        onTriggered: sleepWatcher.running = true
+    }
+
     Process {
         id: sleepWatcher
         running: true
@@ -584,7 +591,7 @@ Item {
                 }
             }
         }
-        onExited: () => sleepWatcher.running = true
+        onExited: () => sleepRestart.start()
     }
 
     property real morphRadius: (mode === "rest" || mode === "hover" || mode === "game") ? restCorner : openCorner

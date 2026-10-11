@@ -260,7 +260,7 @@ Singleton {
     function stop() {
         if (!recording)
             return;
-        stopProc.command = ["pkill", "-SIGINT", "-f", "(^|/)gpu-screen-recorder"];
+        stopProc.command = ["pkill", "-SIGINT", "-f", "/gpu-screen-recorder.*-o .*recording_"];
         stopProc.running = true;
     }
 
