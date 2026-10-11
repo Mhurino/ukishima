@@ -265,7 +265,7 @@ Singleton {
     }
 
     /**
-     * Re-read the recent list, regenerating any missing cover thumbnails first.
+     * Re-read the video list, generating any missing cover thumbnails first.
      * The thumb script extracts a frame per clip with ffmpeg into the cache dir
      * (skipping clips whose thumb already exists and is newer) and only then does
      * the list land, so filmstrip delegates never bind to a not-yet-written jpg;
@@ -416,7 +416,7 @@ Singleton {
     Process {
         id: listProc
         command: ["sh", "-c",
-            "d=\"$1\"; [ -d \"$d\" ] || exit 0; find \"$d\" -maxdepth 1 -type f -name 'recording_*.mp4' -printf '%T@\\t%s\\t%p\\n' | sort -rn | head -n 40",
+            "d=\"$1\"; [ -d \"$d\" ] || exit 0; find \"$d\" -maxdepth 1 -type f \\( -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.avi' -o -iname '*.m4v' -o -iname '*.mpg' -o -iname '*.mpeg' -o -iname '*.ts' -o -iname '*.mts' -o -iname '*.m2ts' -o -iname '*.flv' -o -iname '*.wmv' -o -iname '*.ogv' -o -iname '*.3gp' -o -iname '*.3g2' -o -iname '*.vob' -o -iname '*.mxf' -o -iname '*.divx' \\) -printf '%T@\\t%s\\t%p\\n' | sort -rn",
             "_", root.outDir]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -436,7 +436,7 @@ Singleton {
                         name: name,
                         mtime: mtime,
                         sizeLabel: root.humanSize(parseFloat(cols[1])),
-                        thumb: root.thumbDir + name.replace(/\.mp4$/, "") + ".jpg"
+                        thumb: root.thumbDir + name + ".jpg"
                     });
                 }
                 root.recent = out;

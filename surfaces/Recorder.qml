@@ -1260,7 +1260,7 @@ PillSurface {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 visible: ScreenRec.recentCount === 0
-                text: "No recordings yet"
+                text: "No video files in this folder"
                 color: Theme.faint
                 font.family: Theme.font
                 font.pixelSize: 10.5 * root.s
@@ -1289,7 +1289,7 @@ PillSurface {
                     readonly property string stamp: {
                         var m = /_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/.exec(frame.modelData.name);
                         return m ? m[2] + "-" + m[3] + " " + m[4] + ":" + m[5]
-                                 : frame.modelData.name.replace("recording_", "").replace(".mp4", "");
+                                 : frame.modelData.name.replace(/^recording_/, "").replace(/\.[^.]+$/, "");
                     }
                     readonly property bool coverReady: cover.status === Image.Ready && cover.source !== ""
 
