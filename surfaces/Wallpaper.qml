@@ -44,6 +44,8 @@ PillSurface {
     property bool waywallenInitialScanDone: false
     property bool waywallenRefreshPending: false
     property bool waywallenRequestWasScan: false
+    property bool waywallenCatalogLoaded: false
+    property bool selectionReady: false
 
     /** Inline folder edit in the header: true while the path field holds focus. */
     property bool editingDir: false
@@ -139,10 +141,12 @@ PillSurface {
             waywallenInitialScanDone = false;
             waywallenRefreshPending = false;
             waywallenRequestWasScan = false;
+            waywallenCatalogLoaded = false;
             return;
         }
 
-        var shouldScan = forceScan === true || !waywallenInitialScanDone;
+        // Opening reads the cached catalog; only explicit refresh scans the library.
+        var shouldScan = forceScan === true;
         if (waywallenListProc.running) {
             if (shouldScan)
                 waywallenRefreshPending = true;
@@ -243,6 +247,7 @@ PillSurface {
     property bool previewArmed: true
 
     onFocusIndexChanged: {
+        syncTilePool();
         hintShown = false;
         hintDwell.restart();
         previewArmed = false;
@@ -255,7 +260,11 @@ PillSurface {
         onTriggered: root.previewArmed = true
     }
 
-    onItemsChanged: if (focusIndex >= itemCount) focusIndex = Math.max(0, itemCount - 1);
+    onItemsChanged: {
+        if (focusIndex >= itemCount)
+            focusIndex = Math.max(0, itemCount - 1);
+        resetTilePool();
+    }
 
     Timer {
         id: hintDwell
@@ -270,6 +279,39 @@ PillSurface {
      * per-tile retargeting animations.
      */
     property real pos: 0
+    property var tilePoolIndices: []
+    property int tilePoolFocus: 0
+
+    function resetTilePool() {
+        var slots = [];
+        for (var i = -5; i <= 5; i++)
+            slots.push(focusIndex + i);
+        tilePoolIndices = slots;
+        tilePoolFocus = focusIndex;
+    }
+
+    function syncTilePool() {
+        if (tilePoolIndices.length !== 11) {
+            resetTilePool();
+            return;
+        }
+        var slots = tilePoolIndices.slice(0);
+        var center = tilePoolFocus;
+        while (center < focusIndex) {
+            var left = slots.indexOf(center - 5);
+            if (left < 0) { resetTilePool(); return; }
+            slots[left] = center + 6;
+            center++;
+        }
+        while (center > focusIndex) {
+            var right = slots.indexOf(center + 5);
+            if (right < 0) { resetTilePool(); return; }
+            slots[right] = center - 6;
+            center--;
+        }
+        tilePoolIndices = slots;
+        tilePoolFocus = center;
+    }
 
     clip: true
 
@@ -332,6 +374,31 @@ PillSurface {
             }
         focusIndex = idx;
         pos = idx;
+        resetTilePool();
+    }
+
+    // Keep the first frame hidden until the real selection and its catalog are ready.
+    function updateInitialSelection() {
+        if (!root.active || !Walls.currentLoaded)
+            return;
+        if (Flags.waywallenEnabled && !root.waywallenCatalogLoaded)
+            return;
+        if (!Flags.waywallenEnabled && !Walls.entriesLoaded)
+            return;
+        if (root.searching && root.query.length > 0)
+            return;
+        Qt.callLater(function() {
+            if (!root.active || !Walls.currentLoaded)
+                return;
+            if (Flags.waywallenEnabled && !root.waywallenCatalogLoaded)
+                return;
+            if (!Flags.waywallenEnabled && !Walls.entriesLoaded)
+                return;
+            if (root.searching && root.query.length > 0)
+                return;
+            root.centerOnCurrent();
+            root.selectionReady = true;
+        });
     }
 
     /**
@@ -345,6 +412,7 @@ PillSurface {
         ddgResults = [];
         searchField.text = "";
         centerOnCurrent();
+        updateInitialSelection();
     }
 
     /**
@@ -361,22 +429,27 @@ PillSurface {
     }
 
     onActiveChanged: if (active) {
+        selectionReady = false;
+        resetTilePool();
         searching = false;
         editingDir = false;
         query = "";
         ddgResults = [];
         searchField.text = "";
-        centerOnCurrent();
+        updateInitialSelection();
         hintShown = false;
         hintDwell.restart();
-        refreshWaywallenCatalog();
+        refreshWaywallenCatalog(false);
     }
 
     Connections {
         target: Flags
         function onWaywallenEnabledChanged() {
             root.waywallenInitialScanDone = false;
-            root.refreshWaywallenCatalog(Flags.waywallenEnabled);
+            root.waywallenCatalogLoaded = false;
+            root.selectionReady = false;
+            root.refreshWaywallenCatalog(false);
+            root.updateInitialSelection();
         }
     }
 
@@ -385,6 +458,11 @@ PillSurface {
         function onEntriesChanged() {
             if (!root.searching && root.focusIndex >= Walls.count)
                 root.focusIndex = Math.max(0, Walls.count - 1);
+            root.updateInitialSelection();
+        }
+
+        function onCurrentLoadedChanged() {
+            root.updateInitialSelection();
         }
 
         /**
@@ -396,7 +474,7 @@ PillSurface {
          */
         function onRefreshDone() {
             if (root.active && !(root.searching && root.query.length > 0))
-                root.centerOnCurrent();
+                root.updateInitialSelection();
         }
     }
 
@@ -545,8 +623,8 @@ PillSurface {
                 }
 
                 root.waywallenEntries = out;
-                if (root.active && !(root.searching && root.query.length > 0))
-                    Qt.callLater(root.centerOnCurrent);
+                root.waywallenCatalogLoaded = Flags.waywallenEnabled;
+                root.updateInitialSelection();
             }
         }
     }
@@ -881,16 +959,20 @@ PillSurface {
     }
 
     Repeater {
-        model: root.items
+        // Fixed-size ring of delegates: memory use does not grow with the library.
+        model: 11
 
         delegate: Item {
             id: tile
 
             required property int index
-            required property var modelData
+            readonly property int itemIndex: root.tilePoolIndices.length === 11
+                ? root.tilePoolIndices[index] : -1
+            readonly property var entry: (itemIndex >= 0 && itemIndex < root.itemCount)
+                ? root.items[itemIndex] : null
 
-            readonly property string thumb: modelData.thumb !== undefined ? modelData.thumb : ""
-            readonly property bool remote: modelData.image !== undefined
+            readonly property string thumb: entry && entry.thumb !== undefined ? entry.thumb : ""
+            readonly property bool remote: !!(entry && entry.image !== undefined)
 
             /**
              * Local thumbs append the source mtime as a cache-buster. Image's
@@ -898,13 +980,13 @@ PillSurface {
              * file with the same name, or a source replaced in place) would
              * otherwise keep showing the stale cached frame.
              */
-            readonly property bool waywallen: modelData.waywallenId !== undefined
+            readonly property bool waywallen: !!(entry && entry.waywallenId !== undefined)
             property string generatedThumb: ""
             property bool thumbnailAttempted: false
 
             function requestWaywallenThumb() {
                 if (!waywallen
-                        || String(modelData.waywallenType || "").toLowerCase() !== "video"
+                        || String(entry.waywallenType || "").toLowerCase() !== "video"
                         || thumb.length > 0
                         || generatedThumb.length > 0
                         || thumbnailAttempted
@@ -914,7 +996,7 @@ PillSurface {
                 thumbnailAttempted = true;
                 thumbnailProc.command = [
                     "bash", root.waywallenThumbScript,
-                    String(modelData.waywallenId), String(modelData.path)
+                    String(entry.waywallenId), String(entry.path)
                 ];
                 thumbnailProc.running = true;
             }
@@ -934,7 +1016,7 @@ PillSurface {
                 }
             }
 
-            readonly property string thumbSource: remote
+            readonly property string thumbSource: !entry ? "" : remote
                 ? thumb
                 : waywallen
                     ? (thumb.length > 0
@@ -942,7 +1024,7 @@ PillSurface {
                         : (generatedThumb.length > 0
                             ? root.catalogThumbSource(generatedThumb)
                             : ""))
-                    : ("file://" + thumb + "?v=" + (modelData.mtime !== undefined ? Math.round(modelData.mtime) : 0))
+                    : ("file://" + thumb + "?v=" + (entry.mtime !== undefined ? Math.round(entry.mtime) : 0))
 
             /**
              * Live preview gating: only the focused tile plays, and only once
@@ -951,23 +1033,23 @@ PillSurface {
              * loop muted through the ffmpeg backend; everything else keeps the
              * static thumb, which also stays underneath as the loading frame.
              */
-            readonly property bool isGif: /\.gif(\?|$)/i.test(remote ? (modelData.image || "") : modelData.path)
-            readonly property string videoSource: remote
+            readonly property bool isGif: /\.gif(\?|$)/i.test(remote ? (entry.image || "") : (entry ? entry.path : ""))
+            readonly property string videoSource: !entry ? "" : remote
                 ? (focused && root.previewFile !== "" ? "file://" + root.previewFile : "")
-                : (/\.(mp4|webm|mkv|mov)$/i.test(modelData.path) ? "file://" + modelData.path : "")
+                : (/\.(mp4|webm|mkv|mov)$/i.test(entry.path) ? "file://" + entry.path : "")
             readonly property bool showPreview: focused && root.previewArmed && ao < 0.5
             readonly property string resLabel: remote
-                ? (modelData.w > 0 ? modelData.w + "x" + modelData.h : "")
-                : (root.dimsCache[modelData.path] !== undefined ? root.dimsCache[modelData.path] : "")
-            readonly property bool motion: remote
-                ? (modelData.preview !== undefined || isGif)
+                ? (entry.w > 0 ? entry.w + "x" + entry.h : "")
+                : (entry && root.dimsCache[entry.path] !== undefined ? root.dimsCache[entry.path] : "")
+            readonly property bool motion: !entry ? false : remote
+                ? (entry.preview !== undefined || isGif)
                 : waywallen
-                    ? (String(modelData.waywallenType || "").toLowerCase() !== "image" || isGif)
-                    : /\.(gif|mp4|webm|mkv|mov)$/i.test(modelData.path)
+                    ? (String(entry.waywallenType || "").toLowerCase() !== "image" || isGif)
+                    : /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path)
 
-            readonly property real off: index - root.pos
+            readonly property real off: itemIndex - root.pos
             readonly property real ao: Math.abs(off)
-            readonly property bool focused: index === root.focusIndex
+            readonly property bool focused: itemIndex === root.focusIndex
             readonly property real bright: root.slotLerp(root.slotBright, ao)
             readonly property real sat: root.slotLerp(root.slotSat, ao)
             readonly property real corner: (8 + 2 * Math.max(0, 1 - ao)) * root.s
@@ -992,7 +1074,8 @@ PillSurface {
             x: root.width / 2 + root.offsetX(off) - width / 2
             y: (root.height - height) / 2
             z: 10 - ao
-            visible: ao <= 5
+            visible: (root.selectionReady || (root.searching && root.query.length > 0))
+                && itemIndex >= 0 && itemIndex < root.itemCount && ao <= 5
             opacity: edgeFade * (ao <= 4 ? 1 : Math.max(0, 5 - ao))
 
             onFocusedChanged: if (!focused) trashHeat.cancel()
@@ -1015,8 +1098,9 @@ PillSurface {
                 Image {
                     id: thumbImage
                     anchors.fill: parent
-                    source: tile.ao <= 6 ? tile.thumbSource : ""
-                    sourceSize.width: 512
+                    source: (root.selectionReady || (root.searching && root.query.length > 0))
+                        && tile.ao <= 5 ? tile.thumbSource : ""
+                    sourceSize.width: 392
                     sourceSize.height: 220
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
@@ -1031,7 +1115,7 @@ PillSurface {
 
                 AnimatedImage {
                     anchors.fill: parent
-                    source: tile.showPreview && tile.isGif ? (tile.remote ? tile.modelData.image : "file://" + tile.modelData.path) : ""
+                    source: tile.showPreview && tile.isGif ? (tile.remote ? tile.entry.image : "file://" + tile.entry.path) : ""
                     playing: source != ""
                     visible: status === AnimatedImage.Ready
                     fillMode: Image.PreserveAspectCrop
@@ -1117,7 +1201,7 @@ PillSurface {
 
                 Text {
                     anchors.centerIn: parent
-                    visible: tile.focused && tile.remote && dlProc.running && dlProc.target === tile.modelData.image
+                    visible: tile.focused && tile.remote && dlProc.running && dlProc.target === tile.entry.image
                     text: "saving…"
                     color: Theme.cream
                     font.family: Theme.font
@@ -1128,7 +1212,7 @@ PillSurface {
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottomMargin: 6 * root.s
-                    visible: tile.focused && tile.resLabel.length > 0 && !(tile.remote && dlProc.running && dlProc.target === tile.modelData.image)
+                    visible: tile.focused && tile.resLabel.length > 0 && !(tile.remote && dlProc.running && dlProc.target === tile.entry.image)
                     width: resText.implicitWidth + 12 * root.s
                     height: resText.implicitHeight + 5 * root.s
                     radius: height / 2
@@ -1151,7 +1235,7 @@ PillSurface {
                 color: "transparent"
                 border.width: 1
                 border.color: {
-                    if (tile.remote && dlProc.failed.length && dlProc.failed === tile.modelData.image)
+                    if (tile.remote && dlProc.failed.length && dlProc.failed === tile.entry.image)
                         return Theme.vermLit;
                     return tile.committing ? Theme.vermLit : Theme.border;
                 }
@@ -1162,7 +1246,7 @@ PillSurface {
                 id: trashHeat
                 tapThreshold: 0.25
                 enabled: !tile.remote && !tile.waywallen
-                onConfirmed: if (!tile.remote && !tile.waywallen) Walls.trash(tile.modelData.path)
+                onConfirmed: if (!tile.remote && !tile.waywallen) Walls.trash(tile.entry.path)
                 onTapped: root.activate()
             }
 
@@ -1180,7 +1264,7 @@ PillSurface {
                 }
                 onReleased: if (tile.focused && !tile.remote && !tile.waywallen) trashHeat.release()
                 onExited: trashHeat.cancel()
-                onClicked: if (!tile.focused) root.focusIndex = tile.index
+                onClicked: if (!tile.focused) root.focusIndex = tile.itemIndex
             }
 
             /**
@@ -1258,7 +1342,7 @@ PillSurface {
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.applyEntry(tile.modelData, mrect.modelData.name)
+                                onClicked: root.applyEntry(tile.entry, mrect.modelData.name)
                             }
                         }
                     }

@@ -40,6 +40,8 @@ Singleton {
     property var entries: []
     readonly property int count: entries.length
     property string current: ""
+    property bool currentLoaded: false
+    property bool entriesLoaded: false
     property bool pending: false
 
     /**
@@ -78,12 +80,38 @@ Singleton {
         onLoadFailed: root.resolvedDir = ""
     }
 
+    // Read current wallpaper without waiting for thumbnails and directory listing.
+    FileView {
+        id: currentFile
+        path: root.stateFile
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            root.current = currentFile.text().trim();
+            root.currentLoaded = true;
+        }
+        onFileChanged: reload()
+        onLoadFailed: {
+            root.current = "";
+            root.currentLoaded = true;
+        }
+    }
+
     function refresh() {
         if (resolveProc.running || thumbProc.running || listProc.running || stateProc.running) {
             pending = true;
             return;
         }
         refreshing = true;
+        // Waywallen already maintains this catalog; avoid duplicate local thumbnail work.
+        if (Flags.waywallenEnabled) {
+            root.entries = [];
+            root.entriesLoaded = true;
+            stateProc.running = true;
+            return;
+        }
+        root.entriesLoaded = false;
         /**
          * Re-resolve the folder first when autodetect is in play: it only runs
          * inside wallpaper.sh, so a shell restart used to leave the strip on
@@ -195,6 +223,7 @@ Singleton {
                     });
                 }
                 root.entries = out;
+                root.entriesLoaded = true;
                 stateProc.running = true;
             }
         }
@@ -206,6 +235,7 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 root.current = this.text.trim();
+                root.currentLoaded = true;
                 if (root.pending) {
                     root.pending = false;
                     Qt.callLater(root.refresh);
@@ -240,5 +270,12 @@ Singleton {
             Qt.callLater(root.runQueuedApply);
         }
     }
-      Component.onCompleted: Qt.callLater(root.refresh)
+    Connections {
+        target: Flags
+        function onWaywallenEnabledChanged() {
+            root.refresh();
+        }
+    }
+
+    Component.onCompleted: Qt.callLater(root.refresh)
 }
