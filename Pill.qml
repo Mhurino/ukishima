@@ -1303,6 +1303,7 @@ Item {
                 Image {
                     anchors.fill: parent
                     source: Players.artUrl
+                    sourceSize.width: 384
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     visible: status === Image.Ready
@@ -1721,6 +1722,7 @@ Workspaces {
                             anchors.fill: parent
                             fillMode: Image.PreserveAspectCrop
                             source: Players.artUrl
+                            sourceSize.width: 384
                             visible: source !== ""
                             mipmap: true
                         }
@@ -2149,7 +2151,6 @@ Workspaces {
                    enabled: true
                     cursorShape: Qt.PointingHandCursor
 onClicked: {
-    console.log("CALENDAR CLOCK CLICK")
     pill.requestSurface("calendar")
 }                }
             }

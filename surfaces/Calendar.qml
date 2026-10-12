@@ -606,7 +606,6 @@ PillSurface {
                     readonly property bool inMonth: dayNum >= 1 && dayNum <= root.monthLen
                     readonly property bool current: inMonth && root.isToday(dayNum)
 Component.onCompleted: {
-    console.log("CALENDAR EVENTS:", Events.events.length)
 }                    
 readonly property string dayKey: inMonth ? root.dateKey(dayNum) : ""
                     readonly property bool hasEvent: inMonth && Events.hasEvents(cell.dayKey)

@@ -89,7 +89,6 @@ function reloadEvents() {
         }
         root.nextId = maxId + 1;
  root.events = arr;
-console.log("UKI EVENTS LOADED:", root.events.length)
         if (healed)
             root.persist();
     }
@@ -380,9 +379,7 @@ console.log("UKI EVENTS LOADED:", root.events.length)
     }
 
 Component.onCompleted: {
-    console.log("UKI EVENTS START")
     reloadEvents()
-    console.log("UKI EVENTS COUNT:", root.events.length)
 }
 
     Timer {
