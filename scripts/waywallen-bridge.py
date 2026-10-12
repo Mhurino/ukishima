@@ -191,6 +191,16 @@ def request(sock, request_id, request_field, body=b""):
         return parsed
     raise BridgeError("timeout nella risposta del daemon Waywallen")
 
+def file_mtime(*paths):
+    """Modification time of the first path that exists, 0 when none does."""
+    for p in paths:
+        try:
+            if p:
+                return os.stat(p).st_mtime
+        except OSError:
+            continue
+    return 0
+
 def list_wallpapers(sock, request_id):
     response = request(sock, request_id, 19)  # WallpaperListRequest, page_size=0 means all.
     body = first(response, 19, 2, b"")
@@ -204,6 +214,7 @@ def list_wallpapers(sock, request_id):
             "type": text_field(entry, 3),
             "resource": text_field(entry, 4),
             "preview": text_field(entry, 5),
+            "mtime": file_mtime(text_field(entry, 4), text_field(entry, 5)),
         })
     return items
 

@@ -112,7 +112,19 @@ PillSurface {
             }
         }
 
-        if (kindFilter === "all")
+                // Con Waywallen: piu' recenti a sinistra, piu' vecchi a destra.
+        if (Flags.waywallenEnabled) {
+            var order = [];
+            for (var oi = 0; oi < all.length; oi++)
+                order.push({ e: all[oi], i: oi });
+            order.sort(function(x, y) {
+                var d = (Number(y.e.mtime) || 0) - (Number(x.e.mtime) || 0);
+                return d !== 0 ? d : x.i - y.i;
+            });
+            all = order.map(function(o) { return o.e; });
+        }
+
+if (kindFilter === "all")
             return all;
 
         var wantMotion = kindFilter === "motion";
@@ -617,7 +629,7 @@ PillSurface {
                             name: String(item.name || ""),
                             waywallenId: String(item.id),
                             waywallenType: type,
-                            mtime: 0
+                            mtime: Number(item.mtime) || 0
                         });
                     }
                 }
