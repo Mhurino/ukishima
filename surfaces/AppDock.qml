@@ -427,6 +427,29 @@ PanelWindow {
             entry.execute();
     }
 
+    // Evita il "salto" visibile: il dock resta nascosto finche' la geometria
+    // non si e' assestata (avvio) o l'animazione di spostamento non e' finita.
+    readonly property int startupSettleMs: 1000
+    readonly property int moveSettleMs: 500
+    property bool settling: true
+
+    Timer {
+        id: settleTimer
+        interval: root.startupSettleMs
+        running: true
+        repeat: false
+        onTriggered: root.settling = false
+    }
+
+    Connections {
+        target: Flags
+        function onDockPositionChanged() {
+            root.settling = true;
+            settleTimer.interval = root.moveSettleMs;
+            settleTimer.restart();
+        }
+    }
+
     property bool hoverReveal: false
 
     readonly property bool dockAtBottom:
@@ -583,6 +606,7 @@ PanelWindow {
             && !Flags.dockAlwaysVisible
             && !root.dockShown
             && !root.monFullscreen
+            && !root.settling
 
         z: 20
 
@@ -643,6 +667,7 @@ PanelWindow {
 
     Rectangle {
         id: dockFrame
+        visible: !root.settling
 
         x: {
             if (root.dockAtLeft)
