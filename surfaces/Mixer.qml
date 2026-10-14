@@ -7,9 +7,8 @@ import "../Singletons"
 import "../components"
 
 /**
- * Mixer surface: header with DND / Keep-Awake chips and a row of four vertical
- * ink-faders wired to real hardware (brightness via ddcutil, vibrance via
- * nvibrant, volume and mic via Pipewire). Fills the lower body of the pill.
+ * Mixer surface: DND / Keep-Awake and Night Light controls, plus temperature,
+ * volume and microphone faders. Night Light warmth is controlled by hyprsunset.
  */
 PillSurface {
     id: root
@@ -119,7 +118,7 @@ PillSurface {
     property int focusIndex: -1
     readonly property int faderCount: faders.length
     readonly property var faders: {
-        return [vibFader, volFader, micFader];
+        return [nightFader, volFader, micFader];
     }
     readonly property bool surfaceHovered: hoverTracker.hovered
 
@@ -197,15 +196,15 @@ PillSurface {
 
     Component.onCompleted: Devices.detect()
 
-    property real pendingVibrance: -1
+    property int pendingNightTemp: -1
     property int pendingBacklight: -1
 
     Timer {
-        id: vibDebounce
+        id: nightTempDebounce
         interval: 160
-        onTriggered: if (root.pendingVibrance >= 0) {
-            Devices.setVibrance(root.pendingVibrance);
-            root.pendingVibrance = -1;
+        onTriggered: if (root.pendingNightTemp >= 0) {
+            NightLight.setTemp(root.pendingNightTemp);
+            root.pendingNightTemp = -1;
         }
     }
 
@@ -566,17 +565,21 @@ PillSurface {
 
 
         VFader {
-            id: vibFader
+            id: nightFader
             width: faderRow.colW
             s: root.s
-            icon: "monitor"
-            subLabel: "Vibrance"
-            subPersistent: false
+            icon: "moon"
+            subLabel: "Night Light"
+            subPersistent: true
             focused: root.focusIndex === 0
-            value: Devices.vibrance / 100
-            valueLabel: Devices.vibrance + "%"
-            onMoved: (v) => Devices.vibrance = Math.round(v * 100)
-            onCommitted: (v) => { root.pendingVibrance = v * 100; vibDebounce.restart(); }
+            value: Math.max(0, Math.min(1,
+                ((root.pendingNightTemp >= 0 ? root.pendingNightTemp : NightLight.clampTemp(Flags.nightLightTemp)) - 2200) / 3800))
+            valueLabel: (root.pendingNightTemp >= 0 ? root.pendingNightTemp : NightLight.clampTemp(Flags.nightLightTemp)) + "K"
+            onMoved: (v) => root.pendingNightTemp = Math.round(2200 + v * 3800)
+            onCommitted: (v) => {
+                root.pendingNightTemp = Math.round(2200 + v * 3800);
+                nightTempDebounce.restart();
+            }
         }
         VFader {
             id: volFader
