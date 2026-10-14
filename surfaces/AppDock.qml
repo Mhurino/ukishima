@@ -431,7 +431,14 @@ PanelWindow {
     // non si e' assestata (avvio) o l'animazione di spostamento non e' finita.
     readonly property int startupSettleMs: 1000
     readonly property int moveSettleMs: 500
+    readonly property int resizeSettleMs: Math.round(Motion.morph + 120)
     property bool settling: true
+
+    function settleForGeometry(delayMs) {
+        root.settling = true;
+        settleTimer.interval = delayMs;
+        settleTimer.restart();
+    }
 
     Timer {
         id: settleTimer
@@ -444,9 +451,26 @@ PanelWindow {
     Connections {
         target: Flags
         function onDockPositionChanged() {
-            root.settling = true;
-            settleTimer.interval = root.moveSettleMs;
-            settleTimer.restart();
+            root.settleForGeometry(root.moveSettleMs);
+        }
+    }
+
+    // Anticipa il cambio di geometria: Repeater segnala il cambio di numero
+    // elementi prima che Grid aggiorni implicitWidth/implicitHeight e ridimensioni il dock.
+    Connections {
+        target: dockRepeater
+        function onCountChanged() {
+            root.settleForGeometry(root.resizeSettleMs);
+        }
+    }
+
+    Connections {
+        target: dockContent
+        function onImplicitWidthChanged() {
+            root.settleForGeometry(root.resizeSettleMs);
+        }
+        function onImplicitHeightChanged() {
+            root.settleForGeometry(root.resizeSettleMs);
         }
     }
 
@@ -524,7 +548,9 @@ PanelWindow {
         }
 
         Region {
-            item: dockFrame
+            // Durante l'assestamento lasciamo attiva solo la zona di rivelazione
+            // sul bordo, così il dock trasparente non intercetta i clic.
+            item: root.settling ? null : dockFrame
         }
     }
 
@@ -667,7 +693,29 @@ PanelWindow {
 
     Rectangle {
         id: dockFrame
-        visible: !root.settling
+        visible: true
+        enabled: !root.settling
+        opacity: root.settling ? 0 : 1
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.settling ? Motion.fast : Motion.morph
+                easing.type: Motion.easeMorph
+                easing.bezierCurve: Motion.morphCurve
+            }
+        }
+
+        // Fallback per variazioni di geometria che non cambiano l'implicit size.
+        // Si arma solo al primo frame; l'animazione delle dimensioni può terminare
+        // mentre la dock è nascosta, prima della dissolvenza in entrata.
+        onWidthChanged: {
+            if (!root.settling)
+                root.settleForGeometry(root.resizeSettleMs);
+        }
+        onHeightChanged: {
+            if (!root.settling)
+                root.settleForGeometry(root.resizeSettleMs);
+        }
 
         x: {
             if (root.dockAtLeft)
@@ -773,7 +821,7 @@ PanelWindow {
                 if (hovered) {
                     hideTimer.stop();
                     root.hoverReveal = true;
-                } else if (!Flags.dockAlwaysVisible) {
+                } else if (!Flags.dockAlwaysVisible && !root.settling) {
                     hideTimer.restart();
                 }
             }
