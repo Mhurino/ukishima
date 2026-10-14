@@ -553,7 +553,7 @@ PanelWindow {
             x: edgeReveal.x
             y: edgeReveal.y
             width: edgeReveal.width
-            height: edgeReveal.height
+            height: root.dockAtBottom ? root.height - edgeReveal.y : edgeReveal.height
         }
 
         Region {
