@@ -455,24 +455,33 @@ PanelWindow {
         }
     }
 
-    // Anticipa il cambio di geometria: Repeater segnala il cambio di numero
-    // elementi prima che Grid aggiorni implicitWidth/implicitHeight e ridimensioni il dock.
-    Connections {
-        target: dockRepeater
-        function onCountChanged() {
-            root.settleForGeometry(root.resizeSettleMs);
+    // Il modello JS del Repeater può essere ricostruito quando cambia il focus.
+    // Aspettiamo che il conteggio si stabilizzi e nascondiamo la dock solo se
+    // il numero finale di elementi è davvero diverso da quello precedente.
+    property int stableDockItemCount: -1
+
+    Timer {
+        id: dockCountDebounce
+        interval: 80
+        running: true
+        repeat: false
+        onTriggered: {
+            var count = dockRepeater.count;
+            if (root.stableDockItemCount >= 0
+                    && count !== root.stableDockItemCount) {
+                root.settleForGeometry(root.resizeSettleMs);
+            }
+            root.stableDockItemCount = count;
         }
     }
 
     Connections {
-        target: dockContent
-        function onImplicitWidthChanged() {
-            root.settleForGeometry(root.resizeSettleMs);
-        }
-        function onImplicitHeightChanged() {
-            root.settleForGeometry(root.resizeSettleMs);
+        target: dockRepeater
+        function onCountChanged() {
+            dockCountDebounce.restart();
         }
     }
+
 
     property bool hoverReveal: false
 
