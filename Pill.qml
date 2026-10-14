@@ -294,6 +294,7 @@ Item {
         return ld.item;
     }
 
+
     /**
      * Single source of truth for every morphing surface, keyed by its `surface`
      * string. Each entry owns the surface's target size (a thunk so the geometry
@@ -477,7 +478,7 @@ Item {
      * hover pill. Empty space in the body never triggers this.
      */
     function surfaceBack() {
-        if (pill.displayOpen || pill.themeOpen || pill.interfaceOpen || pill.fontpickerOpen) {
+        if (pill.displayOpen || pill.themeOpen || pill.interfaceOpen || pill.fontpickerOpen || pill.profileOpen) {
             pill.requestSurface("appearance");
             return;
         }
@@ -1757,7 +1758,6 @@ Workspaces {
                     }
                 }
 
-
                 Item {
                     visible: Flags.musicViz && Cava.active
                     anchors.verticalCenter: parent.verticalCenter
@@ -2637,39 +2637,16 @@ onClicked: {
                 }
 
                 Item {
-                    id: profileIcon
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 17 * pill.s
-                    height: 17 * pill.s
-
-                    GlyphIcon {
-                        anchors.fill: parent
-                        name: "user"
-                        color: profileArea.containsMouse ? Theme.cream : Theme.iconDim
-                        stroke: 1.7
-                    }
-
-                    MouseArea {
-                        id: profileArea
-                        anchors.fill: parent
-                        anchors.margins: -6 * pill.s
-                        hoverEnabled: true
-                        enabled: hover.live
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("profile")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "profile"
-                    }
-                }
-
-                Item {
                     id: appearanceIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
 
                     GlyphIcon {
-                        anchors.fill: parent
-                        name: "palette"
+                        width: 15 * pill.s
+                        height: 15 * pill.s
+                        anchors.centerIn: parent
+                        name: "cog"
                         color: appearanceArea.containsMouse ? Theme.cream : Theme.iconDim
                         stroke: 1.6
                     }
@@ -2685,6 +2662,8 @@ onClicked: {
                         onContainsMouseChanged: if (containsMouse) pill.soulTarget = "appearance"
                     }
                 }
+
+
 
                 Item {
                     id: powerIcon

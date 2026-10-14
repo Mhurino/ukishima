@@ -24,7 +24,8 @@ SettingsSurface {
         { item: themeTile, kind: "nav", surface: "theme" },
         { item: fontTile, kind: "nav", surface: "fontpicker" },
         { item: ifaceTile, kind: "nav", surface: "interface" },
-        { item: dockTile, kind: "nav", surface: "dock" }
+        { item: dockTile, kind: "nav", surface: "dock" },
+        { item: profileTile, kind: "nav", surface: "profile" }
     ]
 
     Column {
@@ -36,8 +37,8 @@ SettingsSurface {
 
         SettingsHeader {
             s: root.s
-            glyph: "相"
-            title: "APPEARANCE"
+            glyph: "設"
+            title: "SETTINGS"
             showBack: false
         }
 
@@ -113,13 +114,28 @@ SettingsSurface {
             glyph: "埠"
             name: "Dock"
             sub: "Position, size and visibility"
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: root.focusRowItem === dockTile ? Theme.cream : Theme.iconDim
+                stroke: 1.9
+            }
+        }
+
+        SettingsRow {
+            id: profileTile
+            surface: root
+            glyph: "我"
+            name: "Profile"
+            sub: "User and system information"
             last: true
 
             GlyphIcon {
                 width: 16 * root.s
                 height: 16 * root.s
                 name: "chevron-right"
-                color: root.focusRowItem === dockTile ? Theme.cream : Theme.iconDim
+                color: root.focusRowItem === profileTile ? Theme.cream : Theme.iconDim
                 stroke: 1.9
             }
         }
