@@ -12,7 +12,9 @@ reads; the pill JSON carries surfaces, accent and the contrast-matched text.
 """
 import colorsys
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -78,6 +80,151 @@ def lerp(x, x0, x1, y0, y1):
     return y0 + t * (y1 - y0)
 
 
+
+
+def build_pill_palette(hue, sat, chromatic, mean_l):
+    """Build the fork's existing pill palette for a chosen wallpaper tone."""
+    light = mean_l >= 0.40
+    surf_sat = min(sat, 0.26) if light else min(max(sat, 0.30 if chromatic else 0.0), 0.45)
+    acc_sat = (min(sat + 0.18, 0.85) if light else min(max(sat, 0.30) + 0.12, 0.82)) if chromatic else 0.05
+    if light:
+        base = lerp(mean_l, 0.40, 0.66, 0.80, 0.93)
+        steps, text, acc_l, deep_l, glow_l = LIGHT_STEPS, LIGHT_TEXT, 0.42, 0.30, 0.55
+    else:
+        base = lerp(mean_l, 0.0, 0.40, 0.045, 0.20)
+        steps, text, acc_l, deep_l, glow_l = DARK_STEPS, DARK_TEXT, 0.70, 0.34, 0.86
+    pill = {name: tint(hue, surf_sat, base + step) for name, step in zip(SURF_NAMES, steps)}
+    pill["primary"] = tint(hue, acc_sat, acc_l)
+    pill["primary_container"] = tint(hue, min(acc_sat + 0.08, 0.9), deep_l)
+    pill["on_primary_container"] = tint(hue, min(acc_sat, 0.45), glow_l)
+    pill["outline"] = tint(hue, surf_sat, base + (-0.35 if light else 0.35))
+    for key, (lit, st) in zip(TEXT_KEYS, text):
+        pill[key] = tint(hue, st, lit)
+    return pill
+
+
+def rgb(h):
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
+def to_hex(v):
+    return "#%02x%02x%02x" % tuple(round(c * 255) for c in v)
+
+
+def lum(h):
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb(h)]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def contrast(a, b):
+    l1, l2 = lum(a), lum(b)
+    lo, hi = min(l1, l2), max(l1, l2)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def ensure_contrast(color, bg, ratio):
+    """Shift a colour until it clears ratio:1 against bg, keeping its hue."""
+    if contrast(color, bg) >= ratio:
+        return color
+    h, l, s = colorsys.rgb_to_hls(*rgb(color))
+    dark_bg = lum(bg) < 0.5
+    lo, hi = (l, 1.0) if dark_bg else (0.0, l)
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        if contrast(to_hex(colorsys.hls_to_rgb(h, mid, s)), bg) >= ratio:
+            if dark_bg:
+                hi = mid
+            else:
+                lo = mid
+        else:
+            if dark_bg:
+                lo = mid
+            else:
+                hi = mid
+    return to_hex(colorsys.hls_to_rgb(h, hi if dark_bg else lo, s))
+
+
+def backup_gtk_file(path):
+    """Preserve a pre-existing GTK config file before changing it."""
+    if not path.exists() and not path.is_symlink():
+        return
+    backup = path.with_name(path.name + ".ukishima-backup")
+    if backup.exists() or backup.is_symlink():
+        return
+    if path.is_symlink():
+        backup.symlink_to(os.readlink(path))
+    else:
+        shutil.copy2(path, backup)
+
+
+def ensure_gtk_import(directory, pairs):
+    """Append the generated palette import while retaining the previous theme."""
+    for name, imp in pairs.items():
+        line = '@import "%s";' % imp
+        main = directory / name
+        try:
+            if main.is_symlink():
+                backup_gtk_file(main)
+                target = Path(os.readlink(main))
+                if not target.is_absolute():
+                    target = directory / target
+                target = target.resolve()
+                main.unlink()
+                main.write_text('@import url("file://%s");\n%s\n' % (target, line))
+            elif main.is_file():
+                current = main.read_text()
+                if line not in current:
+                    backup_gtk_file(main)
+                    if not current.endswith("\n"):
+                        current += "\n"
+                    main.write_text(current + line + "\n")
+            else:
+                main.write_text(line + "\n")
+        except OSError:
+            pass
+
+
+def gtk_body(pill):
+    accent = pill["primary"]
+    mapping = [
+        ("accent_color", accent), ("accent_bg_color", accent),
+        ("accent_fg_color", ensure_contrast(pill["bright"], accent, 4.5)),
+        ("window_bg_color", pill["surface"]), ("window_fg_color", pill["cream"]),
+        ("headerbar_bg_color", pill["surface_container"]), ("headerbar_fg_color", pill["cream"]),
+        ("popover_bg_color", pill["surface_container_high"]), ("popover_fg_color", pill["cream"]),
+        ("view_bg_color", pill["surface_container_low"]), ("view_fg_color", pill["cream"]),
+        ("card_bg_color", pill["surface_container"]), ("card_fg_color", pill["cream"]),
+        ("sidebar_bg_color", pill["surface_container_low"]), ("sidebar_fg_color", pill["cream"]),
+        ("destructive_color", "#e05a4f"), ("destructive_bg_color", "#5a2320"),
+        ("destructive_fg_color", "#f5d9d4"), ("success_color", "#8fb573"),
+        ("warning_color", "#d9a03f"), ("borders", pill["outline"]),
+    ]
+    return ("/* Generated by ukishima wallcolors.py - do not hand-edit. */\n"
+            + "\n".join("@define-color %s %s;" % kv for kv in mapping) + "\n")
+
+
+def render_gtk(tone, dark):
+    """Generate GTK3/GTK4 palette files and make them override theme colours last."""
+    try:
+        d3 = Path.home() / ".config" / "gtk-3.0"
+        d3.mkdir(parents=True, exist_ok=True)
+        palette3 = d3 / "ukishima.css"
+        backup_gtk_file(palette3)
+        palette3.write_text(gtk_body(dark))
+        ensure_gtk_import(d3, {"gtk.css": "ukishima.css"})
+
+        d4 = Path.home() / ".config" / "gtk-4.0"
+        d4.mkdir(parents=True, exist_ok=True)
+        palette4 = d4 / "ukishima.css"
+        dark4 = d4 / "ukishima-dark.css"
+        backup_gtk_file(palette4)
+        backup_gtk_file(dark4)
+        palette4.write_text(gtk_body(tone))
+        dark4.write_text(gtk_body(dark))
+        ensure_gtk_import(d4, {"gtk.css": "ukishima.css", "gtk-dark.css": "ukishima-dark.css"})
+    except OSError:
+        pass
+
 def render_fastfetch(pill):
     """
     Recolour the fastfetch readout from the same pill palette. fastfetch has no
@@ -130,24 +277,11 @@ def main():
     CACHE.mkdir(parents=True, exist_ok=True)
 
     light = mean_l >= 0.40
-    surf_sat = min(sat, 0.26) if light else min(max(sat, 0.30 if chromatic else 0.0), 0.45)
-    acc_sat = (min(sat + 0.18, 0.85) if light else min(max(sat, 0.30) + 0.12, 0.82)) if chromatic else 0.05
-    if light:
-        base = lerp(mean_l, 0.40, 0.66, 0.80, 0.93)
-        steps, text, acc_l, deep_l, glow_l = LIGHT_STEPS, LIGHT_TEXT, 0.42, 0.30, 0.55
-    else:
-        base = lerp(mean_l, 0.0, 0.40, 0.045, 0.20)
-        steps, text, acc_l, deep_l, glow_l = DARK_STEPS, DARK_TEXT, 0.70, 0.34, 0.86
-
-    pill = {name: tint(hue, surf_sat, base + step) for name, step in zip(SURF_NAMES, steps)}
-    pill["primary"] = tint(hue, acc_sat, acc_l)
-    pill["primary_container"] = tint(hue, min(acc_sat + 0.08, 0.9), deep_l)
-    pill["on_primary_container"] = tint(hue, min(acc_sat, 0.45), glow_l)
-    pill["outline"] = tint(hue, surf_sat, base + (-0.35 if light else 0.35))
-    for key, (lit, st) in zip(TEXT_KEYS, text):
-        pill[key] = tint(hue, st, lit)
+    pill = build_pill_palette(hue, sat, chromatic, mean_l)
+    dark_pill = pill if not light else build_pill_palette(hue, sat, chromatic, 0.12)
     (CACHE / "colors.json").write_text(json.dumps(pill, indent=2) + "\n")
     render_fastfetch(pill)
+    render_gtk(pill, dark_pill)
 
     try:
         b = {k: v["dark"]["color"] for k, v in
