@@ -226,6 +226,12 @@ PanelWindow {
         // Ordine visuale:
         // workspace 1, workspace 2, workspace 3...
         // Le app pinnate ma non aperte restano sempre alla fine.
+        // Posizione originale: spareggio deterministico.
+        for (var oi = 0; oi < out.length; oi++)
+            out[oi]._i = oi;
+
+        // Opzione: ordina le app aperte per workspace.
+        if (Flags.dockSortByWorkspace) {
         out.sort(function (a, b) {
             var aRunning = !!a.running;
             var bRunning = !!b.running;
@@ -234,7 +240,7 @@ PanelWindow {
                 return aRunning ? -1 : 1;
 
             if (!aRunning && !bRunning)
-                return 0;
+                return a._i - b._i;
 
             var aWs = a.workspace ? Number(a.workspace.id) : 2147483647;
             var bWs = b.workspace ? Number(b.workspace.id) : 2147483647;
@@ -243,8 +249,9 @@ PanelWindow {
                 return aWs - bWs;
 
             // A parità di workspace resta invariato l'ordine originale.
-            return 0;
+            return a._i - b._i;
         });
+        }
 
         return out;
     }
@@ -274,6 +281,73 @@ PanelWindow {
         Flags.dockApps = Flags.dockApps.filter(function(appId) {
             return String(appId) !== id;
         });
+    }
+
+
+    /**
+     * Drop of a dragged pinned-but-not-running app. Only those apps are re-sorted,
+     * by their visual position along the dock axis (delta = drag distance in px),
+     * and written back into their own slots of Flags.dockApps. Running apps keep
+     * their workspace ordering untouched.
+     */
+    function dropPinned(entry, delta, repeater) {
+        if (!entry || !entry.id || !repeater)
+            return;
+
+        var dragId = String(entry.id);
+        var movable = [];
+
+        for (var i = 0; i < repeater.count; i++) {
+            var it = repeater.itemAt(i);
+            if (!it || !it.entry || !it.pinned
+                    || (it.running && Flags.dockSortByWorkspace))
+                continue;
+
+            var base = root.dockVertical
+                ? it.y + it.height / 2
+                : it.x + it.width / 2;
+
+            movable.push({
+                id: String(it.entry.id),
+                pos: String(it.entry.id) === dragId ? base + delta : base,
+                seq: movable.length
+            });
+        }
+
+        movable.sort(function (a, b) {
+            return a.pos !== b.pos ? a.pos - b.pos : a.seq - b.seq;
+        });
+
+        var movableIds = ({});
+        var order = [];
+        for (var m = 0; m < movable.length; m++) {
+            movableIds[movable[m].id] = true;
+            order.push(movable[m].id);
+        }
+
+        var apps = Flags.dockApps.slice();
+        var slots = [];
+        for (var si = 0; si < apps.length; si++) {
+            if (movableIds[String(apps[si])])
+                slots.push(si);
+        }
+
+        if (slots.length !== order.length)
+            return;
+
+        for (var n = 0; n < slots.length; n++)
+            apps[slots[n]] = order[n];
+
+        var changed = false;
+        for (var c = 0; c < apps.length; c++) {
+            if (String(apps[c]) !== String(Flags.dockApps[c])) {
+                changed = true;
+                break;
+            }
+        }
+
+        if (changed)
+            Flags.dockApps = apps;
     }
 
     function findRunningEntry(entry) {
@@ -433,7 +507,7 @@ PanelWindow {
 
     Timer {
         id: hideTimer
-        interval: 3500
+        interval: Math.max(1, Math.round(Flags.dockRevealSeconds * 1000))
         repeat: false
 
         onTriggered: {
@@ -756,6 +830,7 @@ PanelWindow {
                     workspaceHere: modelData.workspaceHere
                     workspaceLabel: modelData.workspaceLabel
                     pinned: root.isPinned(modelData.entry)
+                    vertical: root.dockVertical
 
                     tooltipGravity:
                         root.dockAtBottom
@@ -777,6 +852,9 @@ PanelWindow {
 
                     onUnpinRequested:
                         (entry) => root.unpinEntry(entry)
+
+                    onDragDropped:
+                        (entry, delta) => root.dropPinned(entry, delta, dockRepeater)
                 }
             }
         }

@@ -61,6 +61,7 @@ Singleton {
     property alias dockAlwaysVisible: adapter.dockAlwaysVisible
     property alias dockSize: adapter.dockSize
     property alias dockApps: adapter.dockApps
+    property alias dockSortByWorkspace: adapter.dockSortByWorkspace
     property alias dockPosition: adapter.dockPosition
     property alias dockRevealSeconds: adapter.dockRevealSeconds
 
@@ -137,6 +138,7 @@ Singleton {
             property bool dockAlwaysVisible: false
             property int dockSize: 42
             property list<string> dockApps: []
+            property bool dockSortByWorkspace: false
             property string dockPosition: "bottom"
             property real dockRevealSeconds: 4
         }

@@ -38,6 +38,12 @@ SettingsSurface {
             set: function (v) { Flags.dockAlwaysVisible = v; }
         },
         {
+            item: sortRow,
+            kind: "toggle",
+            get: function () { return Flags.dockSortByWorkspace; },
+            set: function (v) { Flags.dockSortByWorkspace = v; }
+        },
+        {
             item: durationRow,
             kind: "seg",
             vals: [1, 2, 4, 6, 10],
@@ -126,6 +132,19 @@ SettingsSurface {
                 s: root.s
                 on: Flags.dockAlwaysVisible
                 onToggled: Flags.dockAlwaysVisible = !Flags.dockAlwaysVisible
+            }
+        }
+
+        SettingsRow {
+            id: sortRow
+            surface: root
+            name: "Sort by workspace"
+            sub: "Open apps follow workspace order"
+
+            LinkToggle {
+                s: root.s
+                on: Flags.dockSortByWorkspace
+                onToggled: Flags.dockSortByWorkspace = !Flags.dockSortByWorkspace
             }
         }
 

@@ -19,6 +19,16 @@ Item {
     property bool tooltipVisible: false
     property bool confirmVisible: false
 
+    // Drag-to-reorder: only for pinned apps that are not currently running.
+    readonly property bool dragEnabled: pinned && !!entry
+        && (!running || !Flags.dockSortByWorkspace)
+    property bool vertical: false
+    property bool dragging: false
+    property bool wasDragged: false
+    property real dragDX: 0
+    property real dragDY: 0
+    property point pressScene: Qt.point(0, 0)
+
     // Tooltip direction relative to the dock item.
     property int tooltipGravity: Edges.Top
 
@@ -26,6 +36,7 @@ Item {
     signal closeRequested(var entry)
     signal pinRequested(var entry)
     signal unpinRequested(var entry)
+    signal dragDropped(var entry, real delta)
 
     readonly property real tileSize: root.size * s
     readonly property real iconSize: root.size * 0.62 * s
@@ -75,6 +86,22 @@ Item {
 
     width: tileSize
     height: tileSize
+
+    z: dragging ? 20 : 0
+    scale: dragging ? 1.06 : 1
+    transform: Translate { x: root.dragDX; y: root.dragDY }
+
+    Behavior on dragDX {
+        enabled: !root.dragging
+        NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard }
+    }
+    Behavior on dragDY {
+        enabled: !root.dragging
+        NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard }
+    }
+    Behavior on scale {
+        NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard }
+    }
 
     Rectangle {
         id: tile
@@ -254,8 +281,10 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: root.dragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
         z: 1
+
+        onPressed: root.wasDragged = false
 
         onEntered: {
             root.tooltipVisible = false;
@@ -268,6 +297,11 @@ Item {
         }
 
         onClicked: (mouse) => {
+            if (root.wasDragged) {
+                root.wasDragged = false;
+                return;
+            }
+
             if (mouse.button === Qt.RightButton) {
                 tooltipTimer.stop();
                 root.tooltipVisible = false;
@@ -284,6 +318,40 @@ Item {
             }
 
             root.activated(root.entry);
+        }
+    }
+
+    // Drag-to-reorder. The translation comes from the pointer's position in the
+    // window, so it stays correct while this item itself is being moved.
+    DragHandler {
+        id: dragHandler
+        enabled: root.dragEnabled
+        target: null
+        acceptedButtons: Qt.LeftButton
+        dragThreshold: Math.round(6 * root.s)
+
+        onActiveTranslationChanged: {
+            if (!active)
+                return;
+            root.dragDX = root.vertical ? 0 : activeTranslation.x;
+            root.dragDY = root.vertical ? activeTranslation.y : 0;
+        }
+
+        onActiveChanged: {
+            if (active) {
+                root.dragging = true;
+                root.wasDragged = true;
+                tooltipTimer.stop();
+                root.tooltipVisible = false;
+                return;
+            }
+            if (!root.dragging)
+                return;
+            var delta = root.vertical ? root.dragDY : root.dragDX;
+            root.dragging = false;
+            root.dragDX = 0;
+            root.dragDY = 0;
+            root.dragDropped(root.entry, delta);
         }
     }
 
