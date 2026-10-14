@@ -11,8 +11,8 @@ import "../components"
  * 我 PROFILE sub-surface: who is at this machine. Horizontal card —
  * avatar (auto-detected from ~/.face) with the login name under it on the
  * left, live system facts on the right.
- * Reached from the pill's monitor icon and folds back to the hover pill on
- * the back chevron or an empty click.
+ * Reached from the Appearance settings index and returns there on the
+ * back chevron or an empty click.
  *
  * Each fact row is a small caps label plus its value (host, kernel, WM,
  * shell, GPU on the left; uptime, CPU, packages, memory, disk on the right),
@@ -25,7 +25,7 @@ import "../components"
 SettingsSurface {
     id: root
 
-    backSurface: ""
+    backSurface: "appearance"
     implicitHeight: content.implicitHeight
 
     // Purely informational — no rows for the keyboard cursor to walk.
@@ -34,6 +34,7 @@ SettingsSurface {
 
     /** Avatar: prefer lock avatar path if set, else first of ~/.face* files, else "". */
     property string faceFile: ""
+    property bool faceFallbackTried: false
     function expandPath(p) {
         if (!p || p === "")
             return "";
@@ -58,6 +59,7 @@ SettingsSurface {
                 }
             } catch (e) {}
             // fall back to ~/.face*
+            root.faceFallbackTried = true;
             faceProc.running = true;
         }
     }
@@ -310,6 +312,13 @@ SettingsSurface {
                     asynchronous: true
                     visible: status === Image.Ready
                     sourceSize: Qt.size(112 * root.s, 112 * root.s)
+                    onStatusChanged: {
+                        if (status === Image.Error && root.faceFile !== "" && !root.faceFallbackTried) {
+                            root.faceFallbackTried = true;
+                            root.faceFile = "";
+                            faceProc.running = true;
+                        }
+                    }
                 }
 
                 GlyphIcon {
