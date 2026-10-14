@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.UPower
 
 /**
  * Game mode: one flag that strips Hyprland's eye-candy and quiets the desktop for
@@ -25,6 +26,13 @@ Singleton {
         Flags.gamePrevDnd = Flags.dnd;
         Flags.gamePrevViz = Flags.musicViz;
         Flags.gamePrevAwake = Flags.keepAwake;
+        // Only change the profile when the daemon and hardware support it.
+        if (Battery.daemonReady && Battery.hasPerformance) {
+            Flags.gamePrevProfile = String(Battery.profile);
+            Battery.setProfile(PowerProfile.Performance);
+        } else {
+            Flags.gamePrevProfile = "";
+        }
         Flags.dnd = true;
         Flags.musicViz = false;
         Flags.keepAwake = true;
@@ -36,6 +44,12 @@ Singleton {
         Flags.dnd = Flags.gamePrevDnd;
         Flags.musicViz = Flags.gamePrevViz;
         Flags.keepAwake = Flags.gamePrevAwake;
+        if (Flags.gamePrevProfile !== "") {
+            var previous = parseInt(Flags.gamePrevProfile, 10);
+            if (!isNaN(previous))
+                Battery.setProfile(previous);
+            Flags.gamePrevProfile = "";
+        }
     }
 
     function run(arg) {
