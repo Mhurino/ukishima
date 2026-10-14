@@ -30,6 +30,38 @@ Item {
     property bool preloadSurfaces: false
     property var barWindow
     property string surface: ""
+
+    // Memory Saver: conserva temporaneamente le superfici chiuse,
+    // poi scarica i Loader inattivi per liberare risorse.
+    property string prevSurface: ""
+    readonly property real unloadS:
+        (Flags.memorySaver ? Math.max(10, Flags.unloadSec) : 1e12)
+
+    readonly property var unloadIdleMs: ({
+        // Superfici più pesanti: scaricamento prioritario.
+        wallpaper: unloadS * 1000,
+        mixer: unloadS * 1000,
+
+        // Superfici usate spesso: finestra più lunga per riaprirle.
+        clipboard: unloadS * 2 * 1000,
+        media: unloadS * 2 * 1000,
+        recorder: unloadS * 2 * 1000,
+        calendar: unloadS * 2 * 1000,
+
+        // Impostazioni e altre superfici.
+        default: unloadS * 1000
+    })
+
+    readonly property int unloadKeepMax: 4
+    property var closedAt: ({})
+
+    onSurfaceChanged: {
+        if (pill.prevSurface.length > 0
+                && pill.prevSurface !== pill.surface) {
+            pill.scheduleUnload(pill.prevSurface);
+        }
+        pill.prevSurface = pill.surface;
+    }
     property bool monFullscreen: false
 
     property bool hovered: false
@@ -265,7 +297,7 @@ Item {
     readonly property real recorderW: 384 * s
     readonly property real sysmonW: 392 * s
     readonly property real appearanceW: 392 * s
-    readonly property real profileW: 500 * s
+    readonly property real profileW: 560 * s
     readonly property real fontpickerW: 360 * s
     readonly property real toastW: 342 * s
     readonly property real quickChooseW: 344 * s
@@ -290,7 +322,16 @@ Item {
      * is exact. Nothing ever deactivates a loaded surface.
      */
     function surfaceItem(ld) {
+        if (!ld)
+            return null;
+
         ld.active = true;
+
+        // Una riapertura annulla il conto alla rovescia della superficie.
+        const name = pill.surfaceName(ld);
+        if (name)
+            pill.cancelUnload(name);
+
         return ld.item;
     }
 
@@ -328,6 +369,165 @@ Item {
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) },
         profile:   { size: () => { const it = surfaceItem(ldProfile); return Qt.size(profileW, it.implicitHeight + 29 * s); }, ame: () => surfaceItem(ldProfile) }
     })
+
+    // Mappa superficie -> Loader. Le funzioni differite evitano di
+    // conservare riferimenti anticipati ai Loader nel modello delle superfici.
+    readonly property var loaders: ({
+        calendar: () => ldCalendar,
+        weather: () => ldWeather,
+        launcher: () => ldLauncher,
+        clipboard: () => ldClip,
+        wallpaper: () => ldWall,
+        power: () => ldPower,
+        media: () => ldMedia,
+        beats: () => ldBeats,
+        mixer: () => ldMixer,
+        link: () => ldLink,
+        wifi: () => ldWifi,
+        bt: () => ldBt,
+        battery: () => ldBattery,
+        recorder: () => ldRecorder,
+        sysmon: () => ldSysmon,
+        appearance: () => ldAppearance,
+        display: () => ldDisplay,
+        theme: () => ldTheme,
+        interface: () => ldInterface,
+        dock: () => ldDock,
+        fontpicker: () => ldFontpicker,
+        profile: () => ldProfile
+    })
+
+    function surfaceName(ld) {
+        const names = Object.keys(pill.loaders);
+        for (var i = 0; i < names.length; i++) {
+            const name = names[i];
+            if (pill.loaders[name]() === ld)
+                return name;
+        }
+        return "";
+    }
+
+    function scheduleUnload(name) {
+        if (!Flags.memorySaver || !name || name === pill.surface
+                || !pill.loaders[name]) {
+            return;
+        }
+
+        const ld = pill.loaders[name]();
+        if (!ld || !ld.active)
+            return;
+
+        pill.closedAt[name] = Date.now();
+        sweepTimer.start();
+    }
+
+    function cancelUnload(name) {
+        if (!name)
+            return;
+
+        delete pill.closedAt[name];
+
+        if (Object.keys(pill.closedAt).length === 0)
+            sweepTimer.stop();
+    }
+
+    function idleFor(name) {
+        var duration = pill.unloadIdleMs[name];
+        if (duration === undefined)
+            duration = pill.unloadIdleMs.default;
+        return duration;
+    }
+
+    function dropClosed(name) {
+        const loaderFn = pill.loaders[name];
+        const ld = loaderFn ? loaderFn() : null;
+
+        // Non scaricare mai la superficie attualmente aperta.
+        if (name === pill.surface) {
+            delete pill.closedAt[name];
+            return false;
+        }
+
+        const wasLive = !!(ld && ld.active);
+        if (wasLive)
+            ld.active = false;
+
+        delete pill.closedAt[name];
+        return wasLive;
+    }
+
+    Timer {
+        id: sweepTimer
+        interval: 5000
+        repeat: true
+        running: false
+
+        onTriggered: {
+            if (!Flags.memorySaver) {
+                pill.closedAt = ({});
+                sweepTimer.stop();
+                return;
+            }
+
+            var now = Date.now();
+            var names = Object.keys(pill.closedAt);
+            names.sort(function(a, b) {
+                return pill.closedAt[b] - pill.closedAt[a];
+            });
+
+            var keeps = false;
+            var dropped = false;
+
+            for (var i = 0; i < names.length; i++) {
+                const name = names[i];
+                const expired = now - pill.closedAt[name]
+                    >= pill.idleFor(name);
+                const overLimit = i >= pill.unloadKeepMax;
+
+                if (overLimit || expired) {
+                    if (pill.dropClosed(name))
+                        dropped = true;
+                } else {
+                    keeps = true;
+                }
+            }
+
+            if (dropped)
+                Qt.callLater(pill.reapJs);
+
+            if (!keeps)
+                sweepTimer.stop();
+        }
+    }
+
+    function reapJs() {
+        // La raccolta esplicita è opzionale nell'ambiente QML.
+        if (typeof gc === "function")
+            gc();
+    }
+
+    Connections {
+        target: Flags
+
+        function onMemorySaverChanged() {
+            if (!Flags.memorySaver) {
+                pill.closedAt = ({});
+                sweepTimer.stop();
+                return;
+            }
+
+            // Se il saver viene riattivato, riprende a tracciare tutti
+            // i Loader già caricati che non corrispondono alla superficie aperta.
+            const names = Object.keys(pill.loaders);
+            for (var i = 0; i < names.length; i++) {
+                const name = names[i];
+                const ld = pill.loaders[name]();
+
+                if (ld && ld.active && name !== pill.surface)
+                    pill.scheduleUnload(name);
+            }
+        }
+    }
 
     readonly property string mode: {
         if (dragActive)

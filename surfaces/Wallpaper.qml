@@ -440,18 +440,48 @@ if (kindFilter === "all")
         Qt.callLater(searchField.input.forceActiveFocus);
     }
 
-    onActiveChanged: if (active) {
-        selectionReady = false;
-        resetTilePool();
-        searching = false;
-        editingDir = false;
-        query = "";
-        ddgResults = [];
-        searchField.text = "";
-        updateInitialSelection();
-        hintShown = false;
-        hintDwell.restart();
-        refreshWaywallenCatalog(false);
+    onActiveChanged: {
+        if (active) {
+            selectionReady = false;
+            resetTilePool();
+            searching = false;
+            editingDir = false;
+            query = "";
+            ddgResults = [];
+            searchField.text = "";
+            previewArmed = false;
+            previewArm.restart();
+            updateInitialSelection();
+            hintShown = false;
+            hintDwell.restart();
+            refreshWaywallenCatalog(false);
+        } else {
+            // Disattiva le miniature subito, anche durante la coda del Loader.
+            selectionReady = false;
+            previewArmed = false;
+            previewArm.stop();
+            hintDwell.stop();
+
+            // Evita che una ricerca conclusa a pannello chiuso aggiorni la UI.
+            debounce.stop();
+            searchProc.running = false;
+            searching = false;
+            query = "";
+            ddgResults = [];
+            searchField.text = "";
+
+            // Rilascia anteprima e dimensioni; invalida gli eventuali processi
+            // in corso prima di fermarli, per impedire risultati tardivi.
+            prevDebounce.stop();
+            prevFetch.url = "";
+            prevFetch.running = false;
+            previewFile = "";
+
+            dimsDebounce.stop();
+            dimsProc.path = "";
+            dimsProc.running = false;
+            dimsCache = ({});
+        }
     }
 
     Connections {
@@ -533,8 +563,11 @@ if (kindFilter === "all")
         property string url: ""
         stdout: StdioCollector {
             onStreamFinished: {
-                if (this.text.length && prevFetch.url === root.focusedPreviewUrl)
+                if (root.active && this.text.length
+                        && prevFetch.url !== ""
+                        && prevFetch.url === root.focusedPreviewUrl) {
                     root.previewFile = this.text;
+                }
             }
         }
     }
@@ -663,6 +696,9 @@ if (kindFilter === "all")
         id: searchProc
         stdout: StdioCollector {
             onStreamFinished: {
+                if (!root.active)
+                    return;
+
                 var out = [];
                 try {
                     var parsed = JSON.parse(this.text);
@@ -1110,13 +1146,17 @@ if (kindFilter === "all")
                 Image {
                     id: thumbImage
                     anchors.fill: parent
-                    source: (root.selectionReady || (root.searching && root.query.length > 0))
+                    source: root.active
+                        && (root.selectionReady || (root.searching && root.query.length > 0))
                         && tile.ao <= 5 ? tile.thumbSource : ""
                     sourceSize.width: 392
                     sourceSize.height: 220
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     smooth: true
+                    // Evita che le miniature decodificate restino nella cache
+                    // globale anche dopo lo scaricamento della superficie.
+                    cache: false
                 }
 
                 Rectangle {

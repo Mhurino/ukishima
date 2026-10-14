@@ -57,6 +57,8 @@ Singleton {
     property alias nightLightTemp: adapter.nightLightTemp
     property alias nightLightOnMin: adapter.nightLightOnMin
     property alias nightLightOffMin: adapter.nightLightOffMin
+    property alias memorySaver: adapter.memorySaver
+    property alias unloadSec: adapter.unloadSec
     property alias dockEnabled: adapter.dockEnabled
     property alias dockAlwaysVisible: adapter.dockAlwaysVisible
     property alias dockSize: adapter.dockSize
@@ -132,6 +134,10 @@ Singleton {
             property int nightLightTemp: 4000
             property int nightLightOnMin: 1260
             property int nightLightOffMin: 450
+
+            // Scarica le superfici chiuse dopo il periodo di inattività.
+            property bool memorySaver: true
+            property real unloadSec: 30
 
             // Native app dock.
             property bool dockEnabled: true
