@@ -42,6 +42,25 @@ PillSurface {
             if (mediaClass && mediaClass.indexOf("Audio/Source") >= 0)
                 continue;
 
+            // Hide these utility streams from the Mixer UI only. Their audio
+            // nodes and PipeWire volume settings are left untouched.
+            var props = n.properties || {};
+            var streamIdentity = [
+                props["application.name"],
+                props["node.name"],
+                props["node.description"],
+                props["media.name"],
+                n.description,
+                n.name
+            ].filter(Boolean).join(" ").toLowerCase();
+
+            var isCava = /(^|[^a-z0-9])cava([^a-z0-9]|$)/.test(streamIdentity);
+            var isGsrDefaultOut = /(^|[^a-z0-9])gsr([^a-z0-9]|$)/.test(streamIdentity)
+                && /default[\s_-]*(audio|out|output)/.test(streamIdentity);
+
+            if (isCava || isGsrDefaultOut)
+                continue;
+
             out.push(n);
         }
 
