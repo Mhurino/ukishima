@@ -46,6 +46,8 @@ SettingsSurface {
     }
 
     function applyMode(v) {
+        if (v !== root.themeMode)
+            Flags.oled = false;
         Flags.paletteMode = v;
         if (v === "manual")
             applyManual();
@@ -83,13 +85,19 @@ SettingsSurface {
             if (Flags.paletteMode === "manual")
                 root.applyManual();
         }
+        function onPaletteModeChanged() {
+            if (root.themeMode !== "dark" && Flags.oled)
+                Flags.oled = false;
+        }
     }
 
     rows: {
         var out = [
-            { item: paletteRow, kind: "seg", vals: ["light", "dark", "dynamic", "manual"], get: function () { return root.themeMode; }, set: function (v) { root.applyMode(v); } },
-            { item: waywallenRow, kind: "toggle", get: function () { return Flags.waywallenEnabled; }, set: function (v) { Waywallen.setEnabled(v); } }
+            { item: paletteRow, kind: "seg", vals: ["light", "dark", "dynamic", "manual"], get: function () { return root.themeMode; }, set: function (v) { root.applyMode(v); } }
         ];
+        if (root.themeMode === "dark")
+            out.push({ item: oledRow, kind: "toggle", get: function () { return Flags.oled; }, set: function (v) { Flags.oled = v; } });
+        out.push({ item: waywallenRow, kind: "toggle", get: function () { return Flags.waywallenEnabled; }, set: function (v) { Waywallen.setEnabled(v); } });
         if (Flags.waywallenEnabled) {
             out.push({ item: waywallenOpenRow, kind: "text", activate: function () { Waywallen.openUI(); } });
             out.push({ item: waywallenDirRow, kind: "text", activate: function () {
@@ -138,6 +146,20 @@ SettingsSurface {
                 options: [{ label: "Light", value: "light" }, { label: "Dark", value: "dark" }, { label: "Dynamic", value: "dynamic" }, { label: "Manual", value: "manual" }]
                 value: root.themeMode
                 onPicked: (v) => root.applyMode(v)
+            }
+        }
+
+        SettingsRow {
+            id: oledRow
+            surface: root
+            name: "OLED"
+            icon: "moon"
+            visible: root.themeMode === "dark"
+
+            LinkToggle {
+                s: root.s
+                on: Flags.oled
+                onToggled: Flags.oled = !Flags.oled
             }
         }
 

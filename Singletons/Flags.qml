@@ -20,6 +20,7 @@ Singleton {
     property alias mainDisplay: adapter.mainDisplay
         property alias showGlyphs: adapter.showGlyphs
     property alias paletteMode: adapter.paletteMode
+    property alias oled: adapter.oled
     property alias wallpaperDir: adapter.wallpaperDir
     property alias waywallenEnabled: adapter.waywallenEnabled
     property alias waywallenWallpaperDir: adapter.waywallenWallpaperDir
@@ -91,6 +92,7 @@ Singleton {
             /** What the media card's Expand control opens: "media" keeps the surface as the main screen, "pill" swaps to the expanded pill. */
                         property bool showGlyphs: true
             property string paletteMode: "static"
+            property bool oled: false
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */
             property string wallpaperDir: ""
             /** Optional Waywallen Flatpak wallpaper integration. */
