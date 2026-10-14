@@ -68,9 +68,10 @@ Item {
     readonly property bool themeOpen: surface === "theme"
     readonly property bool interfaceOpen: surface === "interface"
     readonly property bool fontpickerOpen: surface === "fontpicker"
+    readonly property bool profileOpen: surface === "profile"
     readonly property bool dockOpen: surface === "dock"
     readonly property bool settingsLike:
-        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || dockOpen
+        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || profileOpen || dockOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -264,6 +265,7 @@ Item {
     readonly property real recorderW: 384 * s
     readonly property real sysmonW: 392 * s
     readonly property real appearanceW: 392 * s
+    readonly property real profileW: 500 * s
     readonly property real fontpickerW: 360 * s
     readonly property real toastW: 342 * s
     readonly property real quickChooseW: 344 * s
@@ -322,7 +324,8 @@ Item {
         theme:      { size: () => Qt.size(appearanceW, surfaceItem(ldTheme).implicitHeight + 29 * s), ame: () => surfaceItem(ldTheme) },
         interface:  { size: () => Qt.size(appearanceW, surfaceItem(ldInterface).implicitHeight + 29 * s), ame: () => surfaceItem(ldInterface) },
         dock:       { size: () => Qt.size(appearanceW, surfaceItem(ldDock).implicitHeight + 29 * s), ame: () => surfaceItem(ldDock) },
-        fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) }
+        fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) },
+        profile:   { size: () => { const it = surfaceItem(ldProfile); return Qt.size(profileW, it.implicitHeight + 29 * s); }, ame: () => surfaceItem(ldProfile) }
     })
 
     readonly property string mode: {
@@ -402,6 +405,8 @@ Item {
             return ldDock.item;
         if (pill.fontpickerOpen)
             return ldFontpicker.item;
+        if (pill.profileOpen)
+            return ldProfile.item;
         return null;
     }
 
@@ -863,6 +868,8 @@ Item {
             return launcherIcon.mapToItem(pill, launcherIcon.width / 2, launcherIcon.height + drop * 0.55);
         if (soulTarget === "appearance")
             return appearanceIcon.mapToItem(pill, appearanceIcon.width / 2, appearanceIcon.height + drop * 0.55);
+        if (soulTarget === "profile")
+            return profileIcon.mapToItem(pill, profileIcon.width / 2, profileIcon.height + drop * 0.55);
         if (soulTarget === "ws" && soulWsIndex >= 0) {
             void ws.activeName;
             void ws.width;
@@ -2630,6 +2637,31 @@ onClicked: {
                 }
 
                 Item {
+                    id: profileIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "user"
+                        color: profileArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: profileArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("profile")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "profile"
+                    }
+                }
+
+                Item {
                     id: appearanceIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
@@ -2952,6 +2984,19 @@ onClicked: {
             open: pill.dockOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
+        }
+    }
+
+    Loader {
+        id: ldProfile
+        active: false
+        anchors.fill: parent
+        sourceComponent: Profile {
+            s: pill.s
+            open: pill.profileOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
         }
     }
 

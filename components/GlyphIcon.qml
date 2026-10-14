@@ -21,6 +21,7 @@ Item {
     readonly property real u: Math.min(width, height) / 24
 
     readonly property var glyphs: ({
+        "user": { d: "M20 21a8 8 0 0 0-16 0 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", fill: false },
         "sun": { d: "M16 12a4 4 0 1 0-8 0a4 4 0 1 0 8 0 M12 2v2 M12 20v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4 M2 12h2 M20 12h2 M4.2 19.8l1.4-1.4 M18.4 5.6l1.4-1.4", fill: false },
         "moon": { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z", fill: false },
         "cloud": { d: "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z", fill: false },
