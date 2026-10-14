@@ -397,7 +397,8 @@ PillSurface {
                 tipTitle: "Night light"
                 tipDesc: "Toggle night light"
                 onToggled: {
-                    if (Flags.nightLightMode === "on")
+                    if (Flags.nightLightMode === "on"
+                        || (Flags.nightLightMode === "scheduled" && NightLight.windowOpen()))
                         NightLight.setMode("off");
                     else
                         NightLight.setMode("on");

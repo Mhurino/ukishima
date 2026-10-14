@@ -10,8 +10,9 @@ import Quickshell.Io
  * two-profile hyprsunset.conf and restarts the service, handing the clock to the
  * daemon so the tint flips at the set times on its own and survives a logout.
  * The mode, warmth and the two times all live in Flags, so the pill and a fresh
- * login restore the same state. The service is enabled once at install, which is
- * why nothing here ever starts it; it is already up under the graphical session.
+ * login restore the same state. Turning it on confirms the binary and starts the
+ * user service if it is not already up, so an install that skipped the service
+ * still works.
  */
 Singleton {
     id: root
@@ -110,15 +111,27 @@ Singleton {
         notifyProc.running = true;
     }
 
+    /** Check-only probe for the boot pass: is hyprsunset actually up? */
+    readonly property var checkCmd: ["sh", "-c", "which hyprsunset >/dev/null 2>&1 && pgrep -x hyprsunset >/dev/null"]
+
+    /**
+     * Probe for a user click: confirm the binary, start the daemon through
+     * systemd when it is down, then verify it came up.
+     */
+    readonly property var startCmd: ["sh", "-c", "which hyprsunset >/dev/null 2>&1 || exit 1\npgrep -x hyprsunset >/dev/null && exit 0\nsystemctl --user enable --now hyprsunset 2>/dev/null || systemctl --user start hyprsunset 2>/dev/null\nsleep 0.5\npgrep -x hyprsunset >/dev/null"]
+
     function setMode(m) {
         if (m !== "off") {
             root.pendingMode = m;
+            availProc.command = root.startCmd;
             availProc.running = true;
             return;
         }
 
         root.pendingMode = "";
-        root.applyMode(m);
+        var was = Flags.nightLightMode;
+        Flags.nightLightMode = m;
+        root.commit(was === "scheduled" || m === "scheduled");
     }
 
     function applyMode(m) {
@@ -186,7 +199,7 @@ Singleton {
 
     Process {
         id: availProc
-        command: ["sh", "-c", "which hyprsunset && pgrep -x hyprsunset >/dev/null"]
+        command: []
         onExited: function(exitCode) {
             root.available = (exitCode === 0);
 
@@ -194,7 +207,7 @@ Singleton {
                 var m = root.pendingMode;
                 root.pendingMode = "";
                 root.applyMode(m);
-            } else if (!root.available) {
+            } else if (!root.available && root.pendingMode !== "") {
                 root.pendingMode = "";
                 root.notify(
                     "Night light unavailable",
@@ -209,5 +222,8 @@ Singleton {
         command: []
     }
 
-    Component.onCompleted: availProc.running = true
+    Component.onCompleted: {
+        availProc.command = root.checkCmd;
+        availProc.running = true;
+    }
 }
