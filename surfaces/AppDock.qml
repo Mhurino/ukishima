@@ -705,17 +705,6 @@ PanelWindow {
             }
         }
 
-        // Fallback per variazioni di geometria che non cambiano l'implicit size.
-        // Si arma solo al primo frame; l'animazione delle dimensioni può terminare
-        // mentre la dock è nascosta, prima della dissolvenza in entrata.
-        onWidthChanged: {
-            if (!root.settling)
-                root.settleForGeometry(root.resizeSettleMs);
-        }
-        onHeightChanged: {
-            if (!root.settling)
-                root.settleForGeometry(root.resizeSettleMs);
-        }
 
         x: {
             if (root.dockAtLeft)
