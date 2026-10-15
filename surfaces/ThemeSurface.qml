@@ -97,6 +97,9 @@ SettingsSurface {
         ];
         if (root.themeMode === "dark")
             out.push({ item: oledRow, kind: "toggle", get: function () { return Flags.oled; }, set: function (v) { Flags.oled = v; } });
+        out.push({ item: glassRow, kind: "toggle", get: function () { return Flags.glass; }, set: function (v) { Flags.glass = v; } });
+        if (Flags.glass)
+            out.push({ item: glassTextRow, kind: "seg", vals: [0, 0.5, 1], get: function () { return Flags.glassTransparency; }, set: function (v) { Flags.glassTransparency = v; } });
         out.push({ item: waywallenRow, kind: "toggle", get: function () { return Flags.waywallenEnabled; }, set: function (v) { Waywallen.setEnabled(v); } });
         if (Flags.waywallenEnabled) {
             out.push({ item: waywallenOpenRow, kind: "text", activate: function () { Waywallen.openUI(); } });
@@ -160,6 +163,39 @@ SettingsSurface {
                 s: root.s
                 on: Flags.oled
                 onToggled: Flags.oled = !Flags.oled
+            }
+        }
+
+        SettingsRow {
+            id: glassRow
+            surface: root
+            name: "Transparency mode"
+            icon: "droplet"
+            sub: "Translucent palette-tinted surfaces"
+            LinkToggle {
+                s: root.s
+                on: Flags.glass
+                onToggled: Flags.glass = !Flags.glass
+            }
+        }
+
+        SettingsRow {
+            id: glassTextRow
+            surface: root
+            name: "Transparency"
+            icon: "droplet"
+            sub: "Choose glass transparency"
+            visible: Flags.glass
+            enabled: Flags.glass
+            SettingsSeg {
+                s: root.s
+                options: [
+                    { label: "Low", value: 0 },
+                    { label: "Medium", value: 0.5 },
+                    { label: "High", value: 1 }
+                ]
+                value: Flags.glassTransparency
+                onPicked: (v) => Flags.glassTransparency = v
             }
         }
 

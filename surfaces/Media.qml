@@ -345,19 +345,17 @@ PillSurface {
         }
     }
 
-    Rectangle {
+    LiquidGlass {
         id: card
         anchors.fill: parent
         radius: 20 * root.s
         topLeftRadius: radius * (1 - root.topFlat)
         topRightRadius: radius * (1 - root.topFlat)
-        border.width: 1
-        border.color: Theme.frameBorder
-
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cardTop }
-            GradientStop { position: 1.0; color: Theme.cardBot }
-        }
+        style: "clear"
+        legacyOpacity: 1
+        accent: 0.09
+        veil: 0.08
+        borderColor: Theme.frameBorder
     }
 
     /** Square cover floating detached from every edge. */

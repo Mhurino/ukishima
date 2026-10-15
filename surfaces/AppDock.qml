@@ -13,6 +13,8 @@ PanelWindow {
     id: root
 
     property var screenTarget: null
+    property var pendingFloatLaunch: null
+    property var pendingFloatResize: null
 
     signal launcherRequested(string monitorName)
 
@@ -378,6 +380,29 @@ PanelWindow {
         return null;
     }
 
+    function setFloatingEntry(toplevel) {
+        if (!toplevel || toplevel.address === undefined
+                || String(toplevel.address).length === 0)
+            return;
+
+        var address = String(toplevel.address).replace(/^0x/i, "");
+        var ipc = toplevel.lastIpcObject || ({});
+        var flag = ipc.floating;
+        var floating = flag === true || flag === 1 || flag === "1";
+
+        if (Hyprland.usingLua) {
+            var action = floating ? "unset" : "set";
+            Hyprland.dispatch(
+                'hl.dsp.window.float({ action = "' + action
+                + '", window = "address:0x' + address + '" })'
+            );
+        } else {
+            Hyprland.dispatch(
+                (floating ? "settiled" : "setfloating") + " address:0x" + address
+            );
+        }
+    }
+
     function closeEntry(entry) {
         if (!entry)
             return;
@@ -427,8 +452,175 @@ PanelWindow {
             entry.execute();
     }
 
+
+    function normalizedWindowAddress(toplevel) {
+        if (!toplevel || toplevel.address === undefined
+                || String(toplevel.address).length === 0)
+            return "";
+        return String(toplevel.address)
+            .replace(/^0x/i, "").toLowerCase();
+    }
+
+    function openEntryFloating(entry) {
+        if (!entry || !entry.id || !entry.execute)
+            return;
+
+        // Evita di confondere la nuova finestra con quelle già esistenti.
+        var previous = ({});
+        var tops = Hyprland.toplevels.values;
+        for (var i = 0; i < tops.length; i++) {
+            var key = root.normalizedWindowAddress(tops[i]);
+            if (key.length > 0)
+                previous[key] = true;
+        }
+
+        root.pendingFloatLaunch = {
+            entryId: String(entry.id),
+            previous: previous,
+            ticks: 180
+        };
+
+        try {
+            entry.execute();
+        } catch (e) {
+            root.pendingFloatLaunch = null;
+            console.warn("Ukishima: impossibile avviare l'app:", e);
+        }
+    }
+
+    function forceFloatingEntry(toplevel) {
+        var address = root.normalizedWindowAddress(toplevel);
+        if (!address)
+            return;
+
+        if (Hyprland.usingLua) {
+            Hyprland.dispatch(
+                'hl.dsp.window.float({ action = "set", window = "address:0x'
+                + address + '" })'
+            );
+        } else {
+            Hyprland.dispatch("setfloating address:0x" + address);
+        }
+    }
+
+
+    function scheduleFloatingLaunchResize(toplevel) {
+        var address = root.normalizedWindowAddress(toplevel);
+        if (!address)
+            return;
+
+        root.pendingFloatResize = {
+            address: address,
+            monitorName: toplevel.monitor
+                ? toplevel.monitor.name
+                : root.monitorName
+        };
+        floatingLaunchResizeTimer.restart();
+    }
+
+    function applyFloatingLaunchResize() {
+        var target = root.pendingFloatResize;
+        root.pendingFloatResize = null;
+        if (!target)
+            return;
+
+        var screen = null;
+        var screens = Quickshell.screens;
+        for (var i = 0; i < screens.length; i++) {
+            if (screens[i].name === target.monitorName) {
+                screen = screens[i];
+                break;
+            }
+        }
+        if (!screen)
+            screen = root.screenTarget;
+        if (!screen || screen.width < 400 || screen.height < 300)
+            return;
+
+        var sw = screen.width;
+        var sh = screen.height;
+        var w = Math.min(Math.round(sw * 0.55), sw - 40);
+        var h = Math.min(Math.round(sh * 0.60), sh - 40);
+        var x = Math.round((sw - w) / 2);
+        var y = Math.round((sh - h) / 2);
+        var selector = "address:0x" + target.address;
+
+        if (Hyprland.usingLua) {
+            Hyprland.dispatch(
+                'hl.dsp.window.resize({ window = "' + selector
+                + '", x = ' + w + ', y = ' + h
+                + ', relative = false })'
+            );
+            Hyprland.dispatch(
+                'hl.dsp.window.move({ window = "' + selector
+                + '", x = ' + x + ', y = ' + y
+                + ', relative = false })'
+            );
+        } else {
+            Hyprland.dispatch(
+                "resizewindowpixel exact " + w + " " + h + "," + selector
+            );
+            Hyprland.dispatch(
+                "movewindowpixel exact " + x + " " + y + "," + selector
+            );
+        }
+    }
+
+    function pollFloatingLaunch() {
+        var pending = root.pendingFloatLaunch;
+        if (!pending)
+            return;
+
+        var tops = Hyprland.toplevels.values;
+        for (var i = 0; i < tops.length; i++) {
+            var t = tops[i];
+            if (!t || !t.wayland)
+                continue;
+
+            var address = root.normalizedWindowAddress(t);
+            if (!address || pending.previous[address])
+                continue;
+
+            var appId = String(t.wayland.appId || "");
+            if (!appId)
+                continue;
+
+            var resolved = Apps.resolveEntry(appId, root.allEntries);
+            var matches = (resolved
+                    && String(resolved.id) === pending.entryId)
+                || appId.toLowerCase() === pending.entryId.toLowerCase();
+
+            if (!matches)
+                continue;
+
+            root.forceFloatingEntry(t);
+            root.scheduleFloatingLaunchResize(t);
+            root.pendingFloatLaunch = null;
+            return;
+        }
+
+        pending.ticks -= 1;
+        if (pending.ticks <= 0)
+            root.pendingFloatLaunch = null;
+    }
+
     // Evita il "salto" visibile: il dock resta nascosto finche' la geometria
     // non si e' assestata (avvio) o l'animazione di spostamento non e' finita.
+    Timer {
+        id: floatingLaunchResizeTimer
+        interval: 250
+        repeat: false
+        onTriggered: root.applyFloatingLaunchResize()
+    }
+
+    Timer {
+        id: floatingLaunchPoll
+        interval: 100
+        repeat: true
+        running: root.pendingFloatLaunch !== null
+        onTriggered: root.pollFloatingLaunch()
+    }
+
     readonly property int startupSettleMs: 1000
     readonly property int moveSettleMs: 500
     readonly property int resizeSettleMs: Math.round(Motion.morph + 120)
@@ -785,9 +977,9 @@ PanelWindow {
 
         radius: Math.min(width, height) / 2
 
-        color: Theme.cardBot
+        color: Flags.glass ? Qt.alpha(Theme.cardBot, 0.62) : Theme.cardBot
         border.width: 1
-        border.color: Theme.frameBorder
+        border.color: Flags.glass ? Qt.alpha(Theme.cream, 0.14) : Theme.frameBorder
 
         Behavior on width {
             NumberAnimation {
@@ -898,6 +1090,7 @@ PanelWindow {
                     entry: modelData.entry
                     active: modelData.active
                     running: modelData.running
+                    toplevel: modelData.toplevel
                     workspaceHere: modelData.workspaceHere
                     workspaceLabel: modelData.workspaceLabel
                     pinned: root.isPinned(modelData.entry)
@@ -917,6 +1110,12 @@ PanelWindow {
 
                     onCloseRequested:
                         (entry) => root.closeEntry(entry)
+
+                    onFloatRequested:
+                        (toplevel) => root.setFloatingEntry(toplevel)
+
+                    onOpenFloatingRequested:
+                        (entry) => root.openEntryFloating(entry)
 
                     onPinRequested:
                         (entry) => root.pinEntry(entry)

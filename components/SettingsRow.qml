@@ -15,6 +15,7 @@ Item {
 
     property var surface: null
     property string glyph: ""
+    property bool glyphAlwaysVisible: false
     property string icon: ""
     property string name: ""
     property string sub: ""
@@ -53,7 +54,8 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 12 * srow.s
         anchors.verticalCenter: parent.verticalCenter
-        visible: srow.glyph.length > 0 && srow.icon.length === 0 && Flags.showGlyphs
+        visible: srow.glyph.length > 0 && srow.icon.length === 0
+            && (Flags.showGlyphs || srow.glyphAlwaysVisible)
         text: srow.glyph
         color: Theme.iconDim
         font.family: Theme.fontJp

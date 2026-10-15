@@ -88,7 +88,8 @@ SettingsSurface {
             id: glyphRow
             surface: root
             name: "Japanese glyphs"
-            icon: "language"
+            glyph: "字"
+            glyphAlwaysVisible: true
 
             LinkToggle {
                 s: root.s

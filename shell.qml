@@ -140,7 +140,8 @@ ShellRoot {
 
     readonly property var refreshToplevelEvents: ({
         openwindow: true, closewindow: true,
-        movewindow: true, movewindowv2: true, fullscreen: true
+        movewindow: true, movewindowv2: true, fullscreen: true,
+        changefloatingmode: true
     })
 
     // Accorpa gli eventi Hyprland ravvicinati in un solo aggiornamento.

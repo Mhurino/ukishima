@@ -4,6 +4,7 @@ AppDockItem AppDockItem.qml
 DisplayLabel DisplayLabel.qml
 DisplayPicker DisplayPicker.qml
 Filament Filament.qml
+LiquidGlass LiquidGlass.qml
 GlyphIcon GlyphIcon.qml
 HeatHold HeatHold.qml
 HFader HFader.qml

@@ -13,6 +13,16 @@ Item {
     property bool pinned: false
     property bool hovered: body.containsMouse
     property bool running: false
+    property var toplevel: null
+
+    readonly property bool windowFloating: {
+        var win = root.toplevel;
+        var ipc = win && win.lastIpcObject ? win.lastIpcObject : null;
+        if (!ipc)
+            return false;
+        var f = ipc.floating;
+        return f === true || f === 1 || f === "1";
+    }
     property bool workspaceHere: true
     property string workspaceLabel: ""
     property real size: 42
@@ -34,6 +44,8 @@ Item {
 
     signal activated(var entry)
     signal closeRequested(var entry)
+    signal floatRequested(var toplevel)
+    signal openFloatingRequested(var entry)
     signal pinRequested(var entry)
     signal unpinRequested(var entry)
     signal dragDropped(var entry, real delta)
@@ -442,6 +454,148 @@ Item {
                 readonly property real buttonHeight: 20 * root.s
                 readonly property real rowSpacing: 5 * root.s
                 readonly property real labelWidth: removeLabel.implicitWidth
+
+                Row {
+                    id: openFloatingRow
+                    visible: root.pinned && !root.running
+                    spacing: popupContent.rowSpacing
+
+                    Text {
+                        width: popupContent.labelWidth
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Open floating?"
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                        font.weight: Font.DemiBold
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: openFloatYesArea.containsMouse
+                            ? Qt.alpha(Theme.vermLit, 0.24)
+                            : Qt.alpha(Theme.vermLit, 0.12)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "↙"
+                            color: Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 12 * root.s
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            id: openFloatYesArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.confirmVisible = false;
+                                root.openFloatingRequested(root.entry);
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: openFloatNoArea.containsMouse
+                            ? Qt.alpha(Theme.cream, 0.11)
+                            : Qt.alpha(Theme.cream, 0.055)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "↗"
+                            color: Theme.subtle
+                            font.family: Theme.font
+                            font.pixelSize: 12 * root.s
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            id: openFloatNoArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.confirmVisible = false;
+                                root.activated(root.entry);
+                            }
+                        }
+                    }
+                }
+
+                Row {
+                    id: floatRow
+                    visible: root.running && root.toplevel
+                        && root.toplevel.address !== undefined
+                        && String(root.toplevel.address).length > 0
+                    spacing: popupContent.rowSpacing
+
+                    Text {
+                        width: root.pinned ? popupContent.labelWidth : floatLabel.implicitWidth
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.windowFloating ? "Make tiled" : "Make floating"
+                        color: Theme.cream
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                        font.weight: Font.DemiBold
+                    }
+
+                    Item {
+                        visible: root.pinned
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                    }
+
+                    Rectangle {
+                        width: popupContent.buttonWidth
+                        height: popupContent.buttonHeight
+                        radius: 6 * root.s
+                        color: floatArea.containsMouse
+                            ? Qt.alpha(Theme.vermLit, 0.24)
+                            : Qt.alpha(Theme.vermLit, 0.12)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.windowFloating ? "↙" : "↗"
+                            rotation: 0
+                            Behavior on rotation {
+                                NumberAnimation {
+                                    duration: Motion.fast
+                                    easing.type: Motion.easeStandard
+                                }
+                            }
+                            color: Theme.cream
+                            font.family: Theme.font
+                            font.pixelSize: 12 * root.s
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            id: floatArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.confirmVisible = false;
+                                root.floatRequested(root.toplevel);
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: floatLabel
+                        visible: false
+                        text: root.windowFloating ? "Make tiled" : "Make floating"
+                        font.family: Theme.font
+                        font.pixelSize: 9.5 * root.s
+                    }
+                }
 
                 Row {
                     id: removeRow

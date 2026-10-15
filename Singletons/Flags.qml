@@ -33,6 +33,9 @@ Singleton {
     property alias uiFont: adapter.uiFont
     property alias pillOpacity: adapter.pillOpacity
     property alias pillBlur: adapter.pillBlur
+    property alias glass: adapter.glass
+    property alias glassText: adapter.glassText
+    property alias glassTransparency: adapter.glassTransparency
     property alias autoHide: adapter.autoHide
     property alias topGap: adapter.topGap
     property alias appGap: adapter.appGap
@@ -109,6 +112,9 @@ Singleton {
             property string uiFont: ""
             property real pillOpacity: 1.0
             property bool pillBlur: false
+            property bool glass: true
+            property real glassText: 0
+            property real glassTransparency: 0.5
             property bool autoHide: false
             /** Top margin as a fraction of the shipped 8px. 0 sits the pill flush to the screen edge. */
             property real topGap: 1.0

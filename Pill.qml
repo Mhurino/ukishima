@@ -921,7 +921,7 @@ Item {
      */
     readonly property bool morphing: morphAnimW.running || morphAnimH.running || morphAnimR.running
 
-    Rectangle {
+    LiquidGlass {
         id: bud
         readonly property bool shown: pill.mode === "hover" && pill.hasMedia
         property real budR: (budArea.containsMouse ? 15 : 12) * pill.s
@@ -932,12 +932,11 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: opacity > 0.01
         opacity: shown ? 1 : 0
-        border.width: 1
-        border.color: Theme.border
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.alpha(Theme.cardTop, Theme.oled ? 1 : Flags.pillOpacity) }
-            GradientStop { position: 1.0; color: Qt.alpha(Theme.cardBot, Theme.oled ? 1 : Flags.pillOpacity) }
-        }
+        style: "regular"
+        legacyOpacity: Theme.oled ? 1 : Flags.pillOpacity
+        accent: 0.05
+        sheenScale: budArea.containsMouse ? 1.3 : 1
+        hovered: budArea.containsMouse
         Behavior on budR { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
         Behavior on opacity { NumberAnimation { duration: Motion.standard } }
 
@@ -979,7 +978,7 @@ Item {
         }
     }
 
-    Rectangle {
+    LiquidGlass {
         id: body
         anchors.fill: parent
 
@@ -995,12 +994,14 @@ Item {
         topRightRadius: pill.morphRadius * (1 - gameFlat)
         bottomLeftRadius: pill.morphRadius * (1 - gameFlat)
         bottomRightRadius: pill.morphRadius * (1 - gameFlat)
-        border.width: 1
-        border.color: Theme.border
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.alpha(Theme.cardTop, Theme.oled ? 1 : Flags.pillOpacity) }
-            GradientStop { position: 1.0; color: Qt.alpha(Theme.cardBot, Theme.oled ? 1 : Flags.pillOpacity) }
-        }
+        style: "regular"
+        legacyOpacity: Theme.oled ? 1 : Flags.pillOpacity
+        accent: 0.05
+        veil: 0.06
+        sheenScale: pill.mode === "hover" ? 1.35 : 1
+        hovered: pill.mode === "hover"
+        pressed: pill.dragActive
+        active: pill.surfaceOpen
 
         layer.enabled: !pill.morphing
         layer.effect: MultiEffect {
@@ -1010,16 +1011,6 @@ Item {
             shadowVerticalOffset: 3 * pill.s
         }
 
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.topMargin: 1
-            anchors.leftMargin: body.radius * 0.6
-            anchors.rightMargin: body.radius * 0.6
-            height: 1
-            color: Theme.sheen
-        }
     }
 
     /**
