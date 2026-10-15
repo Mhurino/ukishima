@@ -965,7 +965,7 @@ PanelWindow {
             ? (Flags.dockSize + 16) * root.s
             : Math.max(
                 104 * root.s,
-                dockContent.implicitWidth + 20 * root.s
+                dockContent.implicitWidth + 14 * root.s
             )
 
         height: root.dockVertical
@@ -1027,7 +1027,7 @@ PanelWindow {
         Grid {
             id: dockContent
             anchors.centerIn: parent
-            anchors.horizontalCenterOffset: root.dockVertical ? 0 : -4 * root.s
+            anchors.horizontalCenterOffset: root.dockVertical ? 0 : -1 * root.s
             spacing: 2 * root.s
             columns: root.dockVertical
                 ? 1
