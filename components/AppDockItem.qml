@@ -122,11 +122,15 @@ Item {
 
     Rectangle {
         id: tile
-        anchors.fill: parent
-        radius: Math.min(8 * root.s, width / 4)
-        color: "transparent"
-        border.width: 0
-        border.color: "transparent"
+        anchors.centerIn: parent
+        width: 36 * root.s
+        height: 36 * root.s
+        radius: width / 2
+        color: root.active
+            ? Qt.alpha(Theme.vermLit, root.hovered ? 0.20 : 0.10)
+            : (root.hovered ? Qt.alpha(Theme.cream, 0.08) : "transparent")
+        border.width: root.active ? 1 * root.s : 0
+        border.color: Qt.alpha(Theme.vermLit, 0.5)
 
         Behavior on color {
             ColorAnimation {
