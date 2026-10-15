@@ -977,7 +977,14 @@ PanelWindow {
 
         radius: Math.min(8 * root.s, Math.min(width, height) / 2)
 
-        color: Flags.glass ? Qt.alpha(Theme.cardBot, 0.62) : Theme.cardBot
+        color: {
+            if (!Flags.glass || Theme.oled)
+                return Theme.cardBot;
+
+            var level = Math.max(0, Math.min(1, Flags.glassTransparency));
+            var alpha = 0.62 * (1.25 - 0.5 * level);
+            return Qt.alpha(Theme.cardBot, Math.max(0.35, Math.min(0.95, alpha)));
+        }
         border.width: 1
         border.color: Flags.glass ? Qt.alpha(Theme.cream, 0.14) : Theme.frameBorder
 
@@ -1020,6 +1027,7 @@ PanelWindow {
         Grid {
             id: dockContent
             anchors.centerIn: parent
+            x: root.dockVertical ? 0 : -4 * root.s
             spacing: 2 * root.s
             columns: root.dockVertical
                 ? 1
@@ -1037,10 +1045,10 @@ PanelWindow {
                     anchors.centerIn: parent
                     width: 30 * root.s
                     height: 30 * root.s
-                    radius: 8 * root.s
+                    radius: 6 * root.s
                     color: searchMouse.containsMouse
                         ? Qt.alpha(Theme.cream, 0.10)
-                        : "transparent"
+                        : Qt.alpha(Theme.cream, 0.055)
 
                     Behavior on color {
                         ColorAnimation {
