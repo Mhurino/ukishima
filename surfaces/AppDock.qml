@@ -934,7 +934,7 @@ PanelWindow {
         y: {
             if (root.dockAtBottom)
                 return root.dockShown
-                    ? root.height - height - 2 * root.s
+                    ? root.height - height - 4 * root.s
                     : root.height + 10 * root.s;
 
             if (root.dockAtTopLeft || root.dockAtTopRight)
