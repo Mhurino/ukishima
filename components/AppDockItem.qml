@@ -50,8 +50,13 @@ Item {
     signal unpinRequested(var entry)
     signal dragDropped(var entry, real delta)
 
-    readonly property real tileSize: root.size * s
-    readonly property real iconSize: root.size * 0.62 * s
+    readonly property real tileWidth: root.vertical
+        ? (root.size + 16) * s
+        : root.size * 4 / 3 * s
+    readonly property real tileHeight: root.vertical
+        ? root.size * 4 / 3 * s
+        : (root.size + 16) * s
+    readonly property real iconSize: root.size * (32 / 42) * s
 
     readonly property string resolvedIconSource: {
         if (!root.entry)
@@ -96,8 +101,8 @@ Item {
         return "";
     }
 
-    width: tileSize
-    height: tileSize
+    width: tileWidth
+    height: tileHeight
 
     z: dragging ? 20 : 0
     scale: dragging ? 1.06 : 1
@@ -119,15 +124,9 @@ Item {
         id: tile
         anchors.fill: parent
         radius: Math.min(8 * root.s, width / 4)
-        color: root.active
-            ? Qt.alpha(Theme.vermLit, root.hovered ? 0.20 : 0.13)
-            : root.running
-                ? Qt.alpha(Theme.cream, root.hovered ? 0.11 : 0.075)
-                : (root.hovered
-                    ? Qt.alpha(Theme.cream, 0.08)
-                    : Qt.alpha(Theme.cream, 0.045))
-        border.width: root.active ? 1 : 0
-        border.color: Qt.alpha(Theme.vermLit, 0.5)
+        color: "transparent"
+        border.width: 0
+        border.color: "transparent"
 
         Behavior on color {
             ColorAnimation {
@@ -150,7 +149,7 @@ Item {
         width: 30 * root.s
         height: 30 * root.s
         radius: 6 * root.s
-        color: Qt.alpha(Theme.cream, 0.045)
+        color: "transparent"
         visible: !appIcon.visible
     }
 
@@ -166,13 +165,30 @@ Item {
         smooth: true
         visible: status === Image.Ready && source !== ""
         source: root.resolvedIconSource
+        scale: root.hovered ? 1.32 : 1
+        transformOrigin: Item.Bottom
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Motion.fast
+                easing.type: Motion.easeStandard
+            }
+        }
     }
 
     GlyphIcon {
         id: fallbackIcon
         anchors.centerIn: parent
-        width: 19 * root.s
-        height: 19 * root.s
+        width: root.iconSize * 0.75
+        height: root.iconSize * 0.75
+        scale: root.hovered ? 1.32 : 1
+        transformOrigin: Item.Bottom
+        Behavior on scale {
+            NumberAnimation {
+                duration: Motion.fast
+                easing.type: Motion.easeStandard
+            }
+        }
         name: "app-window"
         color: root.active ? Theme.vermLit : Theme.iconDim
         stroke: 1.6
@@ -182,27 +198,16 @@ Item {
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: -4 * root.s
+        anchors.bottomMargin: 8 * root.s
 
-        width: root.active
-            ? 12 * root.s
-            : root.running
-                ? 6 * root.s
-                : 0
-
-        height: 2 * root.s
-        radius: height / 2
+        width: root.running ? 4 * root.s : 0
+        height: 4 * root.s
+        radius: width / 2
 
         color: root.active
             ? Theme.vermLit
             : Theme.iconDim
 
-        Behavior on width {
-            NumberAnimation {
-                duration: Motion.fast
-                easing.type: Motion.easeStandard
-            }
-        }
     }
 
     Rectangle {

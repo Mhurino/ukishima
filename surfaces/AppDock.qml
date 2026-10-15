@@ -962,7 +962,7 @@ PanelWindow {
         }
 
         width: root.dockVertical
-            ? (Flags.dockSize + 12) * root.s
+            ? (Flags.dockSize + 16) * root.s
             : Math.max(
                 104 * root.s,
                 dockContent.implicitWidth + 20 * root.s
@@ -973,7 +973,7 @@ PanelWindow {
                 104 * root.s,
                 dockContent.implicitHeight + 20 * root.s
             )
-            : (Flags.dockSize + 12) * root.s
+            : (Flags.dockSize + 16) * root.s
 
         radius: Math.min(20 * root.s, height / 2)
 
@@ -1026,8 +1026,12 @@ PanelWindow {
                 : dockRepeater.count + 2
 
             Item {
-                width: Flags.dockSize * root.s
-                height: Flags.dockSize * root.s
+                width: root.dockVertical
+                    ? (Flags.dockSize + 16) * root.s
+                    : Flags.dockSize * 4 / 3 * root.s
+                height: root.dockVertical
+                    ? Flags.dockSize * 4 / 3 * root.s
+                    : (Flags.dockSize + 16) * root.s
 
                 Rectangle {
                     anchors.fill: parent
@@ -1046,8 +1050,8 @@ PanelWindow {
 
                 GlyphIcon {
                     anchors.centerIn: parent
-                    width: Flags.dockSize * 0.58 * root.s
-                    height: Flags.dockSize * 0.58 * root.s
+                    width: Flags.dockSize * (32 / 42) * root.s
+                    height: Flags.dockSize * (32 / 42) * root.s
                     name: "search"
                     color: searchMouse.containsMouse
                         ? Theme.cream
