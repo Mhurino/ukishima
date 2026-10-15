@@ -725,7 +725,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     aboveWindows: true
 
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     WlrLayershell.namespace: "ukishima-dock"
 
@@ -939,7 +939,7 @@ PanelWindow {
 
             if (root.dockAtTopLeft || root.dockAtTopRight)
                 return root.dockShown
-                    ? root.shellTopGap
+                    ? 0
                     : -(height + 10 * root.s);
 
             return (root.height - height) / 2;
@@ -1083,14 +1083,19 @@ PanelWindow {
             Item {
                 width: root.dockVertical
                     ? (Flags.dockSize + 16) * root.s
-                    : root.s
+                    : 10 * root.s
                 height: root.dockVertical
-                    ? root.s
+                    ? 10 * root.s
                     : (Flags.dockSize + 16) * root.s
                 visible: dockRepeater.count > 0
 
                 Rectangle {
-                    anchors.centerIn: parent
+                    x: root.dockVertical
+                        ? (parent.width - width) / 2
+                        : parent.width - width
+                    y: root.dockVertical
+                        ? parent.height - height
+                        : (parent.height - height) / 2
                     width: root.dockVertical
                         ? (Flags.dockSize + 4) * root.s
                         : root.s
