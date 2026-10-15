@@ -934,7 +934,7 @@ PanelWindow {
         y: {
             if (root.dockAtBottom)
                 return root.dockShown
-                    ? root.height - height - 6 * root.s
+                    ? root.height - height - 2 * root.s
                     : root.height + 10 * root.s;
 
             if (root.dockAtTopLeft || root.dockAtTopRight)
@@ -1027,7 +1027,7 @@ PanelWindow {
         Grid {
             id: dockContent
             anchors.centerIn: parent
-            x: root.dockVertical ? 0 : -4 * root.s
+            anchors.horizontalCenterOffset: root.dockVertical ? 0 : -4 * root.s
             spacing: 2 * root.s
             columns: root.dockVertical
                 ? 1
@@ -1036,9 +1036,9 @@ PanelWindow {
             Item {
                 width: root.dockVertical
                     ? (Flags.dockSize + 16) * root.s
-                    : Flags.dockSize * 4 / 3 * root.s
+                    : 30 * root.s
                 height: root.dockVertical
-                    ? Flags.dockSize * 4 / 3 * root.s
+                    ? 30 * root.s
                     : (Flags.dockSize + 16) * root.s
 
                 Rectangle {
