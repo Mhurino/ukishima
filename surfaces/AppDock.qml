@@ -910,12 +910,12 @@ PanelWindow {
         x: {
             if (root.dockAtLeft)
                 return root.dockShown
-                    ? 6 * root.s
+                    ? 4 * root.s
                     : -(width + 10 * root.s);
 
             if (root.dockAtRight)
                 return root.dockShown
-                    ? root.width - width - 6 * root.s
+                    ? root.width - width - 4 * root.s
                     : root.width + 10 * root.s;
 
             if (root.dockAtTopLeft)
@@ -939,7 +939,7 @@ PanelWindow {
 
             if (root.dockAtTopLeft || root.dockAtTopRight)
                 return root.dockShown
-                    ? 4 * root.s
+                    ? 3 * root.s
                     : -(height + 10 * root.s);
 
             return (root.height - height) / 2;
@@ -1083,7 +1083,7 @@ PanelWindow {
             Item {
                 width: root.dockVertical
                     ? (Flags.dockSize + 16) * root.s
-                    : 4 * root.s
+                    : 3 * root.s
                 height: root.dockVertical
                     ? 4 * root.s
                     : (Flags.dockSize + 16) * root.s

@@ -42,6 +42,21 @@ ShellRoot {
     property bool pendingWorkspaceRefresh: false
     property bool pendingToplevelRefresh: false
 
+    function normalizeDockDisplayCompatibility() {
+        var dockOnTop = Flags.dockPosition === "top-left"
+            || Flags.dockPosition === "top-right";
+        if (Flags.mainDisplay === "strip" && dockOnTop) {
+            console.warn("Ukishima: Strip non è compatibile con la Dock in alto; sposto la Dock in basso.");
+            Flags.dockPosition = "bottom";
+        }
+    }
+
+    Connections {
+        target: Flags
+        function onMainDisplayChanged() { root.normalizeDockDisplayCompatibility(); }
+        function onDockPositionChanged() { root.normalizeDockDisplayCompatibility(); }
+    }
+
     function queueRefresh(monitors, workspaces, toplevels) {
         pendingMonitorRefresh = pendingMonitorRefresh || monitors;
         pendingWorkspaceRefresh = pendingWorkspaceRefresh || workspaces;
@@ -63,6 +78,7 @@ ShellRoot {
     }
 
     Component.onCompleted: {
+        normalizeDockDisplayCompatibility();
         refresh();
         Devices.restore();
         warmPreloadMonitor = Hyprland.focusedMonitor
@@ -265,7 +281,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             readonly property real restHeight: 38 * s
 
             /** Trimming the reserved band below the pill's bottom lets windows climb, so App gap sets the pill-to-window air without touching the desktop gaps_out. */
-            readonly property real reservedH: Math.max(0, restHeight + (Flags.mainDisplay === "strip" ? 0 : topGap) - 12 * (1 - Flags.appGap) * s)
+            readonly property real reservedH: Math.max(0, restHeight + (Flags.mainDisplay === "strip" ? 0 : topGap) - 12 * (1 - Flags.appGap) * s - ((Flags.dockEnabled && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right")) ? 2 * s : 0))
 
             readonly property real gameBarH: 34 * s
 

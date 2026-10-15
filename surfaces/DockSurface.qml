@@ -14,7 +14,9 @@ SettingsSurface {
         {
             item: positionRow,
             kind: "seg",
-            vals: ["bottom", "left", "right", "top-left", "top-right"],
+            vals: Flags.mainDisplay === "strip"
+                ? ["bottom", "left", "right"]
+                : ["bottom", "left", "right", "top-left", "top-right"],
             get: function () { return Flags.dockPosition; },
             set: function (v) { Flags.dockPosition = v; }
         },
@@ -81,11 +83,15 @@ SettingsSurface {
                     { label: "Bottom", value: "bottom" },
                     { label: "Left", value: "left" },
                     { label: "Right", value: "right" },
-                    { label: "Top L", value: "top-left" },
-                    { label: "Top R", value: "top-right" }
+                    { label: "Top L", value: "top-left", enabled: Flags.mainDisplay !== "strip" },
+                    { label: "Top R", value: "top-right", enabled: Flags.mainDisplay !== "strip" }
                 ]
                 value: Flags.dockPosition
-                onPicked: (v) => Flags.dockPosition = v
+                onPicked: (v) => {
+                    if (Flags.mainDisplay === "strip" && (v === "top-left" || v === "top-right"))
+                        return;
+                    Flags.dockPosition = v;
+                }
             }
         }
 

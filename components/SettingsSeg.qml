@@ -46,19 +46,25 @@ Rectangle {
                 id: opt
                 required property var modelData
                 readonly property bool current: seg.value === modelData.value
+                readonly property bool allowed: modelData.enabled !== false
                 property bool hovered: false
+                onAllowedChanged: if (!allowed) hovered = false
 
                 width: optLabel.implicitWidth + (seg.compact ? 7 : 18) * seg.s
                 height: optLabel.implicitHeight + (seg.compact ? 8 : 12) * seg.s
                 radius: 8 * seg.s
-                color: opt.current ? Qt.alpha(Theme.onGlow, 0.16) : (opt.hovered ? Theme.frameBg : "transparent")
+                color: !opt.allowed ? Qt.alpha(Theme.subtle, 0.045)
+                    : opt.current ? Qt.alpha(Theme.onGlow, 0.16)
+                    : (opt.hovered ? Theme.frameBg : "transparent")
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
 
                 Text {
                     id: optLabel
                     anchors.centerIn: parent
                     text: opt.modelData.label
-                    color: opt.current ? Theme.cream : Theme.subtle
+                    color: opt.allowed
+                        ? (opt.current ? Theme.cream : Theme.subtle)
+                        : Qt.alpha(Theme.subtle, 0.48)
                     font.family: Theme.font
                     font.pixelSize: (seg.compact ? 9.3 : 10.5) * seg.s
                     font.weight: Font.Bold
@@ -67,11 +73,12 @@ Rectangle {
 
                 MouseArea {
                     anchors.fill: parent
+                    enabled: opt.allowed
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: opt.hovered = true
+                    cursorShape: opt.allowed ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onEntered: if (opt.allowed) opt.hovered = true
                     onExited: opt.hovered = false
-                    onClicked: seg.picked(opt.modelData.value)
+                    onClicked: if (opt.allowed) seg.picked(opt.modelData.value)
                 }
             }
         }

@@ -18,7 +18,7 @@ SettingsSurface {
     implicitHeight: content.implicitHeight
 
     rows: [
-        { item: mainRow, kind: "seg", vals: ["custom", "minimal", "classic", "system", "strip"], get: function () { return Flags.mainDisplay; }, set: function (v) { Flags.mainDisplay = v; } },
+        { item: mainRow, kind: "seg", vals: (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right") ? ["custom", "minimal", "classic", "system"] : ["custom", "minimal", "classic", "system", "strip"], get: function () { return Flags.mainDisplay; }, set: function (v) { if (v === "strip" && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right")) return; Flags.mainDisplay = v; } },
         { item: timeRow, kind: "seg", vals: [false, true], get: function () { return Flags.time12h; }, set: function (v) { Flags.time12h = v; } },
         { item: secRow, kind: "toggle", get: function () { return Flags.clockSeconds; }, set: function (v) { Flags.clockSeconds = v; } },
         { item: glyphRow, kind: "toggle", get: function () { return Flags.showGlyphs; }, set: function (v) { Flags.showGlyphs = v; } },
@@ -50,9 +50,13 @@ SettingsSurface {
             SettingsSeg {
                 compact: true
                 s: root.s
-                options: [{ label: "Custom", value: "custom" }, { label: "Minimal", value: "minimal" }, { label: "Classic", value: "classic" }, { label: "Sys", value: "system" }, { label: "Strip", value: "strip" }]
+                options: [{ label: "Custom", value: "custom" }, { label: "Minimal", value: "minimal" }, { label: "Classic", value: "classic" }, { label: "Sys", value: "system" }, { label: "Strip", value: "strip", enabled: Flags.dockPosition !== "top-left" && Flags.dockPosition !== "top-right" }]
                 value: Flags.mainDisplay
-                onPicked: (v) => Flags.mainDisplay = v
+                onPicked: (v) => {
+                    if (v === "strip" && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right"))
+                        return;
+                    Flags.mainDisplay = v;
+                }
             }
         }
 
