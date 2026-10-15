@@ -494,7 +494,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.confirmVisible = false;
-                                root.openFloatingRequested(root.entry);
+                                root.activated(root.entry);
                             }
                         }
                     }
@@ -523,7 +523,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 root.confirmVisible = false;
-                                root.activated(root.entry);
+                                root.openFloatingRequested(root.entry);
                             }
                         }
                     }
