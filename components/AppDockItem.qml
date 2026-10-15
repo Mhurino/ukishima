@@ -118,7 +118,7 @@ Item {
     Rectangle {
         id: tile
         anchors.fill: parent
-        radius: Motion.rTile * root.s
+        radius: Math.min(8 * root.s, width / 4)
         color: root.active
             ? Qt.alpha(Theme.vermLit, root.hovered ? 0.20 : 0.13)
             : root.running
@@ -149,7 +149,7 @@ Item {
         anchors.centerIn: parent
         width: 30 * root.s
         height: 30 * root.s
-        radius: 9 * root.s
+        radius: 6 * root.s
         color: Qt.alpha(Theme.cream, 0.045)
         visible: !appIcon.visible
     }

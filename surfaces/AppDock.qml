@@ -975,7 +975,7 @@ PanelWindow {
             )
             : (Flags.dockSize + 12) * root.s
 
-        radius: Math.min(width, height) / 2
+        radius: Math.min(20 * root.s, height / 2)
 
         color: Flags.glass ? Qt.alpha(Theme.cardBot, 0.62) : Theme.cardBot
         border.width: 1
@@ -1000,7 +1000,7 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: parent.radius - 1
+            radius: parent.radius - 2
             color: Qt.alpha(Theme.cream, 0.025)
         }
 
@@ -1020,7 +1020,7 @@ PanelWindow {
         Grid {
             id: dockContent
             anchors.centerIn: parent
-            spacing: 5 * root.s
+            spacing: 2 * root.s
             columns: root.dockVertical
                 ? 1
                 : dockRepeater.count + 2
