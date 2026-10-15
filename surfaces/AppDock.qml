@@ -939,7 +939,7 @@ PanelWindow {
 
             if (root.dockAtTopLeft || root.dockAtTopRight)
                 return root.dockShown
-                    ? 0
+                    ? 4 * root.s
                     : -(height + 10 * root.s);
 
             return (root.height - height) / 2;
@@ -1083,9 +1083,9 @@ PanelWindow {
             Item {
                 width: root.dockVertical
                     ? (Flags.dockSize + 16) * root.s
-                    : 10 * root.s
+                    : 4 * root.s
                 height: root.dockVertical
-                    ? 10 * root.s
+                    ? 4 * root.s
                     : (Flags.dockSize + 16) * root.s
                 visible: dockRepeater.count > 0
 
