@@ -38,6 +38,8 @@ SettingsSurface {
     function expandPath(p) {
         if (!p || p === "")
             return "";
+        if (p.indexOf("file://") === 0)
+            return p.slice(7);
         if (p === "~")
             return Quickshell.env("HOME");
         if (p.indexOf("~/") === 0)
@@ -66,7 +68,7 @@ SettingsSurface {
     Process {
         id: faceProc
         running: false
-        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"$HOME/.face.png\" \"$HOME/.face.jpg\"; do if [ -f \"$f\" ]; then echo \"$f\"; break; fi; done"]
+        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"$HOME/.face.png\" \"$HOME/.face.jpg\" \"$HOME/.face.jpeg\" \"$HOME/.face.webp\" \"/var/lib/AccountsService/icons/${USER:-$(id -un)}\"; do if [ -f \"$f\" ] && [ -r \"$f\" ]; then echo \"$f\"; break; fi; done"]
         stdout: SplitParser { onRead: (line) => root.faceFile = line.trim() }
     }
 
@@ -133,7 +135,90 @@ SettingsSurface {
         return i >= 0 ? sh.slice(i + 1) : sh;
     }
     readonly property string userName: Quickshell.env("USER") || Quickshell.env("LOGNAME") || ""
-    readonly property string wmName: Quickshell.env("XDG_CURRENT_DESKTOP") || (Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") ? "Hyprland" : "")
+    /**
+     * Sessione grafica corrente: preferisce gli indicatori del window manager,
+     * poi riconosce gli ambienti desktop dichiarati nelle variabili XDG.
+     */
+    readonly property var sessionInfo: {
+        const wmEnv = [
+            ["HYPRLAND_INSTANCE_SIGNATURE", "Hyprland"],
+            ["SWAYSOCK", "Sway"],
+            ["NIRI_SOCKET", "Niri"],
+            ["RIVER_SOCKET", "River"],
+            ["WAYFIRE_SOCKET", "Wayfire"],
+            ["I3SOCK", "i3"]
+        ];
+
+        for (const entry of wmEnv) {
+            if (Quickshell.env(entry[0]))
+                return { kind: "WM", name: entry[1] };
+        }
+
+        const current = Quickshell.env("XDG_CURRENT_DESKTOP") || "";
+        const session = Quickshell.env("XDG_SESSION_DESKTOP") || "";
+        const desktop = Quickshell.env("DESKTOP_SESSION") || "";
+        const tokens = [];
+
+        for (const raw of [current, session, desktop]) {
+            for (const item of raw.split(/[:;]/)) {
+                const value = item.trim();
+                if (value && tokens.indexOf(value) < 0)
+                    tokens.push(value);
+            }
+        }
+
+        const managers = {
+            "hyprland": "Hyprland",
+            "sway": "Sway",
+            "niri": "Niri",
+            "river": "River",
+            "wayfire": "Wayfire",
+            "i3": "i3",
+            "bspwm": "bspwm",
+            "awesome": "awesome",
+            "openbox": "Openbox",
+            "qtile": "Qtile",
+            "labwc": "labwc",
+            "dwm": "dwm",
+            "fluxbox": "Fluxbox"
+        };
+
+        const environments = {
+            "gnome": "GNOME",
+            "kde": "KDE Plasma",
+            "plasma": "KDE Plasma",
+            "xfce": "Xfce",
+            "xfce4": "Xfce",
+            "cinnamon": "Cinnamon",
+            "mate": "MATE",
+            "lxqt": "LXQt",
+            "lxde": "LXDE",
+            "pantheon": "Pantheon",
+            "budgie": "Budgie",
+            "cosmic": "COSMIC",
+            "deepin": "Deepin",
+            "ukui": "UKUI",
+            "unity": "Unity",
+            "cutefish": "Cutefish"
+        };
+
+        for (const token of tokens) {
+            const key = token.toLowerCase().replace(/^x-/, "");
+            if (managers[key])
+                return { kind: "WM", name: managers[key] };
+        }
+
+        for (const token of tokens) {
+            const key = token.toLowerCase().replace(/^x-/, "");
+            if (environments[key])
+                return { kind: "DE", name: environments[key] };
+        }
+
+        if (tokens.length > 0)
+            return { kind: "DE", name: tokens[0] };
+
+        return { kind: "DE", name: "Linux desktop" };
+    }
 
     /** First VGA/3D/display controller line from lspci, else "". */
     property string gpuRaw: ""
@@ -252,7 +337,7 @@ SettingsSurface {
                 text: fact.modelData.label
                 color: Theme.faint
                 font.family: Theme.font
-                font.pixelSize: 8 * root.s
+                font.pixelSize: 9 * root.s
                 font.weight: Font.Medium
                 font.letterSpacing: 0.8 * root.s
             }
@@ -263,7 +348,7 @@ SettingsSurface {
                 text: fact.modelData.value !== "" && fact.modelData.value !== undefined ? String(fact.modelData.value) : "—"
                 color: Theme.subtle
                 font.family: Theme.font
-                font.pixelSize: 10.5 * root.s
+                font.pixelSize: 11.5 * root.s
                 font.weight: Font.Medium
                 elide: Text.ElideRight
             }
@@ -286,167 +371,191 @@ SettingsSurface {
 
         Item { width: 1; height: 10 * root.s }
 
-        // Identity comes first; technical details are grouped below rather than
-        // competing with the account name for attention.
+        // Layout is inspired by Fastfetch: identity on the left,
+        // compact system facts on the right.
         Row {
-            id: identityRow
+            id: profileLayout
             width: parent.width
-            spacing: 14 * root.s
-            height: 58 * root.s
+            spacing: 13 * root.s
+            height: Math.max(identityColumn.implicitHeight,
+                             detailColumn.implicitHeight)
 
-            ClippingRectangle {
-                id: avatar
-                width: 56 * root.s
-                height: 56 * root.s
-                radius: 28 * root.s
-                color: Theme.frameBg
-                anchors.verticalCenter: parent.verticalCenter
-                border.width: 1
-                border.color: Theme.hair
-
-                Image {
-                    id: faceImg
-                    anchors.fill: parent
-                    source: root.faceFile !== "" ? "file://" + root.faceFile : ""
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: status === Image.Ready
-                    sourceSize: Qt.size(112 * root.s, 112 * root.s)
-                    onStatusChanged: {
-                        if (status === Image.Error && root.faceFile !== "" && !root.faceFallbackTried) {
-                            root.faceFallbackTried = true;
-                            root.faceFile = "";
-                            faceProc.running = true;
-                        }
-                    }
-                }
-
-                GlyphIcon {
-                    anchors.centerIn: parent
-                    width: 25 * root.s
-                    height: 25 * root.s
-                    name: "user"
-                    color: Theme.iconDim
-                    visible: !faceImg.visible
-                }
-            }
-
+            // Left rail: personal avatar and distribution identity.
             Column {
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - avatar.width - identityRow.spacing
-                spacing: 3 * root.s
-
-                Text {
-                    width: parent.width
-                    text: root.userName !== "" ? root.userName : "User"
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 16 * root.s
-                    font.weight: Font.DemiBold
-                    elide: Text.ElideRight
-                }
-
-                Row {
-                    width: parent.width
-                    spacing: 6 * root.s
-
-                    Text {
-                        text: root.distroGlyph
-                        color: Theme.flameGlow
-                        font.family: "JetBrainsMono NFM"
-                        font.pixelSize: 14 * root.s
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        width: parent.width - 24 * root.s
-                        text: root.distro !== "" ? root.distro : "Linux"
-                        color: Theme.subtle
-                        font.family: Theme.font
-                        font.pixelSize: 11 * root.s
-                        font.weight: Font.Medium
-                        elide: Text.ElideRight
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                Text {
-                    width: parent.width
-                    text: [root.hostName, root.wmName].filter(function (v) { return v !== ""; }).join(" · ")
-                    color: Theme.faint
-                    font.family: Theme.font
-                    font.pixelSize: 9.5 * root.s
-                    elide: Text.ElideRight
-                }
-            }
-        }
-
-        Item { width: 1; height: 8 * root.s }
-
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.hair
-        }
-
-        Item { width: 1; height: 9 * root.s }
-
-        Row {
-            width: parent.width
-            spacing: 16 * root.s
-
-            Column {
-                id: systemFacts
-                width: (parent.width - parent.spacing) / 2
+                id: identityColumn
+                width: 105 * root.s
                 spacing: 8 * root.s
 
-                Text {
-                    text: "SYSTEM"
-                    color: Theme.faint
-                    font.family: Theme.font
-                    font.pixelSize: 9 * root.s
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1.5 * root.s
+                ClippingRectangle {
+                    id: avatar
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 68 * root.s
+                    height: 68 * root.s
+                    radius: 34 * root.s
+                    color: Theme.frameBg
+                    border.width: 1
+                    border.color: Theme.hair
+
+                    Image {
+                        id: faceImg
+                        anchors.fill: parent
+                        source: root.faceFile !== "" ? "file://" + root.faceFile : ""
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        cache: false
+                        visible: status === Image.Ready
+                        sourceSize: Qt.size(136 * root.s, 136 * root.s)
+
+                        onStatusChanged: {
+                            if (status === Image.Error
+                                    && root.faceFile !== ""
+                                    && !root.faceFallbackTried) {
+                                root.faceFallbackTried = true;
+                                root.faceFile = "";
+                                faceProc.running = true;
+                            }
+                        }
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        width: 28 * root.s
+                        height: 28 * root.s
+                        name: "user"
+                        color: Theme.iconDim
+                        visible: !faceImg.visible
+                    }
                 }
 
-                Repeater {
-                    model: [
-                        { label: "KERNEL", value: root.kernel },
-                        { label: "SHELL", value: root.shellName },
-                        { label: "UPTIME", value: root.uptime },
-                        { label: "PACKAGES", value: root.pkgCount }
-                    ]
-                    delegate: Fact {}
+                Text {
+                    width: parent.width
+                    text: root.distroGlyph
+                    horizontalAlignment: Text.AlignHCenter
+                    color: Theme.flameGlow
+                    font.family: "JetBrainsMono NFM"
+                    font.pixelSize: 25 * root.s
+                }
+
+                Text {
+                    width: parent.width
+                    text: root.distro !== "" ? root.distro : "Linux"
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    color: Theme.subtle
+                    font.family: Theme.font
+                    font.pixelSize: 9.5 * root.s
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
                 }
             }
 
+            // Thin divider separates the visual identity from the data.
             Rectangle {
                 width: 1
-                height: 154 * root.s
+                height: parent.height
                 color: Theme.hairSoft
             }
 
             Column {
-                id: hardwareFacts
-                width: systemFacts.width
-                spacing: 8 * root.s
+                id: detailColumn
+                width: parent.width - identityColumn.width
+                    - profileLayout.spacing * 2 - 1
+                spacing: 10 * root.s
 
-                Text {
-                    text: "HARDWARE"
-                    color: Theme.faint
-                    font.family: Theme.font
-                    font.pixelSize: 9 * root.s
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1.5 * root.s
+                Column {
+                    width: parent.width
+                    spacing: 3 * root.s
+
+                    Text {
+                        width: parent.width
+                        text: (root.userName !== "" ? root.userName : "user")
+                            + "@"
+                            + (root.hostName !== "" ? root.hostName : "computer")
+                        color: Theme.cream
+                        font.family: "JetBrainsMono NFM"
+                        font.pixelSize: 12 * root.s
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: root.sessionInfo.kind + ": " + root.sessionInfo.name
+                        color: Theme.subtle
+                        font.family: Theme.font
+                        font.pixelSize: 10 * root.s
+                        elide: Text.ElideRight
+                    }
                 }
 
-                Repeater {
-                    model: [
-                        { label: "CPU", value: root.cpu },
-                        { label: "GPU", value: root.gpu },
-                        { label: "MEMORY", value: root.memUsed },
-                        { label: "DISK", value: root.diskUsed }
-                    ]
-                    delegate: Fact {}
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Theme.hair
+                }
+
+                Row {
+                    id: factsRow
+                    width: parent.width
+                    spacing: 9 * root.s
+
+                    Column {
+                        id: systemFacts
+                        width: (parent.width - factsRow.spacing * 2 - 1) / 2
+                        spacing: 8 * root.s
+
+                        Text {
+                            text: "SYSTEM"
+                            color: Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 8.5 * root.s
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 1.1 * root.s
+                        }
+
+                        Repeater {
+                            model: [
+                                { label: "KERNEL", value: root.kernel },
+                                { label: "SHELL", value: root.shellName },
+                                { label: "UPTIME", value: root.uptime },
+                                { label: "PACKAGES", value: root.pkgCount }
+                            ]
+                            delegate: Fact {}
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: Math.max(systemFacts.implicitHeight,
+                                         hardwareFacts.implicitHeight)
+                        color: Theme.hairSoft
+                    }
+
+                    Column {
+                        id: hardwareFacts
+                        width: systemFacts.width
+                        spacing: 8 * root.s
+
+                        Text {
+                            text: "HARDWARE"
+                            color: Theme.faint
+                            font.family: Theme.font
+                            font.pixelSize: 8.5 * root.s
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 1.1 * root.s
+                        }
+
+                        Repeater {
+                            model: [
+                                { label: "CPU", value: root.cpu },
+                                { label: "GPU", value: root.gpu },
+                                { label: "MEMORY", value: root.memUsed },
+                                { label: "DISK", value: root.diskUsed }
+                            ]
+                            delegate: Fact {}
+                        }
+                    }
                 }
             }
         }
