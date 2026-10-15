@@ -975,7 +975,7 @@ PanelWindow {
             )
             : (Flags.dockSize + 16) * root.s
 
-        radius: Math.min(20 * root.s, height / 2)
+        radius: Math.min(8 * root.s, Math.min(width, height) / 2)
 
         color: Flags.glass ? Qt.alpha(Theme.cardBot, 0.62) : Theme.cardBot
         border.width: 1
@@ -1034,11 +1034,13 @@ PanelWindow {
                     : (Flags.dockSize + 16) * root.s
 
                 Rectangle {
-                    anchors.fill: parent
-                    radius: Motion.rTile * root.s
+                    anchors.centerIn: parent
+                    width: 30 * root.s
+                    height: 30 * root.s
+                    radius: 8 * root.s
                     color: searchMouse.containsMouse
                         ? Qt.alpha(Theme.cream, 0.10)
-                        : Qt.alpha(Theme.cream, 0.055)
+                        : "transparent"
 
                     Behavior on color {
                         ColorAnimation {
@@ -1050,8 +1052,8 @@ PanelWindow {
 
                 GlyphIcon {
                     anchors.centerIn: parent
-                    width: Flags.dockSize * (32 / 42) * root.s
-                    height: Flags.dockSize * (32 / 42) * root.s
+                    width: Flags.dockSize * (20 / 42) * root.s
+                    height: Flags.dockSize * (20 / 42) * root.s
                     name: "search"
                     color: searchMouse.containsMouse
                         ? Theme.cream
@@ -1070,15 +1072,25 @@ PanelWindow {
                 }
             }
 
-            Rectangle {
+            Item {
                 width: root.dockVertical
-                    ? 26 * root.s
-                    : 1
+                    ? (Flags.dockSize + 16) * root.s
+                    : root.s
                 height: root.dockVertical
-                    ? 1
-                    : 26 * root.s
-                color: Theme.hairSoft
+                    ? root.s
+                    : (Flags.dockSize + 16) * root.s
                 visible: dockRepeater.count > 0
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: root.dockVertical
+                        ? (Flags.dockSize + 4) * root.s
+                        : root.s
+                    height: root.dockVertical
+                        ? root.s
+                        : (Flags.dockSize + 4) * root.s
+                    color: Theme.hairSoft
+                }
             }
 
             Repeater {
