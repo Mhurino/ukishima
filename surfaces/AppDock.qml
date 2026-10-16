@@ -647,6 +647,15 @@ PanelWindow {
         }
     }
 
+    // Riutilizza il fade di assestamento quando cambia la dimensione
+    // della dock dalle impostazioni.
+    Connections {
+        target: Flags
+        function onDockSizeChanged() {
+            root.settleForGeometry(root.resizeSettleMs);
+        }
+    }
+
     // Il modello JS del Repeater può essere ricostruito quando cambia il focus.
     // Aspettiamo che il conteggio si stabilizzi e nascondiamo la dock solo se
     // il numero finale di elementi è davvero diverso da quello precedente.

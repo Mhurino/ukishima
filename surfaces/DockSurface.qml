@@ -23,7 +23,7 @@ SettingsSurface {
         {
             item: sizeRow,
             kind: "seg",
-            vals: [30, 36, 42, 50],
+            vals: [26, 28, 30, 34],
             get: function () { return Flags.dockSize; },
             set: function (v) { Flags.dockSize = v; }
         },
@@ -105,10 +105,10 @@ SettingsSurface {
                 s: root.s
                 compact: true
                 options: [
-                    { label: "30", value: 30 },
-                    { label: "36", value: 36 },
-                    { label: "42", value: 42 },
-                    { label: "50", value: 50 }
+                    { label: "XS", value: 26 },
+                    { label: "S", value: 28 },
+                    { label: "M", value: 30 },
+                    { label: "L", value: 34 }
                 ]
                 value: Flags.dockSize
                 onPicked: (v) => Flags.dockSize = v
