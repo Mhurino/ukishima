@@ -26,6 +26,11 @@ Singleton {
         Flags.gamePrevDnd = Flags.dnd;
         Flags.gamePrevViz = Flags.musicViz;
         Flags.gamePrevAwake = Flags.keepAwake;
+        if (!Flags.gameDockStateSaved) {
+            Flags.gamePrevDockEnabled = Flags.dockEnabled;
+            Flags.gameDockStateSaved = true;
+        }
+        Flags.dockEnabled = false;
         // Only change the profile when the daemon and hardware support it.
         if (Battery.daemonReady && Battery.hasPerformance) {
             Flags.gamePrevProfile = String(Battery.profile);
@@ -44,6 +49,8 @@ Singleton {
         Flags.dnd = Flags.gamePrevDnd;
         Flags.musicViz = Flags.gamePrevViz;
         Flags.keepAwake = Flags.gamePrevAwake;
+        Flags.dockEnabled = Flags.gamePrevDockEnabled;
+        Flags.gameDockStateSaved = false;
         if (Flags.gamePrevProfile !== "") {
             var previous = parseInt(Flags.gamePrevProfile, 10);
             if (!isNaN(previous))
