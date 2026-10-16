@@ -212,11 +212,14 @@ Item {
 
     Rectangle {
         visible: root.running && !root.workspaceHere
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: -6 * root.s
-        width: Math.max(14 * root.s, workspaceText.implicitWidth + 6 * root.s)
-        height: 14 * root.s
+        // Piccolo badge sovrapposto all'angolo inferiore sinistro dell'icona.
+        anchors.left: appIcon.left
+        anchors.bottom: appIcon.bottom
+        anchors.leftMargin: -4 * root.s
+        anchors.bottomMargin: -2 * root.s
+        z: 2
+        width: Math.max(10 * root.s, workspaceText.implicitWidth + 4 * root.s)
+        height: 11 * root.s
         radius: height / 2
         color: Theme.cardTop
         border.width: 1
@@ -228,7 +231,7 @@ Item {
             text: root.workspaceLabel
             color: Theme.subtle
             font.family: Theme.font
-            font.pixelSize: 8 * root.s
+            font.pixelSize: 7 * root.s
             font.weight: Font.DemiBold
         }
     }

@@ -7,7 +7,7 @@ import Quickshell.Hyprland
 
 /**
  * Compact keyboard-layout code for the collapsed pill. Seeds once from
- * `hyprctl devices -j` and then follows `activelayout` events.
+ * `hyprctl devices -j` and then follows `activelayout` events after that.
  */
 Item {
     id: root
