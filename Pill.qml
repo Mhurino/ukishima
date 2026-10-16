@@ -765,6 +765,8 @@ Item {
         readonly property string date: loc.toString(now, "ddd d MMM")
     }
 
+    KbLayout { id: kbLayout }
+
     SystemClock {
         id: sysClock
         precision: Flags.clockSeconds ? SystemClock.Seconds : SystemClock.Minutes
@@ -837,10 +839,10 @@ Item {
             return Qt.size(150 * s, restH);
 
         if (Flags.mainDisplay === "classic")
-            return Qt.size(205 * s, restH);
+            return Qt.size(Math.max(restW, classicFace.implicitWidth + 36 * s), restH);
 
         if (Flags.mainDisplay === "system")
-            return Qt.size(215 * s, restH);
+            return Qt.size(Math.max(restW, systemFace.implicitWidth + 36 * s), restH);
 
         if (Flags.mainDisplay === "strip")
             return Qt.size(barWindow ? Math.max(0, barWindow.width - 10 * s) : 1920 * s, restH - 6 * s);
@@ -2092,189 +2094,107 @@ Workspaces {
         Row {
             id: classicFace
             visible: Flags.mainDisplay === "classic"
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 16 * pill.s
-
-            Workspaces {
-                id: classicWs
-                anchors.verticalCenter: parent.verticalCenter
-                screenName: pill.screenName
-                s: pill.s
-                stickW: 13 * pill.s
-                dotW: 4 * pill.s
-                gap: 3 * pill.s
-            }
-
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width: 1
-                height: 15 * pill.s
-                color: Theme.hairSoft
-            }
-
-            Row {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5 * pill.s
-
-                Item {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 16 * pill.s
-                    height: 17 * pill.s
-
-                    Text {
-                        anchors.centerIn: parent
-                        visible: Flags.showGlyphs
-                        text: "時"
-                        color: Theme.cream
-                        font.family: Theme.fontJp
-                        font.weight: Font.Medium
-                        font.pixelSize: 15 * pill.s
-                    }
-
-                    GlyphIcon {
-                        anchors.centerIn: parent
-                        visible: !Flags.showGlyphs
-                        width: 16 * pill.s
-                        height: 16 * pill.s
-                        name: "clock"
-                        color: Theme.cream
-                        stroke: 1.7
-                    }
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: clock.hhmm
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 16 * pill.s
-                    font.weight: Font.DemiBold
-                    font.features: ({ "tnum": 1 })
-                }
-            }
+            anchors.centerIn: parent
+            spacing: 9 * pill.s
 
             Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "classic"
                 anchors.verticalCenter: parent.verticalCenter
-                text: Qt.formatDate(clock.now, "d MMM")
+                text: clock.date
                 color: Theme.dim
                 font.family: Theme.font
                 font.pixelSize: 11 * pill.s
                 font.weight: Font.DemiBold
             }
 
-            GlyphIcon {
-                visible: headphonesConnected
+            Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "classic"
                 anchors.verticalCenter: parent.verticalCenter
-                width: visible ? 17 * pill.s : 0
-                height: 17 * pill.s
-                name: "headphones"
-                color: Theme.iconDim
-                stroke: 1.7
+                text: clock.hhmm
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 16 * pill.s
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
             }
         }
         Row {
             id: systemFace
             visible: Flags.mainDisplay === "system"
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 12 * pill.s
+            anchors.centerIn: parent
+            spacing: 9 * pill.s
 
-            Workspaces {
-                id: systemWs
+            Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "system"
                 anchors.verticalCenter: parent.verticalCenter
-                screenName: pill.screenName
-                s: pill.s
-                stickW: 13 * pill.s
-                dotW: 4 * pill.s
-                gap: 3 * pill.s
+                text: clock.loc.toString(clock.now, "ddd")
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 11 * pill.s
+                font.weight: Font.DemiBold
             }
 
-            Rectangle {
+            Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "system"
                 anchors.verticalCenter: parent.verticalCenter
-                width: 1
-                height: 15 * pill.s
-                color: Theme.hairSoft
+                text: clock.hhmm
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 15 * pill.s
+                font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
+            }
+
+            Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "system"
+                    && ws.activeName !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                text: ws.activeName
+                color: Theme.vermLit
+                font.family: Theme.font
+                font.pixelSize: 11 * pill.s
+                font.weight: Font.Bold
+                font.features: { "tnum": 1 }
+            }
+
+            Text {
+                visible: pill.specialView === "" && Flags.mainDisplay === "system"
+                anchors.verticalCenter: parent.verticalCenter
+                text: kbLayout.code
+                color: Theme.dim
+                font.family: Theme.font
+                font.pixelSize: 11 * pill.s
+                font.weight: Font.DemiBold
             }
 
             Row {
+                visible: pill.specialView === "" && Flags.mainDisplay === "system"
+                    && Battery.present
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 5 * pill.s
+                spacing: 3 * pill.s
 
-                Item {
+                GlyphIcon {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 15 * pill.s
-                    height: 17 * pill.s
-
-                    Text {
-                        anchors.centerIn: parent
-                        visible: Flags.showGlyphs
-                        text: "時"
-                        color: Theme.cream
-                        font.family: Theme.fontJp
-                        font.weight: Font.Medium
-                        font.pixelSize: 15 * pill.s
-                    }
-
-                    GlyphIcon {
-                        anchors.centerIn: parent
-                        visible: !Flags.showGlyphs
-                        width: 15 * pill.s
-                        height: 15 * pill.s
-                        name: "clock"
-                        color: Theme.cream
-                        stroke: 1.7
-                    }
+                    visible: Battery.charging
+                    width: 10 * pill.s
+                    height: 10 * pill.s
+                    name: "bolt"
+                    color: Battery.low ? Theme.vermLit : Theme.dim
+                    stroke: 1.6
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: clock.hhmm
-                    color: Theme.cream
+                    text: Battery.pct + "%"
+                    color: Battery.low ? Theme.vermLit : Theme.dim
                     font.family: Theme.font
-                    font.pixelSize: 15 * pill.s
+                    font.pixelSize: 11 * pill.s
                     font.weight: Font.DemiBold
-                    font.features: ({ "tnum": 1 })
+                    font.features: { "tnum": 1 }
                 }
             }
-
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width: 1
-                height: 15 * pill.s
-                color: Theme.hairSoft
-            }
-
-            GlyphIcon {
-                visible: pill.wifiDev !== null && pill.wifiOn
-                anchors.verticalCenter: parent.verticalCenter
-                width: visible ? 16 * pill.s : 0
-                height: 16 * pill.s
-                name: "wifi"
-                color: Theme.iconDim
-                stroke: 1.7
-            }
-
-            GlyphIcon {
-                visible: pill.btAdapter !== null && pill.btOn
-                anchors.verticalCenter: parent.verticalCenter
-                width: visible ? 16 * pill.s : 0
-                height: 16 * pill.s
-                name: "bluetooth"
-                color: Theme.iconDim
-                stroke: 1.7
-            }
-
-            GlyphIcon {
-                visible: Notifs.unread > 0
-                anchors.verticalCenter: parent.verticalCenter
-                width: visible ? 17 * pill.s : 0
-                height: 17 * pill.s
-                name: "inbox"
-                color: Theme.flameGlow
-                stroke: 1.7
-            }
         }
+
     }
 
     Item {
