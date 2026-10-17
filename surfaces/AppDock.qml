@@ -667,12 +667,8 @@ PanelWindow {
         running: true
         repeat: false
         onTriggered: {
-            var count = dockRepeater.count;
-            if (root.stableDockItemCount >= 0
-                    && count !== root.stableDockItemCount) {
-                root.settleForGeometry(root.resizeSettleMs);
-            }
-            root.stableDockItemCount = count;
+            // Aggiorna il conteggio senza far sparire la dock.
+            root.stableDockItemCount = dockRepeater.count;
         }
     }
 
