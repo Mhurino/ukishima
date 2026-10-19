@@ -27,11 +27,20 @@ Singleton {
      * token to black, while the accent always loads and contrasts the pill
      * surface. The static branches keep the fixed warm hex.
      */
-    readonly property color onGlow: dyn ? Dyn.primary : "#ff9a64"
+    /**
+     * User accent override: a "#rrggbb" hex, empty to follow the scheme. When set
+     * it wins for every warm token below, whatever the palette mode derives.
+     */
+    readonly property string customHex: Flags.accentOverride
+    readonly property bool customAccent: customHex.length > 0
+    readonly property color accent: customAccent ? customHex : (dyn ? Dyn.primary : "#ff9a64")
+    readonly property color accentDeep: customAccent ? Qt.darker(accent, 1.45) : (dyn ? Dyn.primaryContainer : "#a3371f")
 
-    readonly property color verm:     dyn ? Qt.darker(Dyn.primary, 1.18) : "#c0442b"
-    readonly property color vermLit:  dyn ? Dyn.primary : "#e0563b"
-    readonly property color vermDeep: dyn ? Dyn.primaryContainer : "#a3371f"
+    readonly property color onGlow: customAccent ? accent : (dyn ? Dyn.primary : "#ff9a64")
+
+    readonly property color verm:     customAccent ? Qt.darker(accent, 1.18) : (dyn ? Qt.darker(Dyn.primary, 1.18) : "#c0442b")
+    readonly property color vermLit:  customAccent ? accent : (dyn ? Dyn.primary : "#e0563b")
+    readonly property color vermDeep: customAccent ? accentDeep : (dyn ? Dyn.primaryContainer : "#a3371f")
     readonly property color cream:    dyn ? Dyn.cream : (light ? "#2a241f" : "#ececec")
     readonly property color bright:   dyn ? Dyn.bright : (light ? "#1d1814" : "#ffffff")
     readonly property color dim:      dyn ? Dyn.dim : (light ? "#6b635c" : "#8c8c8c")
@@ -46,13 +55,13 @@ Singleton {
     readonly property color hair:     Qt.alpha(cream, 0.13)
     readonly property color hairSoft: Qt.alpha(cream, 0.08)
     readonly property color sheen:    Qt.alpha(cream, 0.07)
-    readonly property color vermDim:   dyn ? Qt.darker(Dyn.primary, 1.5) : "#8a5440"
-    readonly property color vermDimDeep: dyn ? Qt.darker(Dyn.primary, 2.2) : "#5a3526"
-    readonly property color vermBurn:  dyn ? Qt.darker(Dyn.primaryContainer, 1.1) : "#8a2c14"
+    readonly property color vermDim:   customAccent ? Qt.darker(accent, 1.5) : (dyn ? Qt.darker(Dyn.primary, 1.5) : "#8a5440")
+    readonly property color vermDimDeep: customAccent ? Qt.darker(accent, 2.2) : (dyn ? Qt.darker(Dyn.primary, 2.2) : "#5a3526")
+    readonly property color vermBurn:  customAccent ? Qt.darker(accentDeep, 1.1) : (dyn ? Qt.darker(Dyn.primaryContainer, 1.1) : "#8a2c14")
     readonly property color tickRest:  dyn ? Dyn.tickRest : (light ? "#4a423c" : "#c2c2c2")
     readonly property color threadBg:  Qt.alpha(cream, 0.13)
-    readonly property color flameCore: dyn ? Qt.lighter(onGlow, 1.03) : "#ffd9c2"
-    readonly property color flameGlow: dyn ? onGlow : "#ff9a64"
+    readonly property color flameCore: customAccent ? Qt.lighter(accent, 1.03) : (dyn ? Qt.lighter(onGlow, 1.03) : "#ffd9c2")
+    readonly property color flameGlow: customAccent ? accent : (dyn ? onGlow : "#ff9a64")
 
     /**
      * Flame canvas ramp: literal hex strings (color type won't work), fed
@@ -60,11 +69,11 @@ Singleton {
      * to #aarrggbb and corrupts the gradient render, so the dynamic branch passes
      * matugen's raw hex strings through untouched rather than any Qt.darker math.
      */
-    readonly property string flameInk:   dyn ? Dyn.primary : "#f0795a"
-    readonly property string flameEmber: dyn ? Dyn.primaryContainer : "#7e2812"
-    readonly property string flameBurn:  dyn ? Dyn.primaryContainer : "#8a2c14"
-    readonly property string flameTip:   dyn ? Dyn.onPrimaryContainer : "#ffb38a"
-    readonly property color todayWarm: dyn ? onGlow : "#ffb38a"
+    readonly property string flameInk:   customAccent ? accent : (dyn ? Dyn.primary : "#f0795a")
+    readonly property string flameEmber: customAccent ? accentDeep : (dyn ? Dyn.primaryContainer : "#7e2812")
+    readonly property string flameBurn:  customAccent ? accentDeep : (dyn ? Dyn.primaryContainer : "#8a2c14")
+    readonly property string flameTip:   customAccent ? Qt.lighter(accent, 1.4) : (dyn ? Dyn.onPrimaryContainer : "#ffb38a")
+    readonly property color todayWarm: customAccent ? accent : (dyn ? onGlow : "#ffb38a")
     readonly property color ghost:     oled ? "#000000" : (dyn ? Dyn.surfaceContainerHighest : (light ? "#e3ddd5" : "#242424"))
     readonly property color frameBg:      Qt.alpha(cream, 0.055)
     readonly property color frameBorder:  Qt.alpha(cream, 0.10)
@@ -91,5 +100,21 @@ Singleton {
         if (artists && String(artists).length > 0)
             return String(artists);
         return single ? String(single) : "";
+    }
+
+    /** Upper-case "#RRGGBB" from a color. */
+    function hexUpper(c) {
+        function h(v) { var s = Math.round(v * 255).toString(16); return s.length < 2 ? "0" + s : s; }
+        return ("#" + h(c.r) + h(c.g) + h(c.b)).toUpperCase();
+    }
+
+    /** A color from "rrggbb" / "#rrggbb", or null when it is not valid. */
+    function parseHex(s) {
+        var t = String(s || "").trim();
+        if (t.charAt(0) === "#")
+            t = t.substring(1);
+        if (!/^[0-9a-fA-F]{6}$/.test(t))
+            return null;
+        return Qt.color("#" + t);
     }
 }

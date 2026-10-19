@@ -35,6 +35,7 @@ Singleton {
     property alias pillBlur: adapter.pillBlur
     property alias glass: adapter.glass
     property alias glassText: adapter.glassText
+    property alias accentOverride: adapter.accentOverride
     property alias glassTransparency: adapter.glassTransparency
     property alias autoHide: adapter.autoHide
     property alias topGap: adapter.topGap
@@ -116,6 +117,8 @@ Singleton {
             property bool pillBlur: false
             property bool glass: true
             property real glassText: 0
+            //* Accent override: a "#rrggbb" hex that wins over the palette for every warm token. Empty follows the scheme.
+            property string accentOverride: ""
             property real glassTransparency: 0.5
             property bool autoHide: false
             /** Top margin as a fraction of the shipped 8px. 0 sits the pill flush to the screen edge. */
