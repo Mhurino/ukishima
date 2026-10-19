@@ -224,6 +224,7 @@ SettingsSurface {
             id: accentRow
             surface: root
             name: "Accent color"
+            icon: "sparkles"
             sub: root.accentSub
 
             Item {
