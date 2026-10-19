@@ -1052,6 +1052,25 @@ if (kindFilter === "all")
             onVisibleChanged: if (visible) requestWaywallenThumb()
             Component.onCompleted: if (visible) requestWaywallenThumb()
 
+            /** The wallpaper wallpaper.sh / the Waywallen bridge applied last, per the shared state file. */
+            readonly property bool isCurrent: !!entry && entry.path !== undefined
+                && entry.path !== "" && entry.path === Walls.current
+
+            Rectangle {
+                visible: tile.isCurrent
+                z: 50
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.topMargin: 7 * root.s
+                anchors.rightMargin: 7 * root.s
+                width: 9 * root.s
+                height: width
+                radius: width / 2
+                color: Theme.vermLit
+                border.width: Math.max(1, Math.round(1.5 * root.s))
+                border.color: Qt.alpha(Theme.cardBot, 0.85)
+            }
+
             Process {
                 id: thumbnailProc
                 command: []
