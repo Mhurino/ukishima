@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# File Python compilati già tracciati
+scripts/__pycache__/*.pyc
