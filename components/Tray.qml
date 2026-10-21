@@ -78,14 +78,16 @@ Item {
 
                 Image {
                     anchors.centerIn: parent
-                    source: slot.modelData.icon
+source: String(slot.modelData.id || "").toLowerCase().includes("waywallen")
+    ? "file:///var/lib/flatpak/exports/share/icons/hicolor/scalable/apps/org.waywallen.waywallen.svg"
+    : slot.modelData.icon
                     sourceSize.width: 32
                     sourceSize.height: 32
                     width: 16 * tray.s
                     height: 16 * tray.s
                     fillMode: Image.PreserveAspectFit
                     smooth: true
-                    cache: true
+                    cache: false
                     asynchronous: true
                 }
 
