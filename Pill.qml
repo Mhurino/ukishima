@@ -859,7 +859,7 @@ Item {
         }
 
         if (Flags.mainDisplay === "minimal")
-            return Qt.size(150 * s, restH);
+            return Qt.size(Math.max(150 * s, minimalFace.implicitWidth + 32 * s), restH);
 
         if (Flags.mainDisplay === "classic")
             return Qt.size(Math.max(restW, classicFace.implicitWidth + 36 * s), restH);
@@ -2227,33 +2227,28 @@ Workspaces {
             anchors.centerIn: parent
             spacing: 8 * pill.s
 
-            Item {
-                width: 17 * pill.s
-                height: 17 * pill.s
+            // Fixed workspace slots 1–5 on the left.
+            Workspaces {
+                id: statusWorkspaces
                 anchors.verticalCenter: parent.verticalCenter
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: Flags.showGlyphs
-                    text: "時"
-                    color: Theme.cream
-                    font.family: Theme.fontJp
-                    font.weight: Font.Medium
-                    font.pixelSize: 15 * pill.s
-                }
-
-                GlyphIcon {
-                    anchors.centerIn: parent
-                    visible: !Flags.showGlyphs
-                    width: 17 * pill.s
-                    height: 17 * pill.s
-                    name: "clock"
-                    color: Theme.cream
-                    stroke: 1.7
-                }
+                screenName: pill.screenName
+                s: pill.s
+                firstFiveOnly: true
+                stickW: 10 * pill.s
+                dotW: 4 * pill.s
+                gap: 3 * pill.s
             }
 
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1 * pill.s
+                height: 13 * pill.s
+                color: Theme.hairSoft
+            }
+
+            // Clock in the centre group.
             Text {
+                id: minimalTimeText
                 anchors.verticalCenter: parent.verticalCenter
                 text: clock.hhmm
                 color: Theme.cream
@@ -2261,6 +2256,64 @@ Workspaces {
                 font.pixelSize: 16 * pill.s
                 font.weight: Font.DemiBold
                 font.features: ({ "tnum": 1 })
+            }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 1 * pill.s
+                height: 13 * pill.s
+                color: Theme.hairSoft
+            }
+
+            // Network status on the right: four cellular-style signal bars,
+            // then Bluetooth or headphones when an audio headset is active.
+            Row {
+                id: minimalConnectivity
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 7 * pill.s
+
+                Item {
+                    id: statusWifiBars
+                    visible: pill.wifiDev !== null
+                    width: visible ? 16 * pill.s : 0
+                    height: 15 * pill.s
+
+                    Row {
+                        anchors.fill: parent
+                        spacing: 1.4 * pill.s
+
+                        Repeater {
+                            model: [5, 8, 11, 14]
+
+                            delegate: Rectangle {
+                                required property int index
+                                required property var modelData
+                                width: 2.5 * pill.s
+                                height: modelData * pill.s
+                                anchors.bottom: parent.bottom
+                                radius: width / 2
+                                color: pill.wifiOn && pill.wifiActive !== null
+                                    && pill.wifiLevel > index * 0.25
+                                    ? Theme.iconDim : Qt.alpha(Theme.iconDim, 0.25)
+
+                                Behavior on color {
+                                    ColorAnimation { duration: Motion.fast }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                GlyphIcon {
+                    id: statusBluetoothIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: pill.headphonesConnected || (pill.btAdapter !== null && pill.btOn)
+                    width: visible ? 16 * pill.s : 0
+                    height: 16 * pill.s
+                    name: pill.headphonesConnected ? "headphones" : "bluetooth"
+                    color: pill.headphonesConnected ? Theme.cream : Theme.iconDim
+                    stroke: 1.7
+                }
             }
         }
 

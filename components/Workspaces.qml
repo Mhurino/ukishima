@@ -33,6 +33,7 @@ Item {
     property real stickW: 17 * s
     property real dotW: 5 * s
     property real gap: 4 * s
+    property bool firstFiveOnly: false
 
     /**
      * The dot range and active marker are plain properties, recomputed
@@ -48,6 +49,19 @@ Item {
     property string activeName: ""
 
     function rebuild() {
+        // The Status face always shows workspace slots 1–5, independent of
+        // monitor-specific workspace rules. The active marker still follows
+        // the current workspace on this monitor.
+        if (workspaces.firstFiveOnly) {
+            var fixedRange = [1, 2, 3, 4, 5];
+            activeName = WorkspaceData.activeByMonitor[screenName] || "";
+            if (!rangesEqual(range, fixedRange))
+                range = fixedRange;
+            if (hoverIndex >= range.length)
+                hoverIndex = -1;
+            return;
+        }
+
         var out = [];
         var seen = ({});
         var ruled = Workspacerules.byMonitor[screenName];
@@ -113,6 +127,7 @@ Item {
 
     Component.onCompleted: rebuild()
     onScreenNameChanged: rebuild()
+    onFirstFiveOnlyChanged: rebuild()
 
     Connections {
         target: WorkspaceData
