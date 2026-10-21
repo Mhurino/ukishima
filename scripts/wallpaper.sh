@@ -181,12 +181,12 @@ sync_videos() {
         desired="*"$'\t'"$(printf '%s' "$desired" | head -n1 | cut -f2)"$'\n'
     fi
     desired=$(printf '%s' "$desired" | sort)
-    actual=$(pgrep -ax mpvpaper 2>/dev/null | awk '{ print $(NF-1) "\t" $NF }' | sort || true)
+    actual=$(timeout 3 pgrep -ax mpvpaper 2>/dev/null | awk '{ print $(NF-1) "\t" $NF }' | sort || true)
     [ "$desired" = "$actual" ] && return 0
-    if pgrep -x mpvpaper >/dev/null 2>&1; then
+    if timeout 3 pgrep -x mpvpaper >/dev/null 2>&1; then
         pkill -x mpvpaper 2>/dev/null || true
         for _ in $(seq 1 10); do
-            pgrep -x mpvpaper >/dev/null 2>&1 || break
+            timeout 3 pgrep -x mpvpaper >/dev/null 2>&1 || break
             sleep 0.1
         done
     fi
@@ -241,13 +241,36 @@ map_has_video() {
 }
 
 restore_all() {
-    local o pic any=false
+    local o pic any=false preferred=""
+    # Quando Waywallen viene disattivato, non ripristinare un resource path
+    # proveniente dal suo catalogo se non appartiene alla raccolta locale.
+    if [ "$force_local_restore" = true ]; then
+        preferred=$(cat "$STATE" 2>/dev/null || true)
+        case "$preferred" in
+            "$WPDIR"/*) [ -f "$preferred" ] || preferred="" ;;
+            *) preferred="" ;;
+        esac
+    fi
     for o in $(outputs); do
         pic=$(map_get "$o")
+        if [ "$force_local_restore" = true ]; then
+            case "$pic" in
+                "$WPDIR"/*) [ -f "$pic" ] || pic="" ;;
+                *) pic="" ;;
+            esac
+            [ -n "$pic" ] || pic="$preferred"
+        fi
         [ -n "$pic" ] && [ -f "$pic" ] || pic=$(cat "$STATE" 2>/dev/null || true)
+        if [ "$force_local_restore" = true ]; then
+            case "$pic" in
+                "$WPDIR"/*) [ -f "$pic" ] || pic="" ;;
+                *) pic="" ;;
+            esac
+        fi
         [ -n "$pic" ] && [ -f "$pic" ] || pic=$(pop_bag) || continue
         map_put "$o" "$pic"
         apply_visual "$pic" "$o"
+        [ -n "$preferred" ] || preferred="$pic"
         any=true
     done
     [ "$any" = true ] || exit 0
@@ -261,7 +284,11 @@ awww query >/dev/null 2>&1 || daemon_was_running=false
 ensure_daemon || exit 0
 
 cmd="${1:-}"
-[ "$cmd" = "force-init" ] && cmd="init"
+force_local_restore=false
+if [ "$cmd" = "force-init" ]; then
+    force_local_restore=true
+    cmd="init"
+fi
 target=""
 
 if [ "$cmd" = "init" ]; then
@@ -270,7 +297,7 @@ if [ "$cmd" = "init" ]; then
         [ -f "$pic" ] && map_put_all "$pic"
     fi
     if [ "$daemon_was_running" = true ]; then
-        if map_has_video && ! pgrep -x mpvpaper >/dev/null 2>&1; then
+        if map_has_video && ! timeout 3 pgrep -x mpvpaper >/dev/null 2>&1; then
             sync_videos
         fi
         exit 0

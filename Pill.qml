@@ -439,21 +439,18 @@ Item {
     }
 
     function dropClosed(name) {
-        const loaderFn = pill.loaders[name];
-        const ld = loaderFn ? loaderFn() : null;
-
         // Non scaricare mai la superficie attualmente aperta.
         if (name === pill.surface) {
             delete pill.closedAt[name];
             return false;
         }
 
-        const wasLive = !!(ld && ld.active);
-        if (wasLive)
-            ld.active = false;
-
+        // Hotfix temporaneo: non modificare Loader.active a runtime.
+        // In alcune combinazioni Qt Quick/Quickshell, disattivare un Loader
+        // con Repeater e binding annidati può provocare un crash nativo.
+        // Rimuoviamo solo il timer di bookkeeping e lasciamo viva la superficie.
         delete pill.closedAt[name];
-        return wasLive;
+        return false;
     }
 
     Timer {

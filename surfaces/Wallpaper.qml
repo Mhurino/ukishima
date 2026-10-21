@@ -503,6 +503,13 @@ if (kindFilter === "all")
             root.updateInitialSelection();
         }
 
+        // Lo stato puo' cambiare anche fuori dal picker (ad esempio quando
+        // si disattiva Waywallen e viene ripristinato uno sfondo locale).
+        function onCurrentChanged() {
+            if (root.active && !(root.searching && root.query.length > 0))
+                root.updateInitialSelection();
+        }
+
         function onCurrentLoadedChanged() {
             root.updateInitialSelection();
         }

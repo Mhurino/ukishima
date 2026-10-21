@@ -4,7 +4,7 @@ set -eu
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 # Usa questi valori solo se MALLOC_CONF non è già stato configurato.
-: "${MALLOC_CONF:=background_thread:true,dirty_decay_ms:100,muzzy_decay_ms:100}"
+: "${MALLOC_CONF:=background_thread:true,retain:false,dirty_decay_ms:100,muzzy_decay_ms:100}"
 export MALLOC_CONF
 
 if command -v qs >/dev/null 2>&1; then
