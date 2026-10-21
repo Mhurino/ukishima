@@ -123,22 +123,31 @@ Item {
         }
     }
 
+    readonly property var btDevices:
+        (typeof Bluetooth !== "undefined" && Bluetooth && Bluetooth.devices)
+        ? Bluetooth.devices.values : []
+
     readonly property bool headphonesConnected: {
-        var n = audioSink;
-        if (!n)
-            return false;
+        for (var i = 0; i < btDevices.length; i++) {
+            var d = btDevices[i];
+            if (!d || !d.connected)
+                continue;
 
-        var props = n.properties || {};
-        var text = [
-            n.name || "",
-            n.description || "",
-            n.nickname || "",
-            props["node.name"] || "",
-            props["node.description"] || "",
-            props["device.api"] || ""
-        ].join(" ").toLowerCase();
+            var icon = String(d.icon || "").toLowerCase();
+            var name = String(d.deviceName || d.name || "").toLowerCase();
 
-        return /bluez|bluetooth|headphone|headset|earbud|airpod/.test(text);
+            if (icon === "audio-headset"
+                || icon === "audio-headphones"
+                || icon === "audio-headset-mic"
+                || name.indexOf("earbud") >= 0
+                || name.indexOf("buds") >= 0
+                || name.indexOf("headphone") >= 0
+                || name.indexOf("headset") >= 0
+                || name.indexOf("zen hybrid") >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
     readonly property bool surfaceOpen: surface.length > 0
     property bool hoverLatch: false
@@ -170,7 +179,7 @@ Item {
     Connections {
         target: Cliphist
         function onClipboardChanged() {
-            if (pill.monFocused && Flags.mainDisplay === "custom") {
+            if (pill.monFocused && (Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic")) {
                 pill.clipboardToastActive = true;
                 clipboardToastTimer.restart();
             }
@@ -850,7 +859,9 @@ Item {
          * I preset restanti mantengono una geometria dedicata; Custom è gestito
          * sopra perché si allarga solo durante la riproduzione o il toast clipboard.
          */
-        if (Flags.mainDisplay === "custom") {
+        if (Flags.mainDisplay === "custom"
+                || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic")
+                    && (clipboardToastActive || Players.playing))) {
             if (clipboardToastActive)
                 return Qt.size(Math.max(150 * s, customCopyToast.implicitWidth + 36 * s), restH);
             if (Players.playing)
@@ -2073,7 +2084,7 @@ Workspaces {
         // Custom display: Minimal clock at rest, compact now-playing face while audio plays.
         Item {
             id: customDynamicFace
-            visible: Flags.mainDisplay === "custom" && !pill.clipboardToastActive
+            visible: (Flags.mainDisplay === "custom" || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic") && Players.playing)) && !pill.clipboardToastActive
             anchors.centerIn: parent
             implicitWidth: Players.playing ? playerFace.implicitWidth : clockFace.implicitWidth
             implicitHeight: Math.max(clockFace.implicitHeight, playerFace.implicitHeight)
@@ -2189,7 +2200,7 @@ Workspaces {
         Row {
             id: customCopyToast
             // Keep the row alive while opacity animates, so the fade-out completes.
-            visible: Flags.mainDisplay === "custom"
+            visible: Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic"
             opacity: pill.clipboardToastActive ? 1 : 0
             scale: pill.clipboardToastActive ? 1 : 0.94
             anchors.centerIn: parent
@@ -2223,7 +2234,7 @@ Workspaces {
 
         Row {
             id: minimalFace
-            visible: Flags.mainDisplay === "minimal"
+            visible: Flags.mainDisplay === "minimal" && !Players.playing && !pill.clipboardToastActive
             anchors.centerIn: parent
             spacing: 8 * pill.s
 
@@ -2319,7 +2330,7 @@ Workspaces {
 
         Row {
             id: classicFace
-            visible: Flags.mainDisplay === "classic"
+            visible: Flags.mainDisplay === "classic" && !Players.playing && !pill.clipboardToastActive
             anchors.centerIn: parent
             spacing: 9 * pill.s
 
