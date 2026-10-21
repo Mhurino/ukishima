@@ -49,12 +49,23 @@ Item {
     property string activeName: ""
 
     function rebuild() {
-        // The Status face always shows workspace slots 1–5, independent of
-        // monitor-specific workspace rules. The active marker still follows
-        // the current workspace on this monitor.
+        // Mostra il gruppo di cinque workspace che contiene quello attivo:
+        // 1–5, 6–10, 11–15, ecc. Il marker segue sempre il workspace attivo.
         if (workspaces.firstFiveOnly) {
-            var fixedRange = [1, 2, 3, 4, 5];
             activeName = WorkspaceData.activeByMonitor[screenName] || "";
+            var activeId = parseInt(activeName);
+            if (!Number.isFinite(activeId) || activeId < 1)
+                activeId = 1;
+
+            var first = Math.floor((activeId - 1) / 5) * 5 + 1;
+            var fixedRange = [
+                first,
+                first + 1,
+                first + 2,
+                first + 3,
+                first + 4
+            ];
+
             if (!rangesEqual(range, fixedRange))
                 range = fixedRange;
             if (hoverIndex >= range.length)

@@ -179,7 +179,7 @@ Item {
     Connections {
         target: Cliphist
         function onClipboardChanged() {
-            if (pill.monFocused && (Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic")) {
+            if (pill.monFocused && (Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic" || Flags.mainDisplay === "system" || Flags.mainDisplay === "strip")) {
                 pill.clipboardToastActive = true;
                 clipboardToastTimer.restart();
             }
@@ -860,7 +860,7 @@ Item {
          * sopra perché si allarga solo durante la riproduzione o il toast clipboard.
          */
         if (Flags.mainDisplay === "custom"
-                || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic")
+                || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic" || Flags.mainDisplay === "system")
                     && (clipboardToastActive || Players.playing))) {
             if (clipboardToastActive)
                 return Qt.size(Math.max(150 * s, customCopyToast.implicitWidth + 36 * s), restH);
@@ -1728,6 +1728,7 @@ Workspaces {
     id: customWs
     anchors.verticalCenter: parent.verticalCenter
     screenName: pill.screenName
+    firstFiveOnly: true
     s: pill.s
     stickW: 13 * pill.s
     dotW: 4 * pill.s
@@ -1901,30 +1902,42 @@ Workspaces {
                 anchors.left: parent.left
                 anchors.leftMargin: 18 * pill.s
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 12 * pill.s
+                spacing: pill.clipboardToastActive ? 7 * pill.s : 12 * pill.s
 
                 Workspaces {
                     id: stripWs
                     anchors.verticalCenter: parent.verticalCenter
                     screenName: pill.screenName
+                    firstFiveOnly: true
                     s: pill.s
                     stickW: 13 * pill.s
                     dotW: 4 * pill.s
                     gap: 3 * pill.s
                 }
 
-                Text {
-                    id: stripAppsText
-                    visible: restAppsText.text.length > 0
+                GlyphIcon {
+                    id: stripCopyIcon
+                    visible: Flags.mainDisplay === "strip" && pill.clipboardToastActive
                     anchors.verticalCenter: parent.verticalCenter
-                    text: restAppsText.text
-                    color: Theme.subtle
+                    width: 14 * pill.s
+                    height: 14 * pill.s
+                    name: "check"
+                    color: Theme.vermLit
+                    stroke: 2
+                }
+
+                Text {
+                    id: stripCopyToast
+                    visible: Flags.mainDisplay === "strip" && pill.clipboardToastActive
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Copied to clipboard"
+                    color: Theme.cream
                     font.family: Theme.font
                     font.pixelSize: 10 * pill.s
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                    width: Math.min(360 * pill.s, implicitWidth)
+                    font.weight: Font.DemiBold
                 }
+
+
             }
 
             Row {
@@ -2004,32 +2017,53 @@ Workspaces {
                     color: Theme.hairSoft
                 }
 
+                Item {
+                    id: stripWifiBars
+                    visible: pill.wifiDev !== null
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: visible ? 16 * pill.s : 0
+                    height: 15 * pill.s
+
+                    Row {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 2 * pill.s
+
+                        Repeater {
+                            model: 4
+                            delegate: Rectangle {
+                                required property int index
+                                width: 2.5 * pill.s
+                                height: (5 + index * 3) * pill.s
+                                radius: 1 * pill.s
+                                anchors.bottom: parent.bottom
+                                color: pill.wifiOn && pill.wifiActive !== null
+                                       && pill.wifiLevel > index * 0.25
+                                       ? Theme.iconDim : Qt.alpha(Theme.iconDim, 0.25)
+                            }
+                        }
+                    }
+                }
+
                 GlyphIcon {
-                    visible: pill.wifiDev !== null && pill.wifiOn
+                    id: stripBluetoothIcon
+                    visible: pill.headphonesConnected
+                             || (pill.btAdapter !== null && pill.btOn)
                     anchors.verticalCenter: parent.verticalCenter
                     width: visible ? 16 * pill.s : 0
                     height: 16 * pill.s
-                    name: "wifi"
-                    color: Theme.iconDim
+                    name: pill.headphonesConnected ? "headphones" : "bluetooth"
+                    color: pill.headphonesConnected ? Theme.cream : Theme.iconDim
                     stroke: 1.7
                 }
 
                 GlyphIcon {
-                    visible: pill.btAdapter !== null && pill.btOn
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: visible ? 16 * pill.s : 0
-                    height: 16 * pill.s
-                    name: "bluetooth"
-                    color: Theme.iconDim
-                    stroke: 1.7
-                }
-
-                GlyphIcon {
+                    id: stripNotificationIcon
                     visible: Notifs.unread > 0
                     anchors.verticalCenter: parent.verticalCenter
                     width: visible ? 17 * pill.s : 0
                     height: 17 * pill.s
-                    name: "inbox"
+                    name: "bell"
                     color: Theme.flameGlow
                     stroke: 1.7
                 }
@@ -2084,7 +2118,7 @@ Workspaces {
         // Custom display: Minimal clock at rest, compact now-playing face while audio plays.
         Item {
             id: customDynamicFace
-            visible: (Flags.mainDisplay === "custom" || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic") && Players.playing)) && !pill.clipboardToastActive
+            visible: (Flags.mainDisplay === "custom" || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic" || Flags.mainDisplay === "system") && Players.playing)) && !pill.clipboardToastActive
             anchors.centerIn: parent
             implicitWidth: Players.playing ? playerFace.implicitWidth : clockFace.implicitWidth
             implicitHeight: Math.max(clockFace.implicitHeight, playerFace.implicitHeight)
@@ -2200,7 +2234,7 @@ Workspaces {
         Row {
             id: customCopyToast
             // Keep the row alive while opacity animates, so the fade-out completes.
-            visible: Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic"
+            visible: Flags.mainDisplay === "custom" || Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic" || Flags.mainDisplay === "system"
             opacity: pill.clipboardToastActive ? 1 : 0
             scale: pill.clipboardToastActive ? 1 : 0.94
             anchors.centerIn: parent
@@ -2357,7 +2391,7 @@ Workspaces {
         }
         Row {
             id: systemFace
-            visible: Flags.mainDisplay === "system"
+            visible: Flags.mainDisplay === "system" && !Players.playing && !pill.clipboardToastActive
             anchors.centerIn: parent
             spacing: 9 * pill.s
 

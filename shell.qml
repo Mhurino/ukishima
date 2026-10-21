@@ -278,7 +278,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             required property var modelData
             readonly property real s: modelData ? (modelData.height / 1080) * Flags.uiScale : 1
             readonly property real topGap: 8 * Flags.topGap * s
-            readonly property real restHeight: 38 * s
+            readonly property real restHeight: (Flags.mainDisplay === "strip" ? 33 : 38) * s
 
             /** Trimming the reserved band below the pill's bottom lets windows climb, so App gap sets the pill-to-window air without touching the desktop gaps_out. */
             readonly property real reservedH: Math.max(0, restHeight + (Flags.mainDisplay === "strip" ? 0 : topGap) - 12 * (1 - Flags.appGap) * s - ((Flags.dockEnabled && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right")) ? 2 * s : 0))
@@ -575,7 +575,7 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
                 Pill {
                     id: pill
                     anchors.top: parent.top
-                    anchors.topMargin: (pill.stripBar || pill.mode === "game") ? 0 : overlay.topGap
+                    anchors.topMargin: (pill.stripBar || pill.mode === "game") ? 0 : Math.max(0, overlay.topGap - 3 * overlay.s)
                     anchors.horizontalCenter: parent.horizontalCenter
 
                     Behavior on anchors.topMargin {
