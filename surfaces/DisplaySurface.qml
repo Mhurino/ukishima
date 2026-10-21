@@ -50,7 +50,7 @@ SettingsSurface {
             SettingsSeg {
                 compact: true
                 s: root.s
-                options: [{ label: "Custom", value: "custom" }, { label: "Minimal", value: "minimal" }, { label: "Classic", value: "classic" }, { label: "Sys", value: "system" }, { label: "Strip", value: "strip", enabled: Flags.dockPosition !== "top-left" && Flags.dockPosition !== "top-right" }]
+                options: [{ label: "Dynamic", value: "custom" }, { label: "Minimal", value: "minimal" }, { label: "Classic", value: "classic" }, { label: "Sys", value: "system" }, { label: "Strip", value: "strip", enabled: Flags.dockPosition !== "top-left" && Flags.dockPosition !== "top-right" }]
                 value: Flags.mainDisplay
                 onPicked: (v) => {
                     if (v === "strip" && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right"))

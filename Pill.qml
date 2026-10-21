@@ -142,6 +142,7 @@ Item {
     }
     readonly property bool surfaceOpen: surface.length > 0
     property bool hoverLatch: false
+    property bool clipboardToastActive: false
 
     /**
      * False for the first seconds after the shell maps. Hyprland hands pointer
@@ -156,6 +157,24 @@ Item {
         interval: 3000
         running: true
         onTriggered: pill.bootSettled = true
+    }
+
+    // Clipboard feedback is a small in-bar toast, not a desktop notification.
+    Timer {
+        id: clipboardToastTimer
+        interval: 1900
+        repeat: false
+        onTriggered: pill.clipboardToastActive = false
+    }
+
+    Connections {
+        target: Cliphist
+        function onClipboardChanged() {
+            if (pill.monFocused && Flags.mainDisplay === "custom") {
+                pill.clipboardToastActive = true;
+                clipboardToastTimer.restart();
+            }
+        }
     }
 
    readonly property bool expanded: surfaceOpen || held || hoverLatch
@@ -828,10 +847,17 @@ Item {
             return f();
 
         /*
-         * Preset a riposo: la loro geometria non dipende dal Custom HUD.
-         * Questo impedisce a workspace/app/Cava del Custom di modificare
-         * la larghezza degli altri preset.
+         * I preset restanti mantengono una geometria dedicata; Custom è gestito
+         * sopra perché si allarga solo durante la riproduzione o il toast clipboard.
          */
+        if (Flags.mainDisplay === "custom") {
+            if (clipboardToastActive)
+                return Qt.size(Math.max(150 * s, customCopyToast.implicitWidth + 36 * s), restH);
+            if (Players.playing)
+                return Qt.size(Math.max(150 * s, customDynamicFace.implicitWidth + 36 * s), restH);
+            return Qt.size(150 * s, restH);
+        }
+
         if (Flags.mainDisplay === "minimal")
             return Qt.size(150 * s, restH);
 
@@ -1652,7 +1678,7 @@ Item {
 
         Row {
             id: restRow
-            visible: pill.specialView === "" && Flags.mainDisplay === "custom"
+            visible: false // Custom now uses the Minimal-style dynamic face below.
             anchors.centerIn: parent
             spacing: 8 * pill.s
             Item {
@@ -1851,8 +1877,7 @@ Workspaces {
     Item {
         id: mainDisplayFace
         anchors.fill: parent
-        visible: pill.specialView === "" && Flags.mainDisplay !== "custom"
-            && pill.mode === "rest"
+        visible: pill.specialView === "" && pill.mode === "rest"
         opacity: visible ? Math.pow(pill.morphCloseness, 1.5) : 0
 
         Item {
@@ -2045,6 +2070,157 @@ Workspaces {
                 }
             }
         }
+        // Custom display: Minimal clock at rest, compact now-playing face while audio plays.
+        Item {
+            id: customDynamicFace
+            visible: Flags.mainDisplay === "custom" && !pill.clipboardToastActive
+            anchors.centerIn: parent
+            implicitWidth: Players.playing ? playerFace.implicitWidth : clockFace.implicitWidth
+            implicitHeight: Math.max(clockFace.implicitHeight, playerFace.implicitHeight)
+            width: implicitWidth
+            height: implicitHeight
+
+            Row {
+                id: clockFace
+                visible: !Players.playing
+                anchors.centerIn: parent
+                spacing: 8 * pill.s
+
+                Item {
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: Flags.showGlyphs
+                        text: "時"
+                        color: Theme.cream
+                        font.family: Theme.fontJp
+                        font.weight: Font.Medium
+                        font.pixelSize: 15 * pill.s
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        visible: !Flags.showGlyphs
+                        width: 17 * pill.s
+                        height: 17 * pill.s
+                        name: "clock"
+                        color: Theme.cream
+                        stroke: 1.7
+                    }
+                }
+
+                Text {
+                    id: clockTime
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: clock.hhmm
+                    color: Theme.cream
+                    font.family: Theme.font
+                    font.pixelSize: 16 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+
+            Row {
+                id: playerFace
+                visible: Players.playing
+                anchors.centerIn: parent
+                spacing: 7 * pill.s
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 24 * pill.s
+                    height: 24 * pill.s
+                    radius: 6 * pill.s
+                    color: Theme.tileBg
+                    clip: true
+
+                    Image {
+                        id: customTrackArt
+                        anchors.fill: parent
+                        source: Players.artUrl
+                        sourceSize.width: 96
+                        sourceSize.height: 96
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                    }
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        visible: customTrackArt.status !== Image.Ready
+                        width: 14 * pill.s
+                        height: 14 * pill.s
+                        name: "music"
+                        color: Theme.iconDim
+                        stroke: 1.7
+                    }
+                }
+
+                Marquee {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 150 * pill.s
+                    text: Players.title.length > 0 ? Players.title : Players.serviceLabel
+                    color: Theme.cream
+                    pixelSize: 11.5 * pill.s
+                    weight: Font.DemiBold
+                    active: Players.playing
+                }
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Flags.musicViz && Cava.active ? 14 * pill.s : 0
+                    height: 18 * pill.s
+                    visible: width > 0
+
+                    MusicBars {
+                        anchors.centerIn: parent
+                        s: pill.s
+                        span: 17
+                    }
+                }
+            }
+        }
+
+        // Self-dismisses after a short moment and never enters the notification system.
+        Row {
+            id: customCopyToast
+            // Keep the row alive while opacity animates, so the fade-out completes.
+            visible: Flags.mainDisplay === "custom"
+            opacity: pill.clipboardToastActive ? 1 : 0
+            scale: pill.clipboardToastActive ? 1 : 0.94
+            anchors.centerIn: parent
+            spacing: 7 * pill.s
+
+            Behavior on opacity {
+                NumberAnimation { duration: Motion.standard; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                NumberAnimation { duration: Motion.standard; easing.type: Easing.OutBack }
+            }
+
+            GlyphIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14 * pill.s
+                height: 14 * pill.s
+                name: "check"
+                color: Theme.vermLit
+                stroke: 2
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Copied to clipboard"
+                color: Theme.cream
+                font.family: Theme.font
+                font.pixelSize: 11.5 * pill.s
+                font.weight: Font.DemiBold
+            }
+        }
+
         Row {
             id: minimalFace
             visible: Flags.mainDisplay === "minimal"

@@ -22,6 +22,8 @@ import Quickshell.Io
 Singleton {
     id: root
 
+    signal clipboardChanged()
+
     property var entries: []
     readonly property int count: entries.length
     property bool pending: false
@@ -93,7 +95,10 @@ Singleton {
         command: ["wl-paste", "--watch", "echo", "x"]
         running: true
         stdout: SplitParser {
-            onRead: debounce.restart()
+            onRead: {
+                root.clipboardChanged();
+                debounce.restart();
+            }
         }
         onExited: respawn.restart()
     }
