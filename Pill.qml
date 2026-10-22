@@ -567,8 +567,10 @@ Item {
             return "quickCount";
         if (toastActive && Notifs.toastCritical && !held)
             return "toast";
-        if (osdActive && !held && Flags.mainDisplay !== "strip")
+        if (osdActive && !held)
             return "osd";
+        if (clipboardToastActive && !held)
+            return "copyToast";
         if (toastActive && !held)
             return "toast";
         if (expanded)
@@ -838,6 +840,7 @@ Item {
      */
     readonly property var modeSize: ({
         osd:   () => Qt.size(osd.desiredW, osd.desiredH),
+        copyToast: () => Qt.size(Math.max(150 * s, stripCopyToast.implicitWidth + 36 * s), restH - 6 * s),
         toast: () => Qt.size(toastW, toastLoader.item ? toastLoader.item.implicitHeight + 24 * s : restH),
         hover: () => Qt.size(hoverW, hoverH),
         quickChoose: () => Qt.size(quickChooseW, quickChooseH),
@@ -1902,7 +1905,7 @@ Workspaces {
                 anchors.left: parent.left
                 anchors.leftMargin: 18 * pill.s
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: pill.clipboardToastActive ? 7 * pill.s : 12 * pill.s
+                spacing: 12 * pill.s
 
                 Workspaces {
                     id: stripWs
@@ -1913,28 +1916,6 @@ Workspaces {
                     stickW: 13 * pill.s
                     dotW: 4 * pill.s
                     gap: 3 * pill.s
-                }
-
-                GlyphIcon {
-                    id: stripCopyIcon
-                    visible: Flags.mainDisplay === "strip" && pill.clipboardToastActive
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 14 * pill.s
-                    height: 14 * pill.s
-                    name: "check"
-                    color: Theme.vermLit
-                    stroke: 2
-                }
-
-                Text {
-                    id: stripCopyToast
-                    visible: Flags.mainDisplay === "strip" && pill.clipboardToastActive
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Copied to clipboard"
-                    color: Theme.cream
-                    font.family: Theme.font
-                    font.pixelSize: 10 * pill.s
-                    font.weight: Font.DemiBold
                 }
 
 
@@ -3371,6 +3352,37 @@ onClicked: {
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Row {
+        id: stripCopyToast
+        anchors.centerIn: parent
+        spacing: 7 * pill.s
+        visible: Flags.mainDisplay === "strip" && pill.clipboardToastActive
+                 && pill.mode === "copyToast"
+        opacity: visible ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: Motion.standard; easing.type: Motion.easeStandard }
+        }
+
+        GlyphIcon {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 14 * pill.s
+            height: 14 * pill.s
+            name: "check"
+            color: Theme.vermLit
+            stroke: 2
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Copied to clipboard"
+            color: Theme.cream
+            font.family: Theme.font
+            font.pixelSize: 11.5 * pill.s
+            font.weight: Font.DemiBold
         }
     }
 
