@@ -987,7 +987,7 @@ PanelWindow {
                 return Theme.cardBot;
 
             var level = Math.max(0, Math.min(1, Flags.glassTransparency));
-            var alpha = 0.62 * (1.25 - 0.5 * level);
+            var alpha = 0.62 * (1.25 - 0.5 * level) + 0.12;
             return Qt.alpha(Theme.cardBot, Math.max(0.35, Math.min(0.95, alpha)));
         }
         border.width: 1

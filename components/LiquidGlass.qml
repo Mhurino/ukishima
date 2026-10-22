@@ -31,7 +31,7 @@ Rectangle {
             return 1;
         // Low = less transparent; High = more transparent.
         var level = Math.max(0, Math.min(1, Flags.glassTransparency));
-        var a = glass.styleTint * Flags.pillOpacity * (1.25 - 0.5 * level);
+        var a = glass.styleTint * Flags.pillOpacity * (1.25 - 0.5 * level) + 0.12;
         if (glass.hovered) a += 0.05;
         if (glass.pressed) a -= 0.06;
         if (glass.active) a += 0.02;
