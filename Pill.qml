@@ -569,7 +569,7 @@ Item {
             return "toast";
         if (osdActive && !held)
             return "osd";
-        if (clipboardToastActive && !held)
+        if (clipboardToastActive && !held && Flags.mainDisplay === "strip")
             return "copyToast";
         if (toastActive && !held)
             return "toast";
