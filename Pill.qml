@@ -233,9 +233,9 @@ Item {
      * (with its 350ms grace) is what keeps the pill up while the cursor is near
      * it, so a cursor sitting on the strip's edge cannot bounce it.
      */
-    readonly property bool hidden: monFullscreen
+    readonly property bool hidden: (monFullscreen && !osdActive && !clipboardToastActive)
         || (Flags.autoHide && !revealSession && !expanded && !dragActive
-        && !transientLive && mode !== "game")
+        && !transientLive && !clipboardToastActive && mode !== "game")
 
     /**
      * The special workspace shown on this pill's monitor, surfaced as a plain word

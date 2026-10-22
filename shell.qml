@@ -348,17 +348,17 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             }
 
             screen: modelData
-            visible: !monFullscreen
+            visible: true
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: ((surfaceOpen || pill.quickChoosing)) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: !monFullscreen && ((surfaceOpen || pill.quickChoosing) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None)
             WlrLayershell.namespace: "ukishima"
 
             anchors { top: true; left: true; right: true; bottom: true }
 
             mask: monFullscreen
-                ? hiddenRegion
+                ? ((pill.osdActive || pill.clipboardToastActive) ? pillRegion : hiddenRegion)
                 : (modal
                     ? fullRegion
                     : (pill.stripBar
