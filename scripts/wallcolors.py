@@ -33,31 +33,43 @@ LIGHT_TEXT = [(0.20, 0.18), (0.10, 0.20), (0.36, 0.14), (0.48, 0.10),
 
 
 def analyze(wallpaper):
-    out = subprocess.run(
-        ["magick", wallpaper, "-alpha", "off", "-resize", "200x200", "-colors", "48",
-         "-format", "%c", "histogram:info:-"],
-        capture_output=True, text=True).stdout
+    """Analyze a wallpaper with Pillow, without requiring ImageMagick."""
+    from PIL import Image
+
+    with Image.open(wallpaper) as source:
+        image = source.convert("RGB")
+        image.thumbnail((200, 200), Image.Resampling.LANCZOS)
+        quantized = image.quantize(colors=48)
+        histogram = quantized.histogram()
+        palette = quantized.getpalette()
+
     buckets, total, lum, chroma = {}, 0, 0.0, 0
-    for line in out.splitlines():
-        m = re.search(r"\s*(\d+):\s*\([^)]*\)\s*#([0-9A-Fa-f]{6})", line)
-        if not m:
+    for index, count in enumerate(histogram):
+        if not count:
             continue
-        count, hex_str = int(m.group(1)), m.group(2)
-        r, g, b = (int(hex_str[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+        r, g, b = (palette[index * 3 + i] / 255 for i in range(3))
         h, l, s = colorsys.rgb_to_hls(r, g, b)
         total += count
         lum += count * l
+
         if s < 0.15 or l < 0.05 or l > 0.92:
             continue
+
         chroma += count
-        bucket = buckets.setdefault((int(h * 360) // 30) % 12, {"wsat": 0.0, "best": None})
+        bucket = buckets.setdefault(
+            (int(h * 360) // 30) % 12,
+            {"wsat": 0.0, "best": None},
+        )
         bucket["wsat"] += count * s
         score = count * s * (1 if 0.12 < l < 0.55 else 0.4)
         if not bucket["best"] or score > bucket["best"][0]:
             bucket["best"] = (score, h, s)
+
     mean_l = lum / total if total else 0.0
     if not buckets or chroma < 0.08 * total:
         return None, 0.0, mean_l
+
     win = max(buckets.values(), key=lambda v: v["wsat"])
     return win["best"][1], win["best"][2], mean_l
 

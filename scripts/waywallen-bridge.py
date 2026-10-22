@@ -389,15 +389,8 @@ def sync_shell_palette(item, state_root):
     palette_source = palette_source_for_item(item)
     palette_file = state_root / "ukishima-wallpaper-palette-source"
 
-    if palette_source:
-        tmp = palette_file.with_suffix(".tmp")
-        tmp.write_text(palette_source + "\n", encoding="utf-8")
-        tmp.replace(palette_file)
-    else:
-        try:
-            palette_file.unlink()
-        except FileNotFoundError:
-            pass
+    # La sorgente verrà registrata come sincronizzata solo
+    # dopo che la generazione della palette sarà riuscita.
 
     flags_path = state_root / "ukishima" / "flags.json"
     try:
@@ -431,6 +424,17 @@ def sync_shell_palette(item, state_root):
                 file=sys.stderr
             )
             return
+
+        # Registrare la sorgente solo dopo una generazione riuscita.
+        if palette_source:
+            tmp = palette_file.with_suffix(".tmp")
+            tmp.write_text(palette_source + "\n", encoding="utf-8")
+            tmp.replace(palette_file)
+        else:
+            try:
+                palette_file.unlink()
+            except FileNotFoundError:
+                pass
 
         subprocess.run(
             ["hyprctl", "reload"],
