@@ -134,8 +134,53 @@ prepare_services() {
     systemctl --user daemon-reload
     systemctl --user import-environment XDG_RUNTIME_DIR WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE >/dev/null 2>&1 || true
 }
+snapshot_wallpaper_state() {
+    local state_dir snapshot
+    state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
+    snapshot="$state_dir/ukishima/waywallen-wallpaper-snapshot"
+
+    mkdir -p "$snapshot"
+    : > "$snapshot/created"
+
+    # Salva lo stato globale e la mappatura per monitor.
+    if [ -f "$state_dir/ukishima-wallpaper" ]; then
+        cp -p "$state_dir/ukishima-wallpaper" "$snapshot/wallpaper"
+    fi
+    if [ -f "$state_dir/ukishima-wallpaper-map" ]; then
+        cp -p "$state_dir/ukishima-wallpaper-map" "$snapshot/wallpaper-map"
+    fi
+}
+
+restore_wallpaper_state() {
+    local state_dir snapshot
+    state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
+    snapshot="$state_dir/ukishima/waywallen-wallpaper-snapshot"
+
+    # Se non esiste uno snapshot, lascia agire il ripristino standard.
+    if [ -f "$snapshot/created" ]; then
+        if [ -f "$snapshot/wallpaper" ]; then
+            cp -p "$snapshot/wallpaper" "$state_dir/ukishima-wallpaper"
+        else
+            rm -f "$state_dir/ukishima-wallpaper"
+        fi
+
+        if [ -f "$snapshot/wallpaper-map" ]; then
+            cp -p "$snapshot/wallpaper-map" "$state_dir/ukishima-wallpaper-map"
+        else
+            rm -f "$state_dir/ukishima-wallpaper-map"
+        fi
+
+        # Ripristina gli sfondi usando lo stato precedente a Waywallen.
+        bash "$SCRIPT_DIR/wallpaper.sh" force-init >/dev/null 2>&1 || true
+        rm -rf -- "$snapshot"
+    else
+        bash "$SCRIPT_DIR/wallpaper.sh" force-init >/dev/null 2>&1 || true
+    fi
+}
+
 enable_integration() {
     prepare_services
+    snapshot_wallpaper_state
     awww kill >/dev/null 2>&1 || true
     pkill -x mpvpaper >/dev/null 2>&1 || true
     systemctl --user enable --now "$DAEMON_UNIT" "$LAYER_UNIT" "$PALETTE_UNIT"
@@ -149,8 +194,8 @@ disable_integration() {
     systemctl --user disable --now "$PALETTE_UNIT" "$LAYER_UNIT" "$DAEMON_UNIT" >/dev/null 2>&1 || true
     systemctl --user daemon-reload >/dev/null 2>&1 || true
     flatpak kill "$APP_ID" >/dev/null 2>&1 || true
-    bash "$SCRIPT_DIR/wallpaper.sh" force-init >/dev/null 2>&1 || true
-    notify "Supporto Waywallen disattivato; ripristinato il backend sfondi di Ukishima."
+    restore_wallpaper_state
+    notify "Supporto Waywallen disattivato; ripristinato lo stato degli sfondi di Ukishima."
 }
 run_layer_shell() {
     local runtime candidate i
