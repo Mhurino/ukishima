@@ -11,8 +11,12 @@ command -v ffmpeg >/dev/null 2>&1 || exit 4
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/ukishima/waywallen-thumbs"
 mkdir -p "$cache"
 
-out="$cache/$id.jpg"
-tmp="$cache/$id.tmp.jpg"
+# Chiave distinta per percorso: evita collisioni fra ID di catalogo.
+src_key="$(readlink -f -- "$src" 2>/dev/null || printf '%s' "$src")"
+key="$(printf '%s' "$src_key" | sha256sum | cut -c1-32)"
+
+out="$cache/$key.jpg"
+tmp="$cache/$key.tmp.jpg"
 
 if [[ -s "$out" && "$out" -nt "$src" ]]; then
     printf '%s\n' "$out"

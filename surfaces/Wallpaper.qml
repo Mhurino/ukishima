@@ -1038,20 +1038,38 @@ if (kindFilter === "all")
             readonly property bool waywallen: !!(entry && entry.waywallenId !== undefined)
             property string generatedThumb: ""
             property bool thumbnailAttempted: false
+            property string thumbnailEntryPath: entry && entry.path !== undefined
+                ? String(entry.path) : ""
+            property string thumbnailRequestPath: ""
+
+            onThumbnailEntryPathChanged: {
+                generatedThumb = "";
+                thumbnailAttempted = false;
+                thumbnailRequestPath = "";
+                if (thumbnailProc.running)
+                    thumbnailProc.running = false;
+                if (visible)
+                    Qt.callLater(requestWaywallenThumb);
+            }
 
             function requestWaywallenThumb() {
-                if (!waywallen
+                if (!entry
+                        || !waywallen
                         || String(entry.waywallenType || "").toLowerCase() !== "video"
-                        || thumb.length > 0
                         || generatedThumb.length > 0
                         || thumbnailAttempted
                         || ao > 5)
                     return;
 
+                var requestedPath = String(entry.path || "");
+                if (requestedPath.length === 0)
+                    return;
+
                 thumbnailAttempted = true;
+                thumbnailRequestPath = requestedPath;
                 thumbnailProc.command = [
                     "bash", root.waywallenThumbScript,
-                    String(entry.waywallenId), String(entry.path)
+                    String(entry.waywallenId), requestedPath
                 ];
                 thumbnailProc.running = true;
             }
@@ -1084,7 +1102,12 @@ if (kindFilter === "all")
                 stdout: StdioCollector {
                     onStreamFinished: {
                         var path = this.text.trim();
-                        if (path.length > 0 && path.charAt(0) === "/")
+                        if (path.length > 0
+                                && path.charAt(0) === "/"
+                                && tile.thumbnailRequestPath.length > 0
+                                && tile.thumbnailRequestPath === tile.thumbnailEntryPath
+                                && tile.entry
+                                && String(tile.entry.path || "") === tile.thumbnailRequestPath)
                             tile.generatedThumb = path;
                     }
                 }
@@ -1093,11 +1116,15 @@ if (kindFilter === "all")
             readonly property string thumbSource: !entry ? "" : remote
                 ? thumb
                 : waywallen
-                    ? (thumb.length > 0
-                        ? root.catalogThumbSource(thumb)
-                        : (generatedThumb.length > 0
+                    ? (String(entry.waywallenType || "").toLowerCase() === "video"
+                        ? (generatedThumb.length > 0
                             ? root.catalogThumbSource(generatedThumb)
-                            : ""))
+                            : (thumb.length > 0 ? root.catalogThumbSource(thumb) : ""))
+                        : (thumb.length > 0
+                            ? root.catalogThumbSource(thumb)
+                            : (generatedThumb.length > 0
+                                ? root.catalogThumbSource(generatedThumb)
+                                : "")))
                     : ("file://" + thumb + "?v=" + (entry.mtime !== undefined ? Math.round(entry.mtime) : 0))
 
             /**
