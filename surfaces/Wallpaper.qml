@@ -808,7 +808,7 @@ if (kindFilter === "all")
         id: filterRow
         anchors.top: parent.top
         anchors.topMargin: 9 * root.s
-        anchors.right: refreshBtn.left
+        anchors.right: wallpaperFolderBtn.left
         anchors.rightMargin: 8 * root.s
         z: 40
         width: segRow.implicitWidth + 6 * root.s
@@ -912,6 +912,84 @@ if (kindFilter === "all")
             title: "Refresh thumbnails"
             desc: "Regenerate missing previews"
             show: refHover.hovered
+        }
+    }
+
+    // Open Waywallen
+    Rectangle {
+        id: waywallenBtn
+        visible: Flags.waywallenEnabled
+        anchors.top: parent.top
+        anchors.topMargin: 9 * root.s
+        anchors.right: refreshBtn.left
+        anchors.rightMargin: 6 * root.s
+        z: 40
+        width: 22 * root.s
+        height: 22 * root.s
+        radius: height / 2
+        color: waywallenHover.hovered ? Theme.frameBg : "transparent"
+
+        Image {
+            anchors.centerIn: parent
+            width: 15 * root.s
+            height: 15 * root.s
+            source: "file:///var/lib/flatpak/exports/share/icons/hicolor/scalable/apps/org.waywallen.waywallen.svg"
+            sourceSize.width: 48
+            sourceSize.height: 48
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+        }
+
+        HoverHandler { id: waywallenHover }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Waywallen.openUI()
+        }
+
+        Tooltip {
+            placement: "below"
+            title: "Open Waywallen"
+            desc: "Open the Waywallen wallpaper interface"
+            show: waywallenHover.hovered
+        }
+    }
+
+    // Open wallpaper folder
+    Rectangle {
+        id: wallpaperFolderBtn
+        anchors.top: parent.top
+        anchors.topMargin: 9 * root.s
+        anchors.right: Flags.waywallenEnabled ? waywallenBtn.left : refreshBtn.left
+        anchors.rightMargin: 6 * root.s
+        z: 40
+        width: 22 * root.s
+        height: 22 * root.s
+        radius: height / 2
+        color: folderBtnHover.hovered ? Theme.frameBg : "transparent"
+
+        GlyphIcon {
+            anchors.centerIn: parent
+            width: 13 * root.s
+            height: 13 * root.s
+            name: "image"
+            color: folderBtnHover.hovered ? Theme.vermLit : Theme.iconDim
+        }
+
+        HoverHandler { id: folderBtnHover }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Quickshell.execDetached(["xdg-open", Walls.wpDir])
+        }
+
+        Tooltip {
+            placement: "below"
+            title: "Open wallpaper folder"
+            desc: Walls.wpDir
+            show: folderBtnHover.hovered
         }
     }
 
