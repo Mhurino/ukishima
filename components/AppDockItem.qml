@@ -9,6 +9,7 @@ Item {
 
     property real s: 1
     property var entry: null
+    property string dockId: ""
     property bool active: false
     property bool pinned: false
     property bool hovered: body.containsMouse
@@ -47,8 +48,8 @@ Item {
     signal floatRequested(var toplevel)
     signal openFloatingRequested(var entry)
     signal pinRequested(var entry)
-    signal unpinRequested(var entry)
-    signal dragDropped(var entry, real delta)
+    signal unpinRequested(var entry, string dockId)
+    signal dragDropped(var entry, string dockId, real delta)
 
     readonly property real tileWidth: root.vertical
         ? (root.size + 16) * s
@@ -371,7 +372,7 @@ Item {
             root.dragging = false;
             root.dragDX = 0;
             root.dragDY = 0;
-            root.dragDropped(root.entry, delta);
+            root.dragDropped(root.entry, root.dockId, delta);
         }
     }
 
@@ -645,7 +646,7 @@ Item {
 
                             onClicked: {
                                 root.confirmVisible = false;
-                                root.unpinRequested(root.entry);
+                                root.unpinRequested(root.entry, root.dockId);
                             }
                         }
                     }

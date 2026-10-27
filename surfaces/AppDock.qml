@@ -189,6 +189,8 @@ PanelWindow {
 
             var item = {
                 entry: entry,
+                dockId: id,
+                pinned: true,
                 toplevel: null,
                 workspace: null,
                 workspaceLabel: "",
@@ -198,7 +200,7 @@ PanelWindow {
             };
 
             for (var j = 0; j < running.length; j++) {
-                if (String(running[j].entry.id) === id) {
+                if (String(running[j].entry.id).toLowerCase() === String(id).toLowerCase()) {
                     item.toplevel = running[j].toplevel;
                     item.workspace = running[j].workspace;
                     item.workspaceLabel = running[j].workspaceLabel;
@@ -209,7 +211,7 @@ PanelWindow {
                 }
             }
 
-            seen[id] = true;
+            seen[String(id).toLowerCase()] = true;
             out.push(item);
         }
 
@@ -217,12 +219,13 @@ PanelWindow {
         for (var k = 0; k < running.length; k++) {
             var runningItem = running[k];
             var runningId = String(runningItem.entry.id);
+            var runningKey = runningId.toLowerCase();
 
-            if (seen[runningId])
+            if (seen[runningKey])
                 continue;
 
             out.push(runningItem);
-            seen[runningId] = true;
+            seen[runningKey] = true;
         }
 
         // Ordine visuale:
@@ -262,7 +265,14 @@ PanelWindow {
         if (!entry || !entry.id)
             return false;
 
-        return Flags.dockApps.indexOf(String(entry.id)) !== -1;
+        var id = String(entry.id).toLowerCase();
+
+        for (var i = 0; i < Flags.dockApps.length; i++) {
+            if (String(Flags.dockApps[i]).toLowerCase() === id)
+                return true;
+        }
+
+        return false;
     }
 
     function pinEntry(entry) {
@@ -274,14 +284,14 @@ PanelWindow {
         Flags.dockApps = next;
     }
 
-    function unpinEntry(entry) {
+    function unpinEntry(entry, dockId) {
         if (!entry || !entry.id)
             return;
 
-        var id = String(entry.id);
+        var id = String(dockId || entry.id).toLowerCase();
 
         Flags.dockApps = Flags.dockApps.filter(function(appId) {
-            return String(appId) !== id;
+            return String(appId).toLowerCase() !== id;
         });
     }
 
@@ -292,11 +302,11 @@ PanelWindow {
      * and written back into their own slots of Flags.dockApps. Running apps keep
      * their workspace ordering untouched.
      */
-    function dropPinned(entry, delta, repeater) {
+    function dropPinned(entry, dockId, delta, repeater) {
         if (!entry || !entry.id || !repeater)
             return;
 
-        var dragId = String(entry.id);
+        var dragId = String(dockId || entry.id);
         var movable = [];
 
         for (var i = 0; i < repeater.count; i++) {
@@ -309,9 +319,11 @@ PanelWindow {
                 ? it.y + it.height / 2
                 : it.x + it.width / 2;
 
+            var itemId = String(it.dockId || it.entry.id);
+
             movable.push({
-                id: String(it.entry.id),
-                pos: String(it.entry.id) === dragId ? base + delta : base,
+                id: itemId,
+                pos: itemId === dragId ? base + delta : base,
                 seq: movable.length
             });
         }
@@ -1127,7 +1139,12 @@ PanelWindow {
                     toplevel: modelData.toplevel
                     workspaceHere: modelData.workspaceHere
                     workspaceLabel: modelData.workspaceLabel
-                    pinned: root.isPinned(modelData.entry)
+                    pinned: modelData.pinned === true
+                        || root.isPinned(modelData.entry)
+                    dockId: modelData.dockId
+                        ? String(modelData.dockId)
+                        : (modelData.entry && modelData.entry.id
+                            ? String(modelData.entry.id) : "")
                     vertical: root.dockVertical
 
                     tooltipGravity:
@@ -1155,10 +1172,10 @@ PanelWindow {
                         (entry) => root.pinEntry(entry)
 
                     onUnpinRequested:
-                        (entry) => root.unpinEntry(entry)
+                        (entry, dockId) => root.unpinEntry(entry, dockId)
 
                     onDragDropped:
-                        (entry, delta) => root.dropPinned(entry, delta, dockRepeater)
+                        (entry, dockId, delta) => root.dropPinned(entry, dockId, delta, dockRepeater)
                 }
             }
         }
