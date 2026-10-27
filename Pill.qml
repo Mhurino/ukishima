@@ -2314,13 +2314,24 @@ Workspaces {
                             delegate: Rectangle {
                                 required property int index
                                 required property var modelData
+                                readonly property bool lit:
+                                    pill.wifiOn && pill.wifiActive !== null
+                                    && pill.wifiLevel > index * 0.25
+
                                 width: 2.5 * pill.s
-                                height: modelData * pill.s
+                                height: lit ? modelData * pill.s : 2.5 * pill.s
                                 anchors.bottom: parent.bottom
                                 radius: width / 2
-                                color: pill.wifiOn && pill.wifiActive !== null
-                                    && pill.wifiLevel > index * 0.25
-                                    ? Theme.iconDim : Qt.alpha(Theme.iconDim, 0.25)
+                                color: lit
+                                    ? Theme.iconDim
+                                    : Qt.alpha(Theme.iconDim, 0.16)
+
+                                Behavior on height {
+                                    NumberAnimation {
+                                        duration: Motion.fast
+                                        easing.type: Motion.easeStandard
+                                    }
+                                }
 
                                 Behavior on color {
                                     ColorAnimation { duration: Motion.fast }
