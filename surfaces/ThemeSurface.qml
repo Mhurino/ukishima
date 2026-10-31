@@ -154,6 +154,7 @@ SettingsSurface {
         out.push({ item: glassRow, kind: "toggle", get: function () { return Flags.glass; }, set: function (v) { Flags.glass = v; } });
         if (Flags.glass)
             out.push({ item: glassTextRow, kind: "seg", vals: [0, 0.5, 1], get: function () { return Flags.glassTransparency; }, set: function (v) { Flags.glassTransparency = v; } });
+        out.push({ item: colorPalettesRow, kind: "toggle", get: function () { return Flags.showColorPalettes; }, set: function (v) { Flags.showColorPalettes = v; } });
         out.push({ item: waywallenRow, kind: "toggle", get: function () { return Flags.waywallenEnabled; }, set: function (v) { Waywallen.setEnabled(v); } });
         if (Flags.waywallenEnabled) {
             out.push({ item: waywallenOpenRow, kind: "text", activate: function () { Waywallen.openUI(); } });
@@ -492,6 +493,19 @@ SettingsSurface {
          * input that drives both hue and saturation. The strip is mouse-driven and
          * stays out of the keyboard row registry.
          */
+        SettingsRow {
+            id: colorPalettesRow
+            surface: root
+            name: "Show color palettes"
+            icon: "palette"
+            sub: "Show palette dots in the wallpaper picker"
+            LinkToggle {
+                s: root.s
+                on: Flags.showColorPalettes
+                onToggled: Flags.showColorPalettes = !Flags.showColorPalettes
+            }
+        }
+
         Item {
             id: manualSection
             width: parent.width

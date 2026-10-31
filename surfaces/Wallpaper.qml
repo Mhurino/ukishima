@@ -58,6 +58,173 @@ PillSurface {
      */
     property string kindFilter: "all"
 
+    // Colour filtering is computed on demand from the already cached previews.
+    property bool colorFilterOpen: true
+    property string selectedColor: ""
+    property var selectedPalette: []
+    property var colorIndex: ({})
+    property bool colorIndexLoaded: false
+    property bool colorIndexLoading: false
+    property string colorIndexError: ""
+    readonly property var focusedPaletteColors: root.selectedPalette.length > 0
+        ? root.selectedPalette
+        : ((focusIndex >= 0 && focusIndex < itemCount)
+            ? root.paletteForEntry(items[focusIndex]) : [])
+
+    function paletteForEntry(entry) {
+        if (!entry || entry.path === undefined)
+            return [];
+        return root.colorIndex[String(entry.path)] || [];
+    }
+
+    function colorToLab(hex) {
+        var value = String(hex || "").replace("#", "");
+        if (value.length !== 6)
+            return [0, 0, 0];
+
+        var r = parseInt(value.slice(0, 2), 16) / 255;
+        var g = parseInt(value.slice(2, 4), 16) / 255;
+        var b = parseInt(value.slice(4, 6), 16) / 255;
+        function linear(c) {
+            return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+        r = linear(r); g = linear(g); b = linear(b);
+
+        var x = (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047;
+        var y = (r * 0.2126729 + g * 0.7151522 + b * 0.0721750);
+        var z = (r * 0.0193339 + g * 0.1191920 + b * 0.9503041) / 1.08883;
+        function pivot(v) {
+            return v > 0.0088564517 ? Math.pow(v, 1 / 3) : (7.787037 * v + 16 / 116);
+        }
+        var fx = pivot(x), fy = pivot(y), fz = pivot(z);
+        return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+    }
+
+    // Compare complete palettes, not one isolated swatch.
+    function paletteMatches(candidateColors, targetColors) {
+        if (!root.colorIndexLoaded
+                || !Array.isArray(candidateColors)
+                || !Array.isArray(targetColors)
+                || candidateColors.length < 3
+                || targetColors.length < 3)
+            return false;
+
+        var candidateLab = candidateColors.map(root.colorToLab);
+        var targetLab = targetColors.map(root.colorToLab);
+
+        function coverage(from, to) {
+            var hits = 0;
+            var totalDistance = 0;
+
+            for (var i = 0; i < from.length; i++) {
+                var nearest = Infinity;
+
+                for (var j = 0; j < to.length; j++) {
+                    var dl = from[i][0] - to[j][0];
+                    var da = from[i][1] - to[j][1];
+                    var db = from[i][2] - to[j][2];
+                    var distance = Math.sqrt(dl * dl + da * da + db * db);
+                    nearest = Math.min(nearest, distance);
+                }
+
+                totalDistance += nearest;
+                if (nearest <= 22)
+                    hits++;
+            }
+
+            return {
+                ratio: hits / from.length,
+                average: totalDistance / from.length
+            };
+        }
+
+        var forward = coverage(targetLab, candidateLab);
+        var backward = coverage(candidateLab, targetLab);
+
+        return forward.ratio >= 0.55
+            && backward.ratio >= 0.55
+            && forward.average <= 24
+            && backward.average <= 24;
+    }
+
+    function toggleColorPalette() {
+        root.colorFilterOpen = true;
+        root.ensureColorIndex();
+    }
+
+    function selectPaletteColor() {
+        var keepPath = "";
+        if (root.focusIndex >= 0 && root.focusIndex < root.itemCount)
+            keepPath = String(root.items[root.focusIndex].path || "");
+
+        if (root.selectedPalette.length > 0) {
+            root.selectedPalette = [];
+            root.selectedColor = "";
+        } else {
+            var reference = root.focusedPaletteColors.slice(0);
+            if (reference.length < 3)
+                return;
+
+            root.selectedPalette = reference;
+            root.selectedColor = "palette";
+        }
+
+        Qt.callLater(function() {
+            var next = -1;
+            for (var i = 0; i < root.itemCount; i++) {
+                if (keepPath.length
+                        && String(root.items[i].path || "") === keepPath) {
+                    next = i;
+                    break;
+                }
+            }
+            if (next < 0)
+                next = 0;
+
+            root.focusIndex = next;
+            root.pos = next;
+            root.resetTilePool();
+        });
+    }
+
+    function ensureColorIndex() {
+        if (!root.colorFilterOpen || root.colorIndexLoaded || root.colorIndexLoading)
+            return;
+        if (!Walls.entriesLoaded)
+            return;
+        if (Flags.waywallenEnabled && !root.waywallenCatalogLoaded && waywallenListProc.running)
+            return;
+
+        root.colorIndexLoading = true;
+        root.colorIndexError = "";
+        colorIndexProc.command = [
+            "python3", root.colorScript, "index",
+            String(Walls.wpDir), Flags.waywallenEnabled ? "1" : "0"
+        ];
+        colorIndexProc.running = true;
+    }
+
+    function acceptColorIndex(raw) {
+        var payload = {};
+        try { payload = JSON.parse(raw); } catch (e) { payload = {}; }
+        root.colorIndex = payload.byPath && typeof payload.byPath === "object"
+            ? payload.byPath : ({});
+        root.colorIndexError = String(payload.error || "");
+        root.colorIndexLoaded = true;
+        root.colorIndexLoading = false;
+    }
+
+    function invalidateColorIndex(reload) {
+        if (colorIndexProc.running)
+            colorIndexProc.running = false;
+        root.colorIndex = ({});
+        root.colorIndexLoaded = false;
+        root.colorIndexLoading = false;
+        root.colorIndexError = "";
+        if (reload === true && root.colorFilterOpen)
+            Qt.callLater(root.ensureColorIndex);
+    }
+
     function isMotion(path) {
         return /\.(gif|mp4|webm|mkv|mov)$/i.test(path);
     }
@@ -112,7 +279,7 @@ PillSurface {
             }
         }
 
-                // Con Waywallen: piu' recenti a sinistra, piu' vecchi a destra.
+        // Waywallen: newest wallpapers first, preserving stable order for ties.
         if (Flags.waywallenEnabled) {
             var order = [];
             for (var oi = 0; oi < all.length; oi++)
@@ -124,28 +291,43 @@ PillSurface {
             all = order.map(function(o) { return o.e; });
         }
 
-if (kindFilter === "all")
-            return all;
-
-        var wantMotion = kindFilter === "motion";
-        var filtered = [];
-        for (var k = 0; k < all.length; k++) {
-            var entry = all[k];
-            var waywallenType = String(entry.waywallenType || "").toLowerCase();
-            var motion = entry.waywallenId !== undefined
-                ? (waywallenType !== "image"
-                    || /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path))
-                : /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path);
-            if (motion === wantMotion)
-                filtered.push(entry);
+        // Preserve the existing all / still / live filter.
+        if (kindFilter !== "all") {
+            var wantMotion = kindFilter === "motion";
+            var kindFiltered = [];
+            for (var k = 0; k < all.length; k++) {
+                var entry = all[k];
+                var waywallenType = String(entry.waywallenType || "").toLowerCase();
+                var motion = entry.waywallenId !== undefined
+                    ? (waywallenType !== "image"
+                        || /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path))
+                    : /\.(gif|mp4|webm|mkv|mov)$/i.test(entry.path);
+                if (motion === wantMotion)
+                    kindFiltered.push(entry);
+            }
+            all = kindFiltered;
         }
-        return filtered;
-    }
 
+        // Apply the selected colour to the same library, never to remote search results.
+        if (selectedPalette.length > 0 && colorIndexLoaded) {
+            var colorFiltered = [];
+            for (var c = 0; c < all.length; c++) {
+                if (root.paletteMatches(
+                        root.paletteForEntry(all[c]),
+                        root.selectedPalette))
+                    colorFiltered.push(all[c]);
+            }
+            all = colorFiltered;
+        }
+
+        return all;
+    }
     readonly property string waywallenBridgeScript:
         Config.hyprPath("scripts", "waywallen-bridge.py")
     readonly property string waywallenThumbScript:
         Config.hyprPath("scripts", "waywallen-thumb.sh")
+    readonly property string colorScript:
+        Config.hyprPath("scripts", "wallpaper-colors.py")
 
     function refreshWaywallenCatalog(forceScan) {
         if (!Flags.waywallenEnabled) {
@@ -433,6 +615,7 @@ if (kindFilter === "all")
      * the opening keystroke here and hands focus back when the search ends.
      */
     function startSearch(ch) {
+        colorFilterOpen = true;
         searching = true;
         focusIndex = 0;
         pos = 0;
@@ -444,6 +627,9 @@ if (kindFilter === "all")
         if (active) {
             selectionReady = false;
             resetTilePool();
+            colorFilterOpen = true;
+            selectedColor = "";
+            selectedPalette = [];
             searching = false;
             editingDir = false;
             query = "";
@@ -458,6 +644,14 @@ if (kindFilter === "all")
         } else {
             // Disattiva le miniature subito, anche durante la coda del Loader.
             selectionReady = false;
+            colorFilterOpen = true;
+            selectedColor = "";
+            selectedPalette = [];
+            if (colorIndexProc.running)
+                colorIndexProc.running = false;
+            colorIndexLoaded = false;
+            colorIndexLoading = false;
+            colorIndex = ({});
             previewArmed = false;
             previewArm.stop();
             hintDwell.stop();
@@ -489,9 +683,12 @@ if (kindFilter === "all")
         function onWaywallenEnabledChanged() {
             root.waywallenInitialScanDone = false;
             root.waywallenCatalogLoaded = false;
+            root.invalidateColorIndex(false);
             root.selectionReady = false;
             root.refreshWaywallenCatalog(false);
             root.updateInitialSelection();
+            if (!Flags.waywallenEnabled && root.colorFilterOpen)
+                Qt.callLater(root.ensureColorIndex);
         }
     }
 
@@ -524,6 +721,7 @@ if (kindFilter === "all")
         function onRefreshDone() {
             if (root.active && !(root.searching && root.query.length > 0))
                 root.updateInitialSelection();
+            root.invalidateColorIndex(root.colorFilterOpen);
         }
     }
 
@@ -676,7 +874,10 @@ if (kindFilter === "all")
 
                 root.waywallenEntries = out;
                 root.waywallenCatalogLoaded = Flags.waywallenEnabled;
+                root.invalidateColorIndex(false);
                 root.updateInitialSelection();
+                if (root.colorFilterOpen)
+                    Qt.callLater(root.ensureColorIndex);
             }
         }
     }
@@ -742,6 +943,34 @@ if (kindFilter === "all")
         }
     }
 
+    Process {
+        id: colorIndexProc
+        command: []
+
+        stdout: StdioCollector {
+            onStreamFinished: root.acceptColorIndex(this.text)
+        }
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0) {
+                root.colorIndexLoading = false;
+                if (!root.colorIndexLoaded) {
+                    root.colorIndexError = "Palette analysis failed";
+                    root.colorIndex = ({});
+                    root.colorIndexLoaded = true;
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: colorIndexKickoff
+        interval: 350
+        repeat: true
+        running: root.active && !root.searching && !root.colorIndexLoaded && !root.colorIndexLoading
+        onTriggered: root.ensureColorIndex()
+    }
+
     SearchField {
         id: searchField
         anchors.top: parent.top
@@ -777,6 +1006,7 @@ if (kindFilter === "all")
 
         property string kind: ""
         property string label: ""
+        readonly property bool selected: root.kindFilter === kind
 
         width: fchipText.implicitWidth + 17 * root.s
         height: parent ? parent.height : 0
@@ -785,7 +1015,7 @@ if (kindFilter === "all")
             id: fchipText
             anchors.centerIn: parent
             text: fchip.label
-            color: root.kindFilter === fchip.kind ? Theme.cream : Theme.faint
+            color: fchip.selected ? Theme.cream : Theme.faint
             font.family: Theme.font
             font.pixelSize: 9.5 * root.s
             font.weight: Font.DemiBold
@@ -1012,6 +1242,7 @@ if (kindFilter === "all")
         z: 30
 
         Text {
+            id: folderPathLabel
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.right: parent.right
@@ -1066,7 +1297,10 @@ if (kindFilter === "all")
         }
 
         MouseArea {
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(folderPathLabel.implicitWidth + 10 * root.s, 190 * root.s)
+            height: parent.height
             enabled: !root.editingDir
             cursorShape: Qt.PointingHandCursor
             onClicked: {
@@ -1534,12 +1768,78 @@ if (kindFilter === "all")
         }
     }
 
+    Rectangle {
+        id: palettePanel
+        visible: root.active && root.selectionReady && Flags.showColorPalettes && !root.searching && root.itemCount > 0
+        z: 60
+        anchors.horizontalCenter: root.horizontalCenter
+        y: (root.height - 110 * root.s) / 2 - height - 3 * root.s
+        width: Math.max(0, Math.min(parent.width - 24 * root.s, paletteRow.implicitWidth + 12 * root.s))
+        height: 18 * root.s
+        radius: height / 2
+        color: root.selectedPalette.length > 0 ? Qt.alpha(Theme.vermLit, 0.14) : Qt.rgba(0.025, 0.035, 0.05, 0.24)
+        border.width: root.selectedPalette.length > 0 ? 2 : 1
+        border.color: root.selectedPalette.length > 0 ? Theme.vermLit : Qt.alpha(Theme.cream, 0.22)
+
+
+
+
+
+        Row {
+            id: paletteRow
+            anchors.centerIn: parent
+            spacing: 4 * root.s
+
+
+
+            Repeater {
+                model: root.focusedPaletteColors
+                delegate: Rectangle {
+                    required property string modelData
+                    width: 8.5 * root.s
+                    height: width
+                    radius: width / 2
+                    color: modelData
+                    border.width: 1
+                    border.color: Qt.alpha(Theme.cream, 0.80)
+                }
+            }
+        }
+
+        Text {
+            anchors.centerIn: parent
+            width: parent.width - 10 * root.s
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            visible: root.focusedPaletteColors.length === 0
+            text: root.colorIndexLoading ? "analysing…"
+                : (root.colorIndexError.length > 0 ? "palette unavailable" : "no palette")
+            color: Theme.cream
+            font.family: Theme.font
+            font.pixelSize: 8.5 * root.s
+        }
+
+    MouseArea {
+        anchors.fill: parent
+        z: 100
+        enabled: root.focusedPaletteColors.length >= 3
+        hoverEnabled: true
+        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: root.selectPaletteColor()
+    }
+}
+
+
     Text {
         anchors.centerIn: parent
         visible: root.itemCount === 0 && !searchProc.running
         text: {
             if (root.searching && root.query.length)
                 return "no results";
+            if (root.selectedColor.length > 0)
+                return "no wallpapers with this palette";
+            if (root.colorIndexError.length > 0)
+                return "colour palette unavailable";
             if (root.kindFilter === "motion")
                 return "no live wallpapers yet";
             if (root.kindFilter === "still")
