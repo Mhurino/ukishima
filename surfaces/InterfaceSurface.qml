@@ -98,7 +98,7 @@ SettingsSurface {
             id: rightClickRow
             surface: root
             name: "Right-click cycle"
-            icon: "mouse-pointer"
+            icon: "mouse"
             sub: "Choose the extra stops after Media and Timer"
             last: true
 

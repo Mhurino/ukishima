@@ -77,7 +77,7 @@ SettingsSurface {
             id: slot4Row
             surface: root
             name: "4th stop"
-            icon: "mouse-pointer"
+            icon: "mouse"
             sub: Flags.cycleSlot4 === ""
                 ? "Off · skipped in the cycle"
                 : "After Media and Timer"
@@ -100,7 +100,7 @@ SettingsSurface {
             id: slot5Row
             surface: root
             name: "5th stop"
-            icon: "mouse-pointer"
+            icon: "mouse"
             sub: Flags.cycleSlot5 === ""
                 ? "Off · right-click closes after stop 4"
                 : "After the 4th stop"
