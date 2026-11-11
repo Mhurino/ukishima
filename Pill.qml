@@ -335,8 +335,11 @@ Item {
         return 244 * s;
     }
     readonly property real powerH: 150 * s
-    readonly property real mediaW: 500 * s
-    readonly property real mediaH: 148 * s
+    readonly property bool chaldeaMedia:
+        ["matrix", "cassette"].indexOf(Flags.styleMedia) >= 0
+
+    readonly property real mediaW: Flags.styleMedia === "cassette" ? 560 * s : ((chaldeaMedia ? 520 : 500) * s)
+    readonly property real mediaH: Flags.styleMedia === "cassette" ? 184 * s : ((chaldeaMedia ? 168 : 148) * s)
     readonly property real batteryW: 316 * s
     readonly property real wifiW: 272 * s
     readonly property real btW: 286 * s

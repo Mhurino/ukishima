@@ -105,6 +105,20 @@ Singleton {
     }
 
     /** Upper-case "#RRGGBB" from a color. */
+    function hexOf(c) {
+        function h(x) {
+            return ("0" + Math.round(x * 255).toString(16)).slice(-2);
+        }
+        return "#" + h(c.r) + h(c.g) + h(c.b);
+    }
+
+    function rgba(c, a) {
+        function ch(x) {
+            return Math.round(Math.max(0, Math.min(1, x)) * 255);
+        }
+        return "rgba(" + ch(c.r) + "," + ch(c.g) + "," + ch(c.b) + "," + a + ")";
+    }
+
     function hexUpper(c) {
         function h(v) { var s = Math.round(v * 255).toString(16); return s.length < 2 ? "0" + s : s; }
         return ("#" + h(c.r) + h(c.g) + h(c.b)).toUpperCase();

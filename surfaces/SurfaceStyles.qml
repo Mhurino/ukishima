@@ -11,6 +11,11 @@ SettingsSurface {
     implicitHeight: content.implicitHeight
     property int openPicker: 0
 
+    Component.onCompleted: {
+        if (["default", "matrix", "cassette"].indexOf(Flags.styleMedia) < 0)
+            Flags.styleMedia = "default";
+    }
+
     readonly property var displayChoices: [
         { label: "Dynamic", value: "custom" },
         { label: "Status", value: "minimal" },
@@ -22,6 +27,12 @@ SettingsSurface {
             enabled: Flags.dockPosition !== "top-left"
                 && Flags.dockPosition !== "top-right"
         }
+    ]
+
+    readonly property var mediaStyleChoices: [
+        { label: "Default", value: "default" },
+        { label: "Matrix", value: "matrix" },
+        { label: "Musicassetta", value: "cassette" }
     ]
 
     readonly property var scratchChoices: [
@@ -45,6 +56,13 @@ SettingsSurface {
                     return;
                 Flags.mainDisplay = v;
             }
+        },
+        {
+            item: mediaStyleRow,
+            kind: "seg",
+            vals: ["default", "matrix", "cassette"],
+            get: function () { return Flags.styleMedia; },
+            set: function (v) { Flags.styleMedia = v; }
         },
         {
             item: scratchStyleRow,
@@ -97,20 +115,44 @@ SettingsSurface {
         }
 
         SettingsRow {
+            id: mediaStyleRow
+            surface: root
+            name: "Media Player"
+            icon: "music"
+            sub: "Choose the player card design"
+            z: root.openPicker === 2 ? 20 : 0
+
+            SettingsDropdown {
+                s: root.s
+                options: root.mediaStyleChoices
+                value: Flags.styleMedia
+                open: root.openPicker === 2
+
+                onRequestToggle: root.openPicker =
+                    root.openPicker === 2 ? 0 : 2
+
+                onPicked: (v) => {
+                    Flags.styleMedia = v;
+                    root.openPicker = 0;
+                }
+            }
+        }
+
+        SettingsRow {
             id: scratchStyleRow
             surface: root
             name: "Scratchpad"
             icon: "type"
             sub: "Choose the notes deck layout"
-            z: root.openPicker === 2 ? 20 : 0
+            z: root.openPicker === 3 ? 20 : 0
             last: true
 
             SettingsDropdown {
                 s: root.s
                 options: root.scratchChoices
                 value: Flags.styleScratch
-                open: root.openPicker === 2
-                onRequestToggle: root.openPicker = root.openPicker === 2 ? 0 : 2
+                open: root.openPicker === 3
+                onRequestToggle: root.openPicker = root.openPicker === 3 ? 0 : 3
                 onPicked: (v) => {
                     Flags.styleScratch = v;
                     root.openPicker = 0;

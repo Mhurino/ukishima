@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Widgets
 import "../Singletons"
 import "../components"
+import "../components/media"
 
 /**
  * Now-playing card. A small square cover floats detached on the left; the
@@ -21,6 +22,33 @@ import "../components"
  */
 PillSurface {
     id: root
+
+    readonly property string style: {
+        var v = Flags.styleMedia;
+        return ["matrix", "cassette"].indexOf(v) >= 0
+            ? v : "default";
+    }
+
+    readonly property bool chaldeaStyle: root.style !== "default"
+
+    readonly property string trackNo: {
+        if (!root.hasPlayer || !root.player.metadata)
+            return "--";
+
+        var n = Number(root.player.metadata["xesam:trackNumber"]);
+
+        if (!isFinite(n) || n <= 0)
+            return "--";
+
+        return n < 10 ? "0" + n : String(n);
+    }
+
+    readonly property string status: !root.hasPlayer
+        ? "IDLE"
+        : root.playing
+            ? "PLAYING"
+            : (root.player.playbackState === MprisPlaybackState.Stopped
+                ? "STOPPED" : "PAUSED");
 
     /** Squared top corners when the pill is in strip mode; 0 = rounded everywhere. */
     property real topFlat: 0
@@ -366,6 +394,7 @@ PillSurface {
         anchors.verticalCenter: parent.verticalCenter
         width: root.artSize
         height: root.artSize
+        visible: !root.chaldeaStyle
 
         ClippingRectangle {
             anchors.fill: parent
@@ -442,6 +471,7 @@ PillSurface {
         anchors.verticalCenter: parent.verticalCenter
         width: root.railW
         height: infoCol.height
+        visible: !root.chaldeaStyle
 
         Rectangle {
             anchors.left: parent.left
@@ -565,6 +595,7 @@ PillSurface {
         anchors.leftMargin: root.textX
         width: root.textColW
         spacing: 3 * root.s
+        visible: !root.chaldeaStyle
 
         /** Source line: plain service, or the glowing picker bubble when several players run. */
         Item {
@@ -1018,4 +1049,94 @@ PillSurface {
             }
         }
     }
+    Loader {
+        anchors.fill: parent
+        active: root.chaldeaStyle
+
+        sourceComponent: root.style === "matrix" ? matrixDesign
+            : root.style === "cassette" ? cassetteDesign
+            : null
+    }
+
+    Component { id: matrixDesign; MediaMatrix { host: root } }
+    Component { id: cassetteDesign; MediaCassette { host: root } }
+
+    Item {
+        anchors.fill: parent
+        visible: root.style === "matrix"
+        z: 20
+
+        Rectangle {
+            x: 10 * root.s
+            y: 10 * root.s
+            width: 4 * root.s
+            height: 1
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            x: 10 * root.s
+            y: 10 * root.s
+            width: 1
+            height: 4 * root.s
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 10 * root.s
+            y: 10 * root.s
+            width: 4 * root.s
+            height: 1
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 10 * root.s
+            y: 10 * root.s
+            width: 1
+            height: 4 * root.s
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            x: 10 * root.s
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10 * root.s
+            width: 4 * root.s
+            height: 1
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            x: 10 * root.s
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10 * root.s
+            width: 1
+            height: 4 * root.s
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 10 * root.s
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10 * root.s
+            width: 4 * root.s
+            height: 1
+            color: Theme.vermLit
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 10 * root.s
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10 * root.s
+            width: 1
+            height: 4 * root.s
+            color: Theme.vermLit
+        }
+    }
+
 }
