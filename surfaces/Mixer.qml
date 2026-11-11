@@ -274,8 +274,8 @@ PillSurface {
 
         GlyphIcon {
             anchors.centerIn: parent
-            width: 15 * root.s
-            height: 15 * root.s
+            width: 16 * root.s
+            height: 16 * root.s
             name: chip.glyph
             color: chip.on ? Theme.vermLit : Theme.iconDim
             stroke: 1.7
@@ -321,8 +321,8 @@ PillSurface {
 
         GlyphIcon {
             anchors.centerIn: parent
-            width: 15 * root.s
-            height: 15 * root.s
+            width: 16 * root.s
+            height: 16 * root.s
             name: dchip.glyph
             color: dchip.open ? Theme.vermLit : Theme.iconDim
             stroke: 1.7
@@ -350,7 +350,7 @@ PillSurface {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 24 * root.s
+        height: 26 * root.s
 
         Row {
             anchors.left: parent.left
@@ -370,7 +370,7 @@ PillSurface {
                 text: "MIXER"
                 color: Theme.subtle
                 font.family: Theme.font
-                font.pixelSize: 10.5 * root.s
+                font.pixelSize: 11 * root.s
                 font.weight: Font.DemiBold
                 font.capitalization: Font.AllUppercase
                 font.letterSpacing: 1.6 * root.s
@@ -436,7 +436,7 @@ PillSurface {
     Rectangle {
         id: divider
         anchors.top: header.bottom
-        anchors.topMargin: 9 * root.s
+        anchors.topMargin: 10 * root.s
         anchors.left: parent.left
         anchors.right: parent.right
         height: 1
@@ -572,10 +572,10 @@ PillSurface {
     Row {
         id: faderRow
         anchors.top: divider.bottom
-        anchors.topMargin: 10 * root.s
+        anchors.topMargin: 11 * root.s
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 142 * root.s
+        height: 146 * root.s
         spacing: 0
 
         readonly property real colW: width / Math.max(1, root.faderCount)
@@ -669,7 +669,7 @@ PillSurface {
     required property var modelData
 
     width: appAudioSection.width
-    height: 22 * root.s
+    height: 24 * root.s
 
     readonly property real level:
         appRow.modelData && appRow.modelData.audio
@@ -682,7 +682,7 @@ PillSurface {
         spacing: 6 * root.s
 
         Text {
-            width: 70 * root.s
+            width: 84 * root.s
             text: root.streamLabel(appRow.modelData)
             color: Theme.cream
             font.family: Theme.font
@@ -694,9 +694,9 @@ PillSurface {
 
         Rectangle {
             id: track
-            width: 118 * root.s
-            height: 4 * root.s
-            radius: 2 * root.s
+            width: 124 * root.s
+            height: 5 * root.s
+            radius: 2.5 * root.s
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.threadBg
 

@@ -308,7 +308,7 @@ Item {
         var extra = streams > 0
             ? (31 + streams * 29) * s
             : 0;
-        return 214 * s + extra;
+        return 222 * s + extra;
     }
     readonly property real launcherW: 360 * s
     readonly property real launcherH: 332 * s
@@ -335,13 +335,13 @@ Item {
         return 244 * s;
     }
     readonly property real powerH: 150 * s
-    readonly property real mediaW: 470 * s
-    readonly property real mediaH: 132 * s
+    readonly property real mediaW: 500 * s
+    readonly property real mediaH: 148 * s
     readonly property real batteryW: 316 * s
     readonly property real wifiW: 272 * s
     readonly property real btW: 286 * s
     readonly property real recorderW: 384 * s
-    readonly property real sysmonW: 392 * s
+    readonly property real sysmonW: 420 * s
     readonly property real appearanceW: 392 * s
     readonly property real profileW: 560 * s
     readonly property real fontpickerW: 360 * s
@@ -2263,7 +2263,7 @@ Workspaces {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: pill.countdownText(Countdown.remaining)
-                    color: Countdown.running ? Theme.vermLit : Theme.subtle
+                    color: "#78B8F5"
                     font.family: Theme.fontMono
                     font.pixelSize: 16 * pill.s
                     font.weight: Font.DemiBold
@@ -2364,7 +2364,7 @@ Workspaces {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: pill.countdownText(Countdown.remaining)
-                            color: Countdown.running ? Theme.vermLit : Theme.subtle
+                            color: "#78B8F5"
                             font.family: Theme.fontMono
                             font.pixelSize: 10.5 * pill.s
                             font.weight: Font.DemiBold
@@ -3154,7 +3154,7 @@ onClicked: {
                         anchors.fill: parent
                         name: "clock"
                         color: pill.countdownEngaged
-                            ? (Countdown.running ? Theme.vermLit : Theme.subtle)
+                            ? "#78B8F5"
                             : (timerArea.containsMouse ? Theme.cream : Theme.iconDim)
                         stroke: 1.7
                     }
@@ -3165,7 +3165,7 @@ onClicked: {
                         width: 5 * pill.s
                         height: 5 * pill.s
                         radius: width / 2
-                        color: Countdown.running ? Theme.vermLit : Theme.dim
+                        color: "#78B8F5"
                         visible: pill.countdownEngaged
                     }
 

@@ -233,8 +233,8 @@ PillSurface {
         onDisplayChanged: face.requestPaint()
         Behavior on display { NumberAnimation { duration: Math.round(700 * Motion.mult); easing.type: Easing.OutCubic } }
 
-        width: 110 * root.s
-        height: 110 * root.s
+        width: 116 * root.s
+        height: 116 * root.s
 
         Canvas {
             id: face
@@ -246,7 +246,7 @@ PillSurface {
                 ctx.clearRect(0, 0, width, height);
                 var cx = width / 2;
                 var cy = height / 2;
-                var lw = 8 * root.s;
+                var lw = 8.5 * root.s;
                 var r = Math.min(width, height) / 2 - lw / 2 - root.s;
                 var start = 135 * Math.PI / 180;
                 var full = 270 * Math.PI / 180;
@@ -289,7 +289,7 @@ PillSurface {
                 text: dial.big
                 color: Theme.cream
                 font.family: Theme.font
-                font.pixelSize: (dial.shrink ? 16 : 20) * root.s
+                font.pixelSize: (dial.shrink ? 17 : 22) * root.s
                 font.weight: Font.ExtraBold
                 font.letterSpacing: -0.5 * root.s
                 font.features: { "tnum": 1 }
@@ -316,7 +316,7 @@ PillSurface {
                 text: dial.label
                 color: Theme.faint
                 font.family: Theme.font
-                font.pixelSize: 8.5 * root.s
+                font.pixelSize: 9 * root.s
                 font.weight: Font.Bold
                 font.capitalization: Font.AllUppercase
                 font.letterSpacing: 1 * root.s
@@ -327,7 +327,7 @@ PillSurface {
                 text: dial.sub
                 color: Theme.subtle
                 font.family: Theme.font
-                font.pixelSize: 10.5 * root.s
+                font.pixelSize: 11 * root.s
                 font.weight: Font.Bold
                 font.features: { "tnum": 1 }
             }
@@ -343,7 +343,7 @@ PillSurface {
 
         Item {
             width: parent.width
-            height: 24 * root.s
+            height: 26 * root.s
 
             Row {
                 anchors.left: parent.left
@@ -366,7 +366,7 @@ PillSurface {
                     text: "SYSTEM"
                     color: Theme.subtle
                     font.family: Theme.font
-                    font.pixelSize: 10 * root.s
+                    font.pixelSize: 10.5 * root.s
                     font.weight: Font.DemiBold
                     font.capitalization: Font.AllUppercase
                     font.letterSpacing: 1.8 * root.s
@@ -421,7 +421,7 @@ Row {
 
         Item {
             width: parent.width
-            height: 110 * root.s
+            height: 116 * root.s
 
             Repeater {
                 model: root.dialKeys
@@ -438,17 +438,17 @@ Row {
 
                     arc: val
                     big: key === "mem" ? Sysmon.memUsedGb.toFixed(1) : "" + val
-                    unit: key === "mem" ? "" : "%"
+                    unit: key === "mem" ? "GB" : "%"
                     shrink: key !== "mem" && val >= 100
                     label: key
-                    sub: key === "cpu" ? (Sysmon.cpuTemp >= 0 ? Sysmon.cpuTemp + "°" : "")
-                        : key === "gpu" ? (Sysmon.gpuTemp >= 0 ? Sysmon.gpuTemp + "°" : "")
+                    sub: key === "cpu" ? (Sysmon.cpuTemp >= 0 ? Sysmon.cpuTemp + "°C" : "")
+                        : key === "gpu" ? (Sysmon.gpuTemp >= 0 ? Sysmon.gpuTemp + "°C" : "")
                         : "/ " + Sysmon.memTotalGb.toFixed(0) + " GB"
                 }
             }
         }
 
-        Item { width: 1; height: 18 * root.s }
+        Item { width: 1; height: 16 * root.s }
 
         Rectangle {
             width: parent.width
@@ -460,7 +460,7 @@ Row {
 
         Item {
             width: parent.width
-            height: 30 * root.s
+            height: 34 * root.s
 
             Repeater {
                 model: root.cellKeys
@@ -498,7 +498,7 @@ Row {
                                 : "VRAM · GB"
                             color: Theme.faint
                             font.family: Theme.font
-                            font.pixelSize: 8 * root.s
+                            font.pixelSize: 8.5 * root.s
                             font.weight: Font.Bold
                             font.capitalization: Font.AllUppercase
                             font.letterSpacing: 0.9 * root.s
@@ -513,7 +513,7 @@ Row {
                                 text: "↓" + Sysmon.netDown.toFixed(1)
                                 color: Theme.cream
                                 font.family: Theme.font
-                                font.pixelSize: 13 * root.s
+                                font.pixelSize: 13.5 * root.s
                                 font.weight: Font.ExtraBold
                                 font.features: { "tnum": 1 }
                             }
@@ -521,7 +521,7 @@ Row {
                                 text: "↑" + Sysmon.netUp.toFixed(1)
                                 color: Theme.vermLit
                                 font.family: Theme.font
-                                font.pixelSize: 13 * root.s
+                                font.pixelSize: 13.5 * root.s
                                 font.weight: Font.ExtraBold
                                 font.features: { "tnum": 1 }
                             }
@@ -535,7 +535,7 @@ Row {
                                 : Sysmon.vramUsedGb.toFixed(1) + " / " + Sysmon.vramTotalGb.toFixed(0)
                             color: Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 13 * root.s
+                            font.pixelSize: 13.5 * root.s
                             font.weight: Font.ExtraBold
                             font.features: { "tnum": 1 }
                         }
@@ -549,8 +549,8 @@ Row {
         Rectangle {
             id: speedBox
             width: parent.width
-            height: (root.speedError.length > 0 ? 68 : 52) * root.s
-            radius: 10 * root.s
+            height: (root.speedError.length > 0 ? 72 : 56) * root.s
+            radius: 12 * root.s
 
             color: root.speedRunning
                 ? Qt.alpha(Theme.vermLit, 0.12)
@@ -595,7 +595,7 @@ Row {
                                 ? Theme.vermLit
                                 : Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 13 * root.s
+                            font.pixelSize: 13.5 * root.s
                             font.weight: Font.ExtraBold
                             font.features: { "tnum": 1 }
                         }
@@ -622,7 +622,7 @@ Row {
                                 ? Theme.vermLit
                                 : Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 13 * root.s
+                            font.pixelSize: 13.5 * root.s
                             font.weight: Font.ExtraBold
                             font.features: { "tnum": 1 }
                         }
@@ -649,7 +649,7 @@ Row {
                                 ? Theme.vermLit
                                 : Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 13 * root.s
+                            font.pixelSize: 13.5 * root.s
                             font.weight: Font.ExtraBold
                             font.features: { "tnum": 1 }
                         }
@@ -657,8 +657,8 @@ Row {
 
                     Rectangle {
                         width: parent.width / 4
-                        height: 28 * root.s
-                        radius: 8 * root.s
+                        height: 30 * root.s
+                        radius: 9 * root.s
 
                         color: root.speedRunning
                             ? Qt.alpha(Theme.vermLit, 0.15)

@@ -193,13 +193,13 @@ PillSurface {
 
     /** Card geometry tokens, all scaled to the monitor. */
     readonly property real pad: 12 * s
-    readonly property real artSize: 88 * s
-    readonly property real artMargin: 16 * s
-    readonly property real gapArt: 10 * s
+    readonly property real artSize: 98 * s
+    readonly property real artMargin: 18 * s
+    readonly property real gapArt: 12 * s
     readonly property real textX: root.artMargin + root.artSize + root.gapArt
-    readonly property real textColW: 190 * s
-    readonly property real railW: 96 * s
-    readonly property real railInset: 24 * s
+    readonly property real textColW: 220 * s
+    readonly property real railW: 108 * s
+    readonly property real railInset: 22 * s
 
     property real sealPulse: 0
 
@@ -348,7 +348,7 @@ PillSurface {
     LiquidGlass {
         id: card
         anchors.fill: parent
-        radius: 20 * root.s
+        radius: 22 * root.s
         topLeftRadius: radius * (1 - root.topFlat)
         topRightRadius: radius * (1 - root.topFlat)
         style: "clear"
@@ -369,7 +369,7 @@ PillSurface {
 
         ClippingRectangle {
             anchors.fill: parent
-            radius: 18 * root.s
+            radius: 20 * root.s
             color: Theme.tileBg
             border.width: 1
             border.color: Theme.frameBorder
@@ -443,14 +443,23 @@ PillSurface {
         width: root.railW
         height: infoCol.height
 
+        Rectangle {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: 1 * root.s
+            height: infoCol.height + 12 * root.s
+            color: Theme.frameBorder
+        }
+
         Column {
             id: infoCol
             anchors.left: parent.left
+            anchors.leftMargin: 12 * root.s
             anchors.right: parent.right
-            spacing: 14 * root.s
+            spacing: 11 * root.s
 
             Row {
-                width: infoStack.width
+                width: parent.width
                 height: 15 * root.s
                 spacing: 6 * root.s
 
@@ -477,7 +486,7 @@ PillSurface {
             }
 
             Row {
-                width: infoStack.width
+                width: parent.width
                 height: 15 * root.s
                 spacing: 5 * root.s
 
@@ -515,11 +524,11 @@ PillSurface {
             }
 
             Item {
-                width: infoStack.width
+                width: parent.width
                 height: 15 * root.s
 
                 Row {
-                    width: infoStack.width
+                    width: parent.width
                     spacing: 6 * root.s
 
                     GlyphIcon {
@@ -733,7 +742,7 @@ PillSurface {
             anchors.right: parent.right
             text: root.title
             color: Theme.cream
-            pixelSize: 12.5 * root.s
+            pixelSize: 14 * root.s
             weight: Font.DemiBold
             active: root.active
         }
@@ -744,7 +753,7 @@ PillSurface {
             anchors.right: parent.right
             text: root.sub
             color: Theme.dim
-            pixelSize: 9.5 * root.s
+            pixelSize: 10.5 * root.s
             active: root.active
             visible: text.length > 0
         }
@@ -754,7 +763,7 @@ PillSurface {
             id: seekRow
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 12 * root.s
+            height: 14 * root.s
 
             Text {
                 id: posLbl
@@ -852,7 +861,7 @@ PillSurface {
                 anchors.right: durLbl.left
                 anchors.rightMargin: 7 * root.s
                 anchors.verticalCenter: parent.verticalCenter
-                height: 11 * root.s
+                height: 12 * root.s
 
                 readonly property real inset: 3 * root.s
                 readonly property real usable: Math.max(1, width - 2 * inset)
@@ -939,8 +948,8 @@ PillSurface {
         /** Transport: kanji-skip, the play/pause seal, kanji-next. */
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 12 * root.s
-            height: 20 * root.s
+            spacing: 16 * root.s
+            height: 24 * root.s
 
             KanjiSkip {
                 kanjiText: "前"
@@ -952,9 +961,9 @@ PillSurface {
             Rectangle {
                 id: seal
                 anchors.verticalCenter: parent.verticalCenter
-                width: 18 * root.s
-                height: 18 * root.s
-                radius: 5 * root.s
+                width: 22 * root.s
+                height: 22 * root.s
+                radius: 7 * root.s
                 rotation: -1.5
                 scale: 1 + 0.08 * root.sealPulse
 
@@ -977,15 +986,15 @@ PillSurface {
                     text: root.playing ? "奏" : "休"
                     color: Theme.bright
                     font.family: Theme.fontJp
-                    font.pixelSize: 11 * root.s
+                    font.pixelSize: 12 * root.s
                     font.weight: Font.DemiBold
                 }
 
                 GlyphIcon {
                     visible: !Flags.showGlyphs
                     anchors.centerIn: parent
-                    width: 11 * root.s
-                    height: 11 * root.s
+                    width: 13 * root.s
+                    height: 13 * root.s
                     name: root.playing ? "pause" : "play"
                     color: Theme.bright
                 }

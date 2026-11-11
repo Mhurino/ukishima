@@ -24,7 +24,7 @@ Item {
 
     readonly property bool lit: focused
 
-    readonly property real trackH: 86 * s
+    readonly property real trackH: 90 * s
 
     /**
      * Live tick centre in this fader's coordinates. tick.y and root.width are
@@ -62,7 +62,7 @@ Item {
         Rectangle {
             id: thread
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 2 * root.s
+            width: 2.5 * root.s
             height: parent.height
             radius: width / 2
             color: Theme.threadBg
@@ -87,8 +87,8 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             y: Math.max(0, Math.min(root.trackH - height,
                 (1 - Math.max(0, Math.min(1, root.value))) * root.trackH - height / 2))
-            width: 11 * root.s
-            height: 2.5 * root.s
+            width: 13 * root.s
+            height: 3 * root.s
             radius: 2 * root.s
             color: Theme.tickRest
             opacity: root.focused ? 0 : 1
@@ -120,7 +120,7 @@ Item {
         color: root.muted ? Theme.dim : (root.lit ? Theme.cream : Theme.dim)
         opacity: root.lit ? 1 : 0
         font.family: Theme.font
-        font.pixelSize: 9 * root.s
+        font.pixelSize: 9.5 * root.s
         font.weight: Font.DemiBold
         Behavior on opacity { NumberAnimation { duration: Motion.fast } }
     }
@@ -130,8 +130,8 @@ Item {
         anchors.top: readout.bottom
         anchors.topMargin: 3 * root.s
         anchors.horizontalCenter: parent.horizontalCenter
-        width: 18 * root.s
-        height: 18 * root.s
+        width: 20 * root.s
+        height: 20 * root.s
 
         GlyphIcon {
             anchors.fill: parent
@@ -150,7 +150,7 @@ Item {
         text: root.subLabel
         color: root.lit ? Theme.cream : Theme.faint
         font.family: Theme.font
-        font.pixelSize: 9 * root.s
+        font.pixelSize: 9.5 * root.s
         font.weight: Font.DemiBold
         font.letterSpacing: 0.3 * root.s
         Behavior on opacity { NumberAnimation { duration: Motion.fast } }
