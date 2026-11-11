@@ -22,7 +22,6 @@ SettingsSurface {
     rows: [
         { item: dispTile, kind: "nav", surface: "display" },
         { item: themeTile, kind: "nav", surface: "theme" },
-        { item: fontTile, kind: "nav", surface: "fontpicker" },
         { item: ifaceTile, kind: "nav", surface: "interface" },
         { item: dockTile, kind: "nav", surface: "dock" },
         { item: profileTile, kind: "nav", surface: "profile" }
@@ -72,22 +71,6 @@ SettingsSurface {
                 height: 16 * root.s
                 name: "chevron-right"
                 color: root.focusRowItem === themeTile ? Theme.cream : Theme.iconDim
-                stroke: 1.9
-            }
-        }
-
-        SettingsRow {
-            id: fontTile
-            surface: root
-            glyph: "字"
-            name: "Font"
-            sub: "UI family and fallback"
-
-            GlyphIcon {
-                width: 16 * root.s
-                height: 16 * root.s
-                name: "chevron-right"
-                color: root.focusRowItem === fontTile ? Theme.cream : Theme.iconDim
                 stroke: 1.9
             }
         }

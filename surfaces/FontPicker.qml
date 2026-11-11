@@ -17,7 +17,7 @@ import "../components"
 SettingsSurface {
     id: root
 
-    backSurface: "appearance"
+    backSurface: "theme"
     implicitHeight: content.implicitHeight
     rows: []
 

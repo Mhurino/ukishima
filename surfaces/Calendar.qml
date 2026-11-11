@@ -215,6 +215,14 @@ PillSurface {
         selEndDate = "";
     }
 
+    function openAddEvent() {
+        resetToday();
+        selectedDate = dateKey(today.getDate());
+        selEndDate = "";
+        pickingEnd = false;
+        Qt.callLater(function() { titleField.forceActiveFocus(); });
+    }
+
     onActiveChanged: if (active) resetToday()
 
     Item {
@@ -265,6 +273,38 @@ PillSurface {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2 * root.s
+
+                Rectangle {
+                    id: addEventShortcut
+                    width: 22 * root.s
+                    height: 22 * root.s
+                    radius: Motion.rSmall * root.s
+                    color: addEventArea.containsMouse ? Theme.frameBg : "transparent"
+                    border.width: addEventArea.containsMouse ? 1 : 0
+                    border.color: Theme.frameBorder
+
+                    GlyphIcon {
+                        anchors.centerIn: parent
+                        width: 15 * root.s
+                        height: 15 * root.s
+                        name: "plus"
+                        color: addEventArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.9
+                    }
+                    MouseArea {
+                        id: addEventArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.openAddEvent()
+                    }
+                    Tooltip {
+                        placement: "below"
+                        title: "Add event"
+                        desc: "Create an event for today"
+                        show: addEventArea.containsMouse
+                    }
+                }
 
                 Repeater {
                     model: [-1, 1]

@@ -29,6 +29,7 @@ Singleton {
     property int remaining: presetSec
 
     property bool running: false
+    property bool paused: false
 
     /** Pick a length. While it runs the pick arms the next start instead. */
     function choose(sec) {
@@ -36,6 +37,7 @@ Singleton {
         if (!root.running) {
             root.remaining = sec;
             root.armedSec = sec;
+            root.paused = false;
         }
     }
 
@@ -45,14 +47,17 @@ Singleton {
             root.armedSec = root.presetSec;
         }
         root.running = root.remaining > 0;
+        root.paused = false;
     }
 
     function pause() {
         root.running = false;
+        root.paused = root.remaining > 0;
     }
 
     function reset() {
         root.running = false;
+        root.paused = false;
         root.remaining = root.presetSec;
         root.armedSec = root.presetSec;
     }
@@ -72,8 +77,11 @@ Singleton {
             root.remaining = Math.max(0, root.remaining - 1);
             if (root.remaining <= 0) {
                 root.running = false;
+                root.paused = false;
                 notifyProc.command = ["notify-send", "-a", "Ukishima", "Timer", "Time's up"];
                 notifyProc.running = true;
+                soundProc.command = ["/usr/bin/pw-play", "/usr/share/sounds/freedesktop/stereo/complete.oga"];
+                soundProc.running = true;
             }
         }
     }
@@ -81,4 +89,9 @@ Singleton {
     Process {
         id: notifyProc
     }
+
+    Process {
+        id: soundProc
+    }
+
 }

@@ -31,6 +31,15 @@ Item {
     property var barWindow
     property string surface: ""
 
+    // Il timer resta visibile sia durante il conteggio sia in pausa.
+    readonly property bool countdownEngaged: Countdown.running || Countdown.paused
+
+    function countdownText(sec) {
+        const minutes = Math.floor(sec / 60);
+        const seconds = sec % 60;
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    }
+
     // Memory Saver: conserva temporaneamente le superfici chiuse,
     // poi scarica i Loader inattivi per liberare risorse.
     property string prevSurface: ""
@@ -102,10 +111,11 @@ Item {
     readonly property bool themeOpen: surface === "theme"
     readonly property bool interfaceOpen: surface === "interface"
     readonly property bool fontpickerOpen: surface === "fontpicker"
+    readonly property bool wallpaperSettingsOpen: surface === "wallpapersettings"
     readonly property bool profileOpen: surface === "profile"
     readonly property bool dockOpen: surface === "dock"
     readonly property bool settingsLike:
-        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || profileOpen || dockOpen
+        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || wallpaperSettingsOpen || profileOpen || dockOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -401,6 +411,7 @@ Item {
         interface:  { size: () => Qt.size(appearanceW, surfaceItem(ldInterface).implicitHeight + 29 * s), ame: () => surfaceItem(ldInterface) },
         dock:       { size: () => Qt.size(appearanceW, surfaceItem(ldDock).implicitHeight + 29 * s), ame: () => surfaceItem(ldDock) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) },
+        wallpapersettings: { size: () => Qt.size(appearanceW, surfaceItem(ldWallpaperSettings).implicitHeight + 29 * s), ame: () => surfaceItem(ldWallpaperSettings) },
         profile:   { size: () => { const it = surfaceItem(ldProfile); return Qt.size(profileW, it.implicitHeight + 29 * s); }, ame: () => surfaceItem(ldProfile) }
     })
 
@@ -430,6 +441,7 @@ Item {
         interface: () => ldInterface,
         dock: () => ldDock,
         fontpicker: () => ldFontpicker,
+        wallpapersettings: () => ldWallpaperSettings,
         profile: () => ldProfile
     })
 
@@ -641,6 +653,8 @@ Item {
             return ldDock.item;
         if (pill.fontpickerOpen)
             return ldFontpicker.item;
+        if (pill.wallpaperSettingsOpen)
+            return ldWallpaperSettings.item;
         if (pill.profileOpen)
             return ldProfile.item;
         return null;
@@ -709,11 +723,15 @@ Item {
 
     /**
      * Step the open surface back one level when its header bar is clicked: the
-     * font picker returns to appearance, and any other surface dismisses to the
-     * hover pill. Empty space in the body never triggers this.
+     * Font and Wallpaper settings return to Theme; the other settings
+     * surfaces return to Appearance. Empty space never triggers this.
      */
     function surfaceBack() {
-        if (pill.displayOpen || pill.themeOpen || pill.interfaceOpen || pill.fontpickerOpen || pill.profileOpen) {
+        if (pill.fontpickerOpen || pill.wallpaperSettingsOpen) {
+            pill.requestSurface("theme");
+            return;
+        }
+        if (pill.displayOpen || pill.themeOpen || pill.interfaceOpen || pill.profileOpen) {
             pill.requestSurface("appearance");
             return;
         }
@@ -2110,20 +2128,47 @@ Workspaces {
                     }
                 }
             }
+            Row {
+                id: stripTimerFace
+                visible: pill.countdownEngaged
+                anchors.centerIn: parent
+                spacing: 6 * pill.s
+                z: 2
+                                Text {
+                    id: stripTimerTime
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: pill.countdownText(Countdown.remaining)
+                    color: "#78B8F5"
+                    font.family: Theme.fontMono
+                    font.pixelSize: 16 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: Countdown.paused
+                    text: "PAUSED"
+                    color: "#9CB5D0"
+                    font.family: Theme.font
+                    font.pixelSize: 8 * pill.s
+                    font.weight: Font.Bold
+                }
+            }
         }
-        // Custom display: Minimal clock at rest, compact now-playing face while audio plays.
+        // Dynamic display: clock at rest, countdown while armed, player while audio plays.
         Item {
             id: customDynamicFace
             visible: (Flags.mainDisplay === "custom" || ((Flags.mainDisplay === "minimal" || Flags.mainDisplay === "classic" || Flags.mainDisplay === "system") && Players.playing)) && !pill.clipboardToastActive
             anchors.centerIn: parent
-            implicitWidth: Players.playing ? playerFace.implicitWidth : clockFace.implicitWidth
-            implicitHeight: Math.max(clockFace.implicitHeight, playerFace.implicitHeight)
+            implicitWidth: Players.playing ? playerFace.implicitWidth
+                : (pill.countdownEngaged ? timerFace.implicitWidth : clockFace.implicitWidth)
+            implicitHeight: Math.max(clockFace.implicitHeight, timerFace.implicitHeight, playerFace.implicitHeight)
             width: implicitWidth
             height: implicitHeight
 
             Row {
                 id: clockFace
-                visible: !Players.playing
+                visible: !Players.playing && !pill.countdownEngaged
                 anchors.centerIn: parent
                 spacing: 8 * pill.s
 
@@ -2162,6 +2207,43 @@ Workspaces {
                     font.pixelSize: 16 * pill.s
                     font.weight: Font.DemiBold
                     font.features: ({ "tnum": 1 })
+                }
+            }
+
+            Row {
+                id: timerFace
+                visible: !Players.playing && pill.countdownEngaged
+                anchors.centerIn: parent
+                spacing: 7 * pill.s
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "時"
+                    color: "#78B8F5"
+                    font.family: Theme.fontJp
+                    font.weight: Theme.fontJpWeight
+                    font.pixelSize: 16 * pill.s
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: pill.countdownText(Countdown.remaining)
+                    color: Countdown.running ? Theme.vermLit : Theme.subtle
+                    font.family: Theme.fontMono
+                    font.pixelSize: 16 * pill.s
+                    font.weight: Font.DemiBold
+                    font.features: ({ "tnum": 1 })
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: Countdown.paused
+                    text: "PAUSED"
+                    color: Theme.dim
+                    font.family: Theme.font
+                    font.pixelSize: 8.5 * pill.s
+                    font.weight: Font.Bold
+                    font.letterSpacing: 0.7 * pill.s
                 }
             }
 
@@ -2221,6 +2303,38 @@ Workspaces {
                         anchors.centerIn: parent
                         s: pill.s
                         span: 17
+                    }
+                }
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: pill.countdownEngaged ? musicTimerRow.implicitWidth : 0
+                    height: 16 * pill.s
+                    visible: width > 0
+
+                    Row {
+                        id: musicTimerRow
+                        anchors.centerIn: parent
+                        spacing: 4 * pill.s
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "時"
+                            color: "#78B8F5"
+                            font.family: Theme.fontJp
+                            font.weight: Theme.fontJpWeight
+                            font.pixelSize: 10 * pill.s
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: pill.countdownText(Countdown.remaining)
+                            color: Countdown.running ? Theme.vermLit : Theme.subtle
+                            font.family: Theme.fontMono
+                            font.pixelSize: 10.5 * pill.s
+                            font.weight: Font.DemiBold
+                            font.features: ({ "tnum": 1 })
+                        }
                     }
                 }
             }
@@ -2291,8 +2405,8 @@ Workspaces {
             Text {
                 id: minimalTimeText
                 anchors.verticalCenter: parent.verticalCenter
-                text: clock.hhmm
-                color: Theme.cream
+                text: pill.countdownEngaged ? pill.countdownText(Countdown.remaining) : clock.hhmm
+                color: pill.countdownEngaged ? "#78B8F5" : Theme.cream
                 font.family: Theme.font
                 font.pixelSize: 16 * pill.s
                 font.weight: Font.DemiBold
@@ -2386,10 +2500,20 @@ Workspaces {
             }
 
             Text {
+                id: classicTimerKanji
+                visible: pill.specialView === "" && pill.countdownEngaged
+                anchors.verticalCenter: parent.verticalCenter
+                text: "時"
+                color: "#78B8F5"
+                font.family: Theme.fontJp
+                font.weight: Font.Medium
+                font.pixelSize: 13 * pill.s
+            }
+            Text {
                 visible: pill.specialView === "" && Flags.mainDisplay === "classic"
                 anchors.verticalCenter: parent.verticalCenter
-                text: clock.hhmm
-                color: Theme.cream
+                text: pill.countdownEngaged ? pill.countdownText(Countdown.remaining) : clock.hhmm
+                color: pill.countdownEngaged ? "#78B8F5" : Theme.cream
                 font.family: Theme.font
                 font.pixelSize: 16 * pill.s
                 font.weight: Font.DemiBold
@@ -2413,10 +2537,20 @@ Workspaces {
             }
 
             Text {
+                id: systemTimerKanji
+                visible: pill.specialView === "" && pill.countdownEngaged
+                anchors.verticalCenter: parent.verticalCenter
+                text: "時"
+                color: "#78B8F5"
+                font.family: Theme.fontJp
+                font.weight: Font.Medium
+                font.pixelSize: 12.5 * pill.s
+            }
+            Text {
                 visible: pill.specialView === "" && Flags.mainDisplay === "system"
                 anchors.verticalCenter: parent.verticalCenter
-                text: clock.hhmm
-                color: Theme.cream
+                text: pill.countdownEngaged ? pill.countdownText(Countdown.remaining) : clock.hhmm
+                color: pill.countdownEngaged ? "#78B8F5" : Theme.cream
                 font.family: Theme.font
                 font.pixelSize: 15 * pill.s
                 font.weight: Font.DemiBold
@@ -2976,52 +3110,39 @@ onClicked: {
                 }
 
                 Item {
-                    id: clipboardIcon
+                    id: timerIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
 
                     GlyphIcon {
                         anchors.fill: parent
-                        name: "clipboard"
-                        color: clipboardArea.containsMouse ? Theme.cream : Theme.iconDim
+                        name: "clock"
+                        color: pill.countdownEngaged
+                            ? (Countdown.running ? Theme.vermLit : Theme.subtle)
+                            : (timerArea.containsMouse ? Theme.cream : Theme.iconDim)
                         stroke: 1.7
                     }
 
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        width: 5 * pill.s
+                        height: 5 * pill.s
+                        radius: width / 2
+                        color: Countdown.running ? Theme.vermLit : Theme.dim
+                        visible: pill.countdownEngaged
+                    }
+
                     MouseArea {
-                        id: clipboardArea
+                        id: timerArea
                         anchors.fill: parent
                         anchors.margins: -6 * pill.s
                         hoverEnabled: true
                         enabled: hover.live
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("clipboard")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "clipboard"
-                    }
-                }
-
-                Item {
-                    id: launcherIcon
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 17 * pill.s
-                    height: 17 * pill.s
-
-                    GlyphIcon {
-                        anchors.fill: parent
-                        name: "app-window"
-                        color: launcherArea.containsMouse ? Theme.cream : Theme.iconDim
-                        stroke: 1.7
-                    }
-
-                    MouseArea {
-                        id: launcherArea
-                        anchors.fill: parent
-                        anchors.margins: -6 * pill.s
-                        hoverEnabled: true
-                        enabled: hover.live
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("launcher")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "launcher"
+                        onClicked: pill.requestSurface("timer")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "timer"
                     }
                 }
 
@@ -3050,28 +3171,60 @@ onClicked: {
                 }
 
                 Item {
-                    id: timerIcon
+                    id: clipboardIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
 
                     GlyphIcon {
                         anchors.fill: parent
-                        name: "clock"
-                        color: timerArea.containsMouse ? Theme.cream : Theme.iconDim
+                        name: "clipboard"
+                        color: clipboardArea.containsMouse ? Theme.cream : Theme.iconDim
                         stroke: 1.7
                     }
+
                     MouseArea {
-                        id: timerArea
+                        id: clipboardArea
                         anchors.fill: parent
                         anchors.margins: -6 * pill.s
                         hoverEnabled: true
                         enabled: hover.live
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: pill.requestSurface("timer")
-                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "timer"
+                        onClicked: pill.requestSurface("clipboard")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "clipboard"
                     }
                 }
+
+
+
+                Item {
+                    id: launcherIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "app-window"
+                        color: launcherArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+
+                    MouseArea {
+                        id: launcherArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("launcher")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "launcher"
+                    }
+                }
+
+
+
+
 
                 Item {
                     id: appearanceIcon
@@ -3447,6 +3600,19 @@ onClicked: {
         sourceComponent: FontPicker {
             s: pill.s
             open: pill.fontpickerOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldWallpaperSettings
+        active: false
+        anchors.fill: parent
+        sourceComponent: WallpaperSettings {
+            s: pill.s
+            open: pill.wallpaperSettingsOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)

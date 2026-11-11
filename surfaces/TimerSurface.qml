@@ -32,10 +32,10 @@ PillSurface {
     readonly property bool customArmed: presetMins.indexOf(Math.round(Countdown.presetSec / 60)) < 0
 
     readonly property string actionLabel: Countdown.running ? "Pause"
-        : (Countdown.remaining > 0 && Countdown.remaining < root.total ? "Resume" : "Start")
+        : (Countdown.paused ? "Resume" : "Start")
 
     readonly property string stateLabel: Countdown.running ? "RUNNING"
-        : (Countdown.remaining > 0 && Countdown.remaining < root.total ? "PAUSED" : "READY")
+        : (Countdown.paused ? "PAUSED" : "READY")
 
     /** mm:ss; the hero runs the minutes up rather than ever showing an hour. */
     function clockText(sec) {
