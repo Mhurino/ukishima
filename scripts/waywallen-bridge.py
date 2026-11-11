@@ -478,44 +478,182 @@ def apply_entry(sock, item, output="", request_id=100):
         print("Aggiornamento palette Ukishima: " + str(exc), file=sys.stderr)
     print(f"Sfondo impostato con Waywallen: {item['name'] or resource}")
 
+
+
+def read_waywallen_settings(sock):
+    """Read the complete settings snapshot without losing opaque global fields."""
+    response = request(sock, 1, 24)  # SettingsGetRequest
+    payload = first(response, 24, 2)
+
+    if payload is None:
+        raise BridgeError("Waywallen non ha restituito SettingsGetResponse")
+
+    fields = parse_fields(payload)
+    global_settings = first(fields, 1, 2)
+
+    if global_settings is None:
+        raise BridgeError("Impostazioni globali Waywallen mancanti")
+
+    plugins = {}
+
+    # SettingsGetResponse.plugins: map<string, PluginSettings>
+    for entry_bytes in values(fields, 2, 2):
+        entry = parse_fields(entry_bytes)
+        name = text_field(entry, 1)
+        plugin_bytes = first(entry, 2, 2, b"")
+
+        if not name:
+            continue
+
+        plugin_fields = parse_fields(plugin_bytes)
+        plugin_values = {}
+
+        # PluginSettings.values: map<string, string>
+        for pair_bytes in values(plugin_fields, 1, 2):
+            pair = parse_fields(pair_bytes)
+            key = text_field(pair, 1)
+            value = text_field(pair, 2)
+
+            if key:
+                plugin_values[key] = value
+
+        plugins[name] = plugin_values
+
+    return global_settings, plugins
+
+
+def encode_waywallen_settings(global_settings, plugins):
+    """Encode a complete SettingsSetRequest, retaining every plugin key."""
+    body = bytearray(pb_bytes(1, global_settings))
+
+    for plugin_name in sorted(plugins):
+        plugin_values = plugins[plugin_name]
+        plugin_message = bytearray()
+
+        for key in sorted(plugin_values):
+            pair = pb_bytes(1, key) + pb_bytes(2, str(plugin_values[key]))
+            plugin_message.extend(pb_bytes(1, pair))
+
+        map_entry = (
+            pb_bytes(1, plugin_name)
+            + pb_bytes(2, bytes(plugin_message))
+        )
+        body.extend(pb_bytes(2, map_entry))
+
+    return bytes(body)
+
+
+def waywallen_video_fps(sock):
+    _, plugins = read_waywallen_settings(sock)
+    raw = plugins.get("waywallen-video", {}).get("fps", "30")
+
+    try:
+        fps = int(raw)
+    except (TypeError, ValueError):
+        raise BridgeError("Valore FPS Waywallen non valido: " + str(raw))
+
+    if not 1 <= fps <= 240:
+        raise BridgeError("FPS Waywallen fuori intervallo: " + str(fps))
+
+    return fps
+
+
+def set_waywallen_video_fps(sock, fps):
+    """Persist fps and let Waywallen notify all live video renderers."""
+    if fps not in (15, 24, 30, 60):
+        raise BridgeError("FPS non supportato: usare 15, 24, 30 o 60")
+
+    global_settings, plugins = read_waywallen_settings(sock)
+
+    video_settings = plugins.setdefault("waywallen-video", {})
+    video_settings["fps"] = str(fps)
+
+    payload = encode_waywallen_settings(global_settings, plugins)
+
+    # SettingsSet is a full replacement: all other values are preserved.
+    request(sock, 2, 25, payload)
+
+    return fps
+
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in (
-        "apply", "apply-id", "list", "refresh", "random"
+        "apply", "apply-id", "list", "refresh", "random",
+        "fps-get", "fps-set"
     ):
         raise BridgeError(
             "uso: waywallen-bridge.py list | refresh | apply FILE [DISPLAY] "
-            "| apply-id ID [DISPLAY] | random"
+            "| apply-id ID [DISPLAY] | random | fps-get | fps-set FPS"
         )
+
     mode = sys.argv[1]
+
+    if mode == "fps-set":
+        if len(sys.argv) != 3:
+            raise BridgeError("per fps-set indicare 15, 24, 30 o 60")
+
+        try:
+            fps = int(sys.argv[2])
+        except ValueError:
+            raise BridgeError("valore FPS non numerico")
+
+        if fps not in (15, 24, 30, 60):
+            raise BridgeError("FPS non supportato: usare 15, 24, 30 o 60")
+
     sock = connect_ws()
+
     try:
-        if mode == "list":
+        if mode == "fps-get":
+            print(waywallen_video_fps(sock))
+
+        elif mode == "fps-set":
+            print(set_waywallen_video_fps(sock, fps))
+
+        elif mode == "list":
             print(json.dumps(list_wallpapers(sock, 1), ensure_ascii=False))
+
         elif mode == "refresh":
             scan_library(sock, 1)
             wait_for_scan(sock)
             print(json.dumps(list_wallpapers(sock, 2), ensure_ascii=False))
+
         elif mode == "apply-id":
             if len(sys.argv) < 3:
                 raise BridgeError("per apply-id serve l'ID del wallpaper")
+
             items = list_wallpapers(sock, 1)
-            item = next((entry for entry in items if entry["id"] == sys.argv[2]), None)
+            item = next(
+                (entry for entry in items if entry["id"] == sys.argv[2]),
+                None
+            )
+
             if not item:
-                raise BridgeError("wallpaper non trovato nel catalogo Waywallen: " + sys.argv[2])
+                raise BridgeError(
+                    "wallpaper non trovato nel catalogo Waywallen: " + sys.argv[2]
+                )
+
             output = sys.argv[3] if len(sys.argv) > 3 else ""
             apply_entry(sock, item, output, 100)
+
         elif mode == "apply":
             if len(sys.argv) < 3:
                 raise BridgeError("per apply serve il percorso del file")
+
             item = lookup_path(sock, 1, sys.argv[2])
             output = sys.argv[3] if len(sys.argv) > 3 else ""
             apply_entry(sock, item, output, 100)
+
         else:
             items = list_wallpapers(sock, 1)
+
             if not items:
-                raise BridgeError("la libreria Waywallen è vuota; aggiungi prima una cartella in Libraries")
+                raise BridgeError(
+                    "la libreria Waywallen è vuota; aggiungi prima una cartella in Libraries"
+                )
+
             item = random.choice(items)
             apply_entry(sock, item, "", 100)
+
     finally:
         sock.close()
 

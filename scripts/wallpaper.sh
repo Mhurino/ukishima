@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 flags_file="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
 WPDIR=$(jq -r '.wallpaperDir // ""' "$flags_file" 2>/dev/null || echo "")
+FPS=$(jq -r '.wallpaperFps // 60' "$flags_file" 2>/dev/null || echo 60)
+case "$FPS" in 15|24|30|60) ;; *) FPS=60 ;; esac
 if [ -z "$WPDIR" ]; then
     # No explicit folder set: adopt an existing collection in the usual spots.
     # Two or more images counts as a collection, a single stray file does not,
@@ -194,7 +196,7 @@ sync_videos() {
     sleep 0.8
     while IFS=$'\t' read -r o pic; do
         [ -n "$o" ] || continue
-        setsid -f mpvpaper -p -o "no-audio loop-file=inf hwdec=auto panscan=1.0" "$o" "$pic" >/dev/null 2>&1
+        setsid -f mpvpaper -p -o "no-audio loop-file=inf hwdec=auto panscan=1.0 fps=$FPS" "$o" "$pic" >/dev/null 2>&1
     done <<< "$desired"
 }
 
@@ -278,6 +280,27 @@ restore_all() {
     palette_update
     exit 0
 }
+
+# FPS-only command: restart only the managed video wallpapers.
+# It runs before ensure_daemon, so changing FPS does not start awww unnecessarily.
+if [ "${1:-}" = "fps" ]; then
+    FPS="${2:-$FPS}"
+    case "$FPS" in
+        15|24|30|60) ;;
+        *) echo "FPS non valido: $FPS" >&2; exit 2 ;;
+    esac
+
+    if timeout 3 pgrep -x mpvpaper >/dev/null 2>&1; then
+        pkill -x mpvpaper 2>/dev/null || true
+        for _ in $(seq 1 10); do
+            timeout 3 pgrep -x mpvpaper >/dev/null 2>&1 || break
+            sleep 0.1
+        done
+    fi
+
+    sync_videos
+    exit 0
+fi
 
 daemon_was_running=true
 awww query >/dev/null 2>&1 || daemon_was_running=false

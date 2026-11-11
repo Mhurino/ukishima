@@ -18,7 +18,7 @@ Rectangle {
     property bool pressed: false
     property bool active: false
 
-    readonly property bool glassy: Flags.glass
+    readonly property bool glassy: Flags.glass && !Theme.oled
     readonly property real veilAlpha: glass.glassy
         ? Math.min(0.3, glass.veil)
         : 0

@@ -18,7 +18,6 @@ SettingsSurface {
     implicitHeight: content.implicitHeight
 
     rows: [
-        { item: mainRow, kind: "seg", vals: (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right") ? ["custom", "minimal", "classic", "system"] : ["custom", "minimal", "classic", "system", "strip"], get: function () { return Flags.mainDisplay; }, set: function (v) { if (v === "strip" && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right")) return; Flags.mainDisplay = v; } },
         { item: timeRow, kind: "seg", vals: [false, true], get: function () { return Flags.time12h; }, set: function (v) { Flags.time12h = v; } },
         { item: secRow, kind: "toggle", get: function () { return Flags.clockSeconds; }, set: function (v) { Flags.clockSeconds = v; } },
         { item: glyphRow, kind: "toggle", get: function () { return Flags.showGlyphs; }, set: function (v) { Flags.showGlyphs = v; } },
@@ -40,26 +39,6 @@ SettingsSurface {
         }
 
         Item { width: 1; height: 12 * root.s }
-
-        SettingsRow {
-            id: mainRow
-            surface: root
-            name: "Main display"
-            icon: "clock"
-
-            SettingsSeg {
-                compact: true
-                s: root.s
-                options: [{ label: "Dynamic", value: "custom" }, { label: "Status", value: "minimal" }, { label: "Classic", value: "classic" }, { label: "Sys", value: "system" }, { label: "Strip", value: "strip", enabled: Flags.dockPosition !== "top-left" && Flags.dockPosition !== "top-right" }]
-                value: Flags.mainDisplay
-                onPicked: (v) => {
-                    if (v === "strip" && (Flags.dockPosition === "top-left" || Flags.dockPosition === "top-right"))
-                        return;
-                    Flags.mainDisplay = v;
-                }
-            }
-        }
-
 
         SettingsRow {
             id: timeRow

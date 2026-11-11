@@ -23,6 +23,7 @@ Singleton {
     property alias oled: adapter.oled
     property alias showColorPalettes: adapter.showColorPalettes
     property alias wallpaperDir: adapter.wallpaperDir
+    property alias wallpaperFps: adapter.wallpaperFps
     property alias waywallenEnabled: adapter.waywallenEnabled
     property alias waywallenWallpaperDir: adapter.waywallenWallpaperDir
     property alias randomScope: adapter.randomScope
@@ -75,6 +76,13 @@ Singleton {
     property alias dockPosition: adapter.dockPosition
     property alias dockRevealSeconds: adapter.dockRevealSeconds
 
+    // Right-click cycle: Media and Timer are fixed stops.
+    property alias cycleSlot4: adapter.cycleSlot4
+    property alias cycleSlot5: adapter.cycleSlot5
+
+    // Surface styles currently supported by this fork.
+    property alias styleScratch: adapter.styleScratch
+
     FileView {
         id: file
         path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ukishima/flags.json"
@@ -103,10 +111,18 @@ Singleton {
             property bool showColorPalettes: true
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */
             property string wallpaperDir: ""
+            property int wallpaperFps: 60
             /** Optional Waywallen Flatpak wallpaper integration. */
             property bool waywallenEnabled: false
             /** Extra folder Waywallen Flatpak may read. */
             property string waywallenWallpaperDir: ""
+
+            // Right-click cycle: preserve the current Media -> Timer -> Scratch flow.
+            property string cycleSlot4: "scratch"
+            property string cycleSlot5: ""
+
+            // Scratchpad deck: default, cassette, index, console or ash.
+            property string styleScratch: "default"
             /** Super+B random target: "all" repaints every monitor, "cursor" only the one under the pointer. */
             property string randomScope: "all"
             property real uiScale: 1.0

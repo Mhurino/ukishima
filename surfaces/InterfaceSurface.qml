@@ -21,7 +21,8 @@ SettingsSurface {
         { item: scaleRow, kind: "seg", vals: [0.9, 1.0, 1.1, 1.25], get: function () { return Flags.uiScale; }, set: function (v) { Flags.uiScale = v; } },
         { item: motionRow, kind: "toggle", get: function () { return Flags.reduceMotion; }, set: function (v) { Flags.reduceMotion = v; } },
         { item: autoHideRow, kind: "toggle", get: function () { return Flags.autoHide; }, set: function (v) { Flags.autoHide = v; } },
-        { item: saverRow, kind: "toggle", get: function () { return Flags.memorySaver; }, set: function (v) { Flags.memorySaver = v; } }
+        { item: saverRow, kind: "toggle", get: function () { return Flags.memorySaver; }, set: function (v) { Flags.memorySaver = v; } },
+        { item: rightClickRow, kind: "nav", surface: "rightclick" }
     ]
 
     Column {
@@ -85,12 +86,28 @@ SettingsSurface {
             surface: root
             name: "Memory saver"
             icon: "stopwatch"
-            last: true
 
             LinkToggle {
                 s: root.s
                 on: Flags.memorySaver
                 onToggled: Flags.memorySaver = !Flags.memorySaver
+            }
+        }
+
+        SettingsRow {
+            id: rightClickRow
+            surface: root
+            name: "Right-click cycle"
+            icon: "mouse-pointer"
+            sub: "Choose the extra stops after Media and Timer"
+            last: true
+
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: rightClickRow.focused ? Theme.cream : Theme.iconDim
+                stroke: 1.9
             }
         }
     }

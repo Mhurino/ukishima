@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell.Io
 import "../Singletons"
 import "../components"
 
@@ -14,10 +15,141 @@ SettingsSurface {
     backSurface: "theme"
     implicitHeight: content.implicitHeight
 
+
+    readonly property string waywallenBridgeScript:
+        Config.hyprPath("scripts", "waywallen-bridge.py")
+
+    property int waywallenFpsValue: 30
+    property int pendingWaywallenFps: 0
+    property int queuedWaywallenFps: 0
+    property string fpsError: ""
+
+    readonly property int fpsValue: Flags.waywallenEnabled
+        ? root.waywallenFpsValue : Flags.wallpaperFps
+
+    function refreshFps() {
+        if (!Flags.waywallenEnabled || !root.active)
+            return;
+
+        if (fpsGetProc.running || fpsSetProc.running)
+            return;
+
+        fpsGetProc.command = [
+            "python3", root.waywallenBridgeScript, "fps-get"
+        ];
+        fpsGetProc.running = true;
+    }
+
+    function setFps(value) {
+        const fps = Number(value);
+
+        if ([15, 24, 30, 60].indexOf(fps) < 0)
+            return;
+
+        root.fpsError = "";
+
+        // Modalità locale: usa il gestore mpvpaper già esistente.
+        if (!Flags.waywallenEnabled) {
+            Flags.wallpaperFps = fps;
+            Walls.applyFps(fps);
+            return;
+        }
+
+        // Se una lettura è ancora in corso, interromperla prima della scrittura.
+        if (fpsGetProc.running)
+            fpsGetProc.running = false;
+
+        // Conserva soltanto l'ultima scelta durante una scrittura in corso.
+        if (fpsSetProc.running) {
+            root.queuedWaywallenFps = fps;
+            return;
+        }
+
+        root.pendingWaywallenFps = fps;
+        fpsSetProc.command = [
+            "python3", root.waywallenBridgeScript, "fps-set", String(fps)
+        ];
+        fpsSetProc.running = true;
+    }
+
+    onActiveChanged: {
+        if (active)
+            Qt.callLater(root.refreshFps);
+    }
+
+    Component.onCompleted: {
+        if (root.active)
+            Qt.callLater(root.refreshFps);
+    }
+
+    Connections {
+        target: Flags
+
+        function onWaywallenEnabledChanged() {
+            if (root.active)
+                Qt.callLater(root.refreshFps);
+        }
+    }
+
+    Process {
+        id: fpsGetProc
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const value = Number(this.text.trim());
+
+                if (Number.isInteger(value) && value >= 1 && value <= 240) {
+                    root.waywallenFpsValue = value;
+                    root.fpsError = "";
+                } else {
+                    root.fpsError = "Valore FPS Waywallen non valido";
+                }
+            }
+        }
+
+        onExited: function(exitCode) {
+            if (exitCode !== 0)
+                root.fpsError = "Impossibile leggere gli FPS da Waywallen";
+        }
+    }
+
+    Process {
+        id: fpsSetProc
+
+        onExited: function(exitCode) {
+            const applied = root.pendingWaywallenFps;
+            root.pendingWaywallenFps = 0;
+
+            if (exitCode === 0 && applied > 0) {
+                root.waywallenFpsValue = applied;
+                root.fpsError = "";
+            } else {
+                root.fpsError = "Impossibile applicare gli FPS in Waywallen";
+                Qt.callLater(root.refreshFps);
+            }
+
+            const next = root.queuedWaywallenFps;
+            root.queuedWaywallenFps = 0;
+
+            if (next > 0 && next !== root.waywallenFpsValue) {
+                Qt.callLater(function() {
+                    root.setFps(next);
+                });
+            }
+        }
+    }
+
     rows: {
         var out = [
             { item: waywallenRow, kind: "toggle", get: function () { return Flags.waywallenEnabled; }, set: function (v) { Waywallen.setEnabled(v); } }
         ];
+        out.push({
+            item: fpsRow,
+            kind: "seg",
+            vals: [15, 24, 30, 60],
+            get: function () { return root.fpsValue; },
+            set: function (v) { root.setFps(v); }
+        });
         out.push({ item: paletteRow, kind: "toggle", get: function () { return Flags.showColorPalettes; }, set: function (v) { Flags.showColorPalettes = v; } });
         if (Flags.waywallenEnabled)
             out.push({ item: waywallenOpenRow, kind: "text", activate: function () { Waywallen.openUI(); } });
@@ -69,6 +201,31 @@ SettingsSurface {
                 enabled: !Waywallen.busy
                 on: Flags.waywallenEnabled
                 onToggled: Waywallen.setEnabled(!Flags.waywallenEnabled)
+            }
+        }
+
+        SettingsRow {
+            id: fpsRow
+            surface: root
+            name: "Animated wallpaper FPS"
+            icon: "gauge"
+            sub: root.fpsError.length > 0
+                ? root.fpsError
+                : (Flags.waywallenEnabled
+                    ? "Frame rate for Waywallen video wallpapers"
+                    : "Frame rate for local animated wallpapers")
+
+            SettingsSeg {
+                s: root.s
+                compact: true
+                options: [
+                    { label: "15", value: 15 },
+                    { label: "24", value: 24 },
+                    { label: "30", value: 30 },
+                    { label: "60", value: 60 }
+                ]
+                value: root.fpsValue
+                onPicked: (v) => root.setFps(v)
             }
         }
 

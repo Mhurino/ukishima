@@ -270,6 +270,34 @@ Singleton {
             Qt.callLater(root.runQueuedApply);
         }
     }
+    property int queuedFps: 0
+
+    function applyFps(fps) {
+        const value = Number(fps);
+        if ([15, 24, 30, 60].indexOf(value) < 0)
+            return;
+
+        if (fpsProc.running) {
+            root.queuedFps = value;
+            return;
+        }
+
+        fpsProc.command = ["bash", root.setScript, "fps", String(value)];
+        fpsProc.running = true;
+    }
+
+    Process {
+        id: fpsProc
+        onExited: {
+            if (root.queuedFps > 0) {
+                const next = root.queuedFps;
+                root.queuedFps = 0;
+                fpsProc.command = ["bash", root.setScript, "fps", String(next)];
+                fpsProc.running = true;
+            }
+        }
+    }
+
     Connections {
         target: Flags
         function onWaywallenEnabledChanged() {

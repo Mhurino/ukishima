@@ -57,7 +57,7 @@ PillSurface {
      * autosave, pinning and delete exactly as the default page does.
      */
     readonly property string style: {
-        var v = "default";
+        var v = Flags.styleScratch;
         return ["cassette", "index", "console", "ash"].indexOf(v) >= 0 ? v : "default";
     }
     readonly property bool chaldeaStyle: root.style !== "default"

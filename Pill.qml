@@ -110,12 +110,16 @@ Item {
     readonly property bool displayOpen: surface === "display"
     readonly property bool themeOpen: surface === "theme"
     readonly property bool interfaceOpen: surface === "interface"
+    readonly property bool rightclickOpen: surface === "rightclick"
+    readonly property bool surfacestylesOpen: surface === "surfacestyles"
     readonly property bool fontpickerOpen: surface === "fontpicker"
     readonly property bool wallpaperSettingsOpen: surface === "wallpapersettings"
     readonly property bool profileOpen: surface === "profile"
     readonly property bool dockOpen: surface === "dock"
     readonly property bool settingsLike:
-        appearanceOpen || displayOpen || themeOpen || interfaceOpen || fontpickerOpen || wallpaperSettingsOpen || profileOpen || dockOpen
+        appearanceOpen || displayOpen || themeOpen || interfaceOpen
+        || rightclickOpen || surfacestylesOpen
+        || fontpickerOpen || wallpaperSettingsOpen || profileOpen || dockOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -409,6 +413,8 @@ Item {
         display:    { size: () => Qt.size(appearanceW, surfaceItem(ldDisplay).implicitHeight + 29 * s), ame: () => surfaceItem(ldDisplay) },
         theme:      { size: () => Qt.size(appearanceW, surfaceItem(ldTheme).implicitHeight + 29 * s), ame: () => surfaceItem(ldTheme) },
         interface:  { size: () => Qt.size(appearanceW, surfaceItem(ldInterface).implicitHeight + 29 * s), ame: () => surfaceItem(ldInterface) },
+        rightclick: { size: () => Qt.size(appearanceW, surfaceItem(ldRightClick).implicitHeight + 29 * s), ame: () => surfaceItem(ldRightClick) },
+        surfacestyles: { size: () => Qt.size(appearanceW, surfaceItem(ldStyles).implicitHeight + 29 * s), ame: () => surfaceItem(ldStyles) },
         dock:       { size: () => Qt.size(appearanceW, surfaceItem(ldDock).implicitHeight + 29 * s), ame: () => surfaceItem(ldDock) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) },
         wallpapersettings: { size: () => Qt.size(appearanceW, surfaceItem(ldWallpaperSettings).implicitHeight + 29 * s), ame: () => surfaceItem(ldWallpaperSettings) },
@@ -439,6 +445,8 @@ Item {
         display: () => ldDisplay,
         theme: () => ldTheme,
         interface: () => ldInterface,
+        rightclick: () => ldRightClick,
+        surfacestyles: () => ldStyles,
         dock: () => ldDock,
         fontpicker: () => ldFontpicker,
         wallpapersettings: () => ldWallpaperSettings,
@@ -727,6 +735,14 @@ Item {
      * surfaces return to Appearance. Empty space never triggers this.
      */
     function surfaceBack() {
+        if (pill.rightclickOpen) {
+            pill.requestSurface("interface");
+            return;
+        }
+        if (pill.surfacestylesOpen) {
+            pill.requestSurface("appearance");
+            return;
+        }
         if (pill.fontpickerOpen || pill.wallpaperSettingsOpen) {
             pill.requestSurface("theme");
             return;
@@ -1228,9 +1244,27 @@ Item {
         }
     }
 
-    // Right-click cycles through Media -> Timer -> Scratchpad -> closed.
-    // Non-cycle surfaces keep their normal right-click behaviour.
-    readonly property var cycleSurfaces: ["media", "timer", "scratch"]
+    // Right-click: Media and Timer stay fixed; slots 4 and 5 are configurable.
+    readonly property var cycleSurfaces: {
+        const out = ["media", "timer"];
+        const allowed = [
+            "calendar", "weather", "launcher", "clipboard",
+            "scratch", "wallpaper", "power", "beats", "mixer",
+            "link", "wifi", "bt", "battery", "recorder",
+            "sysmon", "appearance", "profile"
+        ];
+        const selected = [Flags.cycleSlot4, Flags.cycleSlot5];
+
+        for (let i = 0; i < selected.length; i++) {
+            const value = String(selected[i] || "");
+            if (value.length > 0
+                    && allowed.indexOf(value) >= 0
+                    && out.indexOf(value) < 0) {
+                out.push(value);
+            }
+        }
+        return out;
+    }
 
     function cycleNext() {
         const index = pill.cycleSurfaces.indexOf(pill.surface);
@@ -1242,7 +1276,8 @@ Item {
 
     TapHandler {
         acceptedButtons: Qt.RightButton
-        enabled: (!pill.surfaceOpen || pill.cycleSurfaces.indexOf(pill.surface) >= 0) && pill.mode !== "game"
+        enabled: (!pill.surfaceOpen || pill.cycleSurfaces.indexOf(pill.surface) >= 0)
+            && pill.mode !== "game"
         gesturePolicy: TapHandler.WithinBounds
         onTapped: {
             const next = pill.cycleNext();
@@ -1719,7 +1754,7 @@ Item {
     Item {
         id: rest
         anchors.fill: parent
-        opacity: (pill.expanded || pill.dragActive || pill.mode === "game" || pill.mode === "toast" || pill.mode === "osd" || pill.mode === "quickChoose" || pill.mode === "quickCount") ? 0 : Math.pow(pill.morphCloseness, 1.5)
+        opacity: (pill.expanded || pill.dragActive || pill.mode === "game" || pill.mode === "toast" || pill.mode === "osd" || pill.mode === "quickChoose" || pill.mode === "quickCount") ? 0 : 1
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: pill.mode === "rest" ? Motion.fast : Math.round(260 * Motion.mult) } }
 
@@ -3562,6 +3597,32 @@ onClicked: {
         sourceComponent: InterfaceSurface {
             s: pill.s
             open: pill.interfaceOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldRightClick
+        active: false
+        anchors.fill: parent
+        sourceComponent: RightClickSurface {
+            s: pill.s
+            open: pill.rightclickOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+            onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldStyles
+        active: false
+        anchors.fill: parent
+        sourceComponent: SurfaceStyles {
+            s: pill.s
+            open: pill.surfacestylesOpen
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)

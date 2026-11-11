@@ -27,3 +27,5 @@ WallpaperSettings WallpaperSettings.qml
 DockSurface DockSurface.qml
 Scratchpad Scratchpad.qml
 TimerSurface TimerSurface.qml
+RightClickSurface RightClickSurface.qml
+SurfaceStyles SurfaceStyles.qml

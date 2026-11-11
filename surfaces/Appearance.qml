@@ -22,6 +22,7 @@ SettingsSurface {
     rows: [
         { item: dispTile, kind: "nav", surface: "display" },
         { item: themeTile, kind: "nav", surface: "theme" },
+        { item: stylesTile, kind: "nav", surface: "surfacestyles" },
         { item: ifaceTile, kind: "nav", surface: "interface" },
         { item: dockTile, kind: "nav", surface: "dock" },
         { item: profileTile, kind: "nav", surface: "profile" }
@@ -71,6 +72,22 @@ SettingsSurface {
                 height: 16 * root.s
                 name: "chevron-right"
                 color: root.focusRowItem === themeTile ? Theme.cream : Theme.iconDim
+                stroke: 1.9
+            }
+        }
+
+        SettingsRow {
+            id: stylesTile
+            surface: root
+            glyph: "枠"
+            name: "Surface Styles"
+            sub: "Visual layouts for the pill and surfaces"
+
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: root.focusRowItem === stylesTile ? Theme.cream : Theme.iconDim
                 stroke: 1.9
             }
         }
