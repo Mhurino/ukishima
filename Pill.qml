@@ -85,9 +85,11 @@ Item {
     readonly property bool weatherOpen: surface === "weather"
     readonly property bool launcherOpen: surface === "launcher"
     readonly property bool clipboardOpen: surface === "clipboard"
+    readonly property bool scratchOpen: surface === "scratch"
     readonly property bool wallpaperOpen: surface === "wallpaper"
     readonly property bool powerOpen: surface === "power"
     readonly property bool mediaOpen: surface === "media"
+    readonly property bool timerOpen: surface === "timer"
     readonly property bool beatsOpen: surface === "beats"
     readonly property bool linkOpen: surface === "link"
     readonly property bool wifiOpen: surface === "wifi"
@@ -298,6 +300,8 @@ Item {
     readonly property real launcherH: 332 * s
     readonly property real clipboardW: 360 * s
     readonly property real clipboardH: 332 * s
+    readonly property real scratchW: 556 * s
+    readonly property real scratchH: 348 * s
     readonly property real wallpaperW: 720 * s
     readonly property real wallpaperH: 172 * s
     readonly property real powerW: 330 * s
@@ -378,9 +382,11 @@ Item {
         weather:   { size: () => { const it = surfaceItem(ldWeather); return Qt.size((it.implicitWidth > 0 ? it.implicitWidth : 282 * s) + 36 * s, it.implicitHeight + 32 * s); }, ame: () => surfaceItem(ldWeather) },
         launcher:  { size: () => { surfaceItem(ldLauncher); return Qt.size(launcherW, launcherH); }, ame: () => surfaceItem(ldLauncher) },
         clipboard: { size: () => { surfaceItem(ldClip); return Qt.size(clipboardW, clipboardH); }, ame: () => surfaceItem(ldClip) },
+        scratch:   { size: () => { surfaceItem(ldScratch); return Qt.size(scratchW, scratchH); }, ame: () => surfaceItem(ldScratch) },
         wallpaper: { size: () => { surfaceItem(ldWall); return Qt.size(wallpaperW, wallpaperH); }, ame: () => null },
         power:     { size: () => { surfaceItem(ldPower); return Qt.size(powerW, powerH); }, ame: () => surfaceItem(ldPower) },
         media:     { size: () => { surfaceItem(ldMedia); return Qt.size(mediaW, mediaH); }, ame: () => surfaceItem(ldMedia) },
+        timer:     { size: () => { const it = surfaceItem(ldTimer); return Qt.size((it.implicitWidth > 0 ? it.implicitWidth : 282 * s) + 36 * s, it.implicitHeight + 32 * s); }, ame: () => surfaceItem(ldTimer) },
         beats:     { size: () => Qt.size(beatsW, beatsH), ame: () => surfaceItem(ldBeats) },
         mixer:     { size: () => Qt.size(93 * Math.max(4, surfaceItem(ldMixer).faderCount) * s, mixerH), ame: () => surfaceItem(ldMixer) },
         link:      { size: () => { const it = surfaceItem(ldLink); return Qt.size(it.desiredW, it.implicitHeight + 26 * s); }, ame: () => surfaceItem(ldLink) },
@@ -405,9 +411,11 @@ Item {
         weather: () => ldWeather,
         launcher: () => ldLauncher,
         clipboard: () => ldClip,
+        scratch: () => ldScratch,
         wallpaper: () => ldWall,
         power: () => ldPower,
         media: () => ldMedia,
+        timer: () => ldTimer,
         beats: () => ldBeats,
         mixer: () => ldMixer,
         link: () => ldLink,
@@ -1202,21 +1210,28 @@ Item {
         }
     }
 
-    /**
-     * Right-click toggles the media player from anywhere on the pill: on the
-     * collapsed pill it pops the now-playing surface open, and on the open
-     * media surface it dismisses back to the clock. Other surfaces are left to
-     * their own clicks and the modal backdrop.
-     */
+    // Right-click cycles through Media -> Timer -> Scratchpad -> closed.
+    // Non-cycle surfaces keep their normal right-click behaviour.
+    readonly property var cycleSurfaces: ["media", "timer", "scratch"]
+
+    function cycleNext() {
+        const index = pill.cycleSurfaces.indexOf(pill.surface);
+        if (index < 0)
+            return pill.cycleSurfaces[0];
+        return index + 1 < pill.cycleSurfaces.length
+            ? pill.cycleSurfaces[index + 1] : "";
+    }
+
     TapHandler {
         acceptedButtons: Qt.RightButton
-        enabled: (!pill.surfaceOpen || pill.mediaOpen) && pill.mode !== "game"
+        enabled: (!pill.surfaceOpen || pill.cycleSurfaces.indexOf(pill.surface) >= 0) && pill.mode !== "game"
         gesturePolicy: TapHandler.WithinBounds
         onTapped: {
-            if (pill.mediaOpen)
+            const next = pill.cycleNext();
+            if (next.length === 0)
                 pill.requestClose();
             else
-                pill.requestSurface("media");
+                pill.requestSurface(next);
         }
     }
 
@@ -3011,6 +3026,54 @@ onClicked: {
                 }
 
                 Item {
+                    id: scratchIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "type"
+                        color: scratchArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+                    MouseArea {
+                        id: scratchArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("scratch")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "scratch"
+                    }
+                }
+
+                Item {
+                    id: timerIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17 * pill.s
+                    height: 17 * pill.s
+
+                    GlyphIcon {
+                        anchors.fill: parent
+                        name: "clock"
+                        color: timerArea.containsMouse ? Theme.cream : Theme.iconDim
+                        stroke: 1.7
+                    }
+                    MouseArea {
+                        id: timerArea
+                        anchors.fill: parent
+                        anchors.margins: -6 * pill.s
+                        hoverEnabled: true
+                        enabled: hover.live
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pill.requestSurface("timer")
+                        onContainsMouseChanged: if (containsMouse) pill.soulTarget = "timer"
+                    }
+                }
+
+                Item {
                     id: appearanceIcon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
@@ -3097,6 +3160,30 @@ onClicked: {
             s: pill.s
             open: pill.mixerOpen
             morphCloseness: pill.morphCloseness
+        }
+    }
+
+    Loader {
+        id: ldScratch
+        active: false
+        anchors.fill: parent
+        sourceComponent: Scratchpad {
+            s: pill.s
+            open: pill.scratchOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+        }
+    }
+
+    Loader {
+        id: ldTimer
+        active: false
+        anchors.fill: parent
+        sourceComponent: TimerSurface {
+            s: pill.s
+            open: pill.timerOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
         }
     }
 

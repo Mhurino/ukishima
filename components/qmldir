@@ -25,3 +25,4 @@ VFader VFader.qml
 WheelScroller WheelScroller.qml
 WifiGlyph WifiGlyph.qml
 Workspaces Workspaces.qml
+IconChip IconChip.qml

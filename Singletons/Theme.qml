@@ -88,6 +88,8 @@ Singleton {
     function refreshFonts() { fontFamilies = Qt.fontFamilies(); }
     readonly property string font: (Flags.uiFont.length > 0 && fontFamilies.indexOf(Flags.uiFont) >= 0) ? Flags.uiFont : "Inter"
     readonly property string fontJp: "Zen Kaku Gothic New"
+    readonly property int fontJpWeight: Font.Medium
+    readonly property string fontMono: "monospace"
 
     /**
      * MPRIS trackArtists arrives as a JS array from some players and as a

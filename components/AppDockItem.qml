@@ -27,6 +27,7 @@ Item {
     property bool workspaceHere: true
     property string workspaceLabel: ""
     property real size: 42
+    property real magnification: 1
     property bool tooltipVisible: false
     property bool confirmVisible: false
 
@@ -166,7 +167,7 @@ Item {
         smooth: true
         visible: status === Image.Ready && source !== ""
         source: root.resolvedIconSource
-        scale: root.hovered ? 1.32 : 1
+        scale: Math.max(root.hovered ? 1.32 : 1, root.magnification)
         transformOrigin: Item.Bottom
 
         Behavior on scale {
@@ -182,7 +183,7 @@ Item {
         anchors.centerIn: parent
         width: root.iconSize * 0.75
         height: root.iconSize * 0.75
-        scale: root.hovered ? 1.32 : 1
+        scale: Math.max(root.hovered ? 1.32 : 1, root.magnification)
         transformOrigin: Item.Bottom
         Behavior on scale {
             NumberAnimation {

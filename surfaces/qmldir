@@ -24,3 +24,5 @@ DisplaySurface DisplaySurface.qml
 InterfaceSurface InterfaceSurface.qml
 ThemeSurface ThemeSurface.qml
 DockSurface DockSurface.qml
+Scratchpad Scratchpad.qml
+TimerSurface TimerSurface.qml

@@ -1,0 +1,6 @@
+ScratchRow ScratchRow.qml
+ScratchHeader ScratchHeader.qml
+ScratchCassette ScratchCassette.qml
+ScratchConsole ScratchConsole.qml
+ScratchAsh ScratchAsh.qml
+ScratchIndex ScratchIndex.qml

@@ -21,3 +21,5 @@ singleton NightLight NightLight.qml
 singleton GameMode GameMode.qml
 singleton Config Config.qml
 singleton WorkspaceData WorkspaceData.qml
+singleton Scratch Scratch.qml
+singleton Countdown Countdown.qml

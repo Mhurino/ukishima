@@ -15,6 +15,7 @@ PanelWindow {
     property var screenTarget: null
     property var pendingFloatLaunch: null
     property var pendingFloatResize: null
+    property point dockPointer: Qt.point(-10000, -10000)
 
     signal launcherRequested(string monitorName)
 
@@ -1031,12 +1032,17 @@ PanelWindow {
         HoverHandler {
             id: dockHover
 
+            onPointChanged: root.dockPointer = point.position
+
             onHoveredChanged: {
                 if (hovered) {
+                    root.dockPointer = point.position;
                     hideTimer.stop();
                     root.hoverReveal = true;
-                } else if (!Flags.dockAlwaysVisible && !root.settling) {
-                    hideTimer.restart();
+                } else {
+                    root.dockPointer = Qt.point(-10000, -10000);
+                    if (!Flags.dockAlwaysVisible && !root.settling)
+                        hideTimer.restart();
                 }
             }
         }
@@ -1146,6 +1152,14 @@ PanelWindow {
                         : (modelData.entry && modelData.entry.id
                             ? String(modelData.entry.id) : "")
                     vertical: root.dockVertical
+                    magnification: {
+                        const center = dockContent.mapToItem(dockFrame, x + width / 2, y + height / 2);
+                        const distance = root.dockVertical
+                            ? Math.abs(root.dockPointer.y - center.y)
+                            : Math.abs(root.dockPointer.x - center.x);
+                        const influence = Math.max(0, 1 - distance / (68 * root.s));
+                        return 1 + 0.55 * influence * influence;
+                    }
 
                     tooltipGravity:
                         root.dockAtBottom
