@@ -320,38 +320,41 @@ SettingsSurface {
         stdout: SplitParser { onRead: (line) => root.diskUsed = line.trim() }
     }
 
+
     component Fact: Item {
         id: fact
         required property var modelData
-        width: parent.width
-        implicitHeight: label.implicitHeight + 3 * root.s + value.implicitHeight
 
-        Column {
+        width: parent.width
+        implicitHeight: valueText.implicitHeight
+
+        Text {
+            id: labelText
             anchors.left: parent.left
+            anchors.baseline: valueText.baseline
+            width: 65 * root.s
+            text: fact.modelData.label
+            color: Theme.faint
+            font.family: Theme.font
+            font.pixelSize: 9 * root.s
+            font.weight: Font.Medium
+            font.letterSpacing: 0.7 * root.s
+        }
+
+        Text {
+            id: valueText
+            anchors.left: parent.left
+            anchors.leftMargin: 73 * root.s
             anchors.right: parent.right
             anchors.top: parent.top
-            spacing: 3 * root.s
-
-            Text {
-                id: label
-                text: fact.modelData.label
-                color: Theme.faint
-                font.family: Theme.font
-                font.pixelSize: 9 * root.s
-                font.weight: Font.Medium
-                font.letterSpacing: 0.8 * root.s
-            }
-
-            Text {
-                id: value
-                width: parent.width
-                text: fact.modelData.value !== "" && fact.modelData.value !== undefined ? String(fact.modelData.value) : "—"
-                color: Theme.subtle
-                font.family: Theme.font
-                font.pixelSize: 11.5 * root.s
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-            }
+            text: fact.modelData.value !== ""
+                && fact.modelData.value !== undefined
+                ? String(fact.modelData.value) : "—"
+            color: Theme.subtle
+            font.family: Theme.font
+            font.pixelSize: 11.5 * root.s
+            font.weight: Font.Medium
+            elide: Text.ElideRight
         }
     }
 
@@ -371,189 +374,165 @@ SettingsSurface {
 
         Item { width: 1; height: 10 * root.s }
 
-        // Layout is inspired by Fastfetch: identity on the left,
-        // compact system facts on the right.
-        Row {
-            id: profileLayout
+        Item {
             width: parent.width
-            spacing: 13 * root.s
-            height: Math.max(identityColumn.implicitHeight,
-                             detailColumn.implicitHeight)
+            implicitHeight: profileLayout.height
 
-            // Left rail: personal avatar and distribution identity.
-            Column {
-                id: identityColumn
-                width: 105 * root.s
-                spacing: 8 * root.s
+            Row {
+                id: profileLayout
+                width: parent.width
+                spacing: 15 * root.s
+                height: Math.max(
+                    avatarColumn.implicitHeight,
+                    factsColumn.implicitHeight
+                )
 
-                ClippingRectangle {
-                    id: avatar
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 68 * root.s
-                    height: 68 * root.s
-                    radius: 34 * root.s
-                    color: Theme.frameBg
-                    border.width: 1
-                    border.color: Theme.hair
+                Column {
+                    id: avatarColumn
+                    width: 84 * root.s
+                    spacing: 8 * root.s
 
-                    Image {
-                        id: faceImg
-                        anchors.fill: parent
-                        source: root.faceFile !== "" ? "file://" + root.faceFile : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        cache: false
-                        visible: status === Image.Ready
-                        sourceSize: Qt.size(136 * root.s, 136 * root.s)
+                    ClippingRectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 72 * root.s
+                        height: 72 * root.s
+                        radius: 36 * root.s
+                        color: Theme.frameBg
+                        border.width: 1
+                        border.color: Theme.hairSoft
 
-                        onStatusChanged: {
-                            if (status === Image.Error
-                                    && root.faceFile !== ""
-                                    && !root.faceFallbackTried) {
-                                root.faceFallbackTried = true;
-                                root.faceFile = "";
-                                faceProc.running = true;
+                        Image {
+                            id: faceImg
+                            anchors.fill: parent
+                            source: root.faceFile !== ""
+                                ? "file://" + root.faceFile : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: false
+                            visible: status === Image.Ready
+                            sourceSize: Qt.size(
+                                144 * root.s,
+                                144 * root.s
+                            )
+
+                            onStatusChanged: {
+                                if (status === Image.Error
+                                        && root.faceFile !== ""
+                                        && !root.faceFallbackTried) {
+                                    root.faceFallbackTried = true
+                                    root.faceFile = ""
+                                    faceProc.running = true
+                                }
                             }
+                        }
+
+                        GlyphIcon {
+                            anchors.centerIn: parent
+                            width: 27 * root.s
+                            height: 27 * root.s
+                            name: "user"
+                            color: Theme.iconDim
+                            visible: !faceImg.visible
                         }
                     }
 
-                    GlyphIcon {
-                        anchors.centerIn: parent
-                        width: 28 * root.s
-                        height: 28 * root.s
-                        name: "user"
-                        color: Theme.iconDim
-                        visible: !faceImg.visible
-                    }
-                }
-
-                Text {
-                    width: parent.width
-                    text: root.distroGlyph
-                    horizontalAlignment: Text.AlignHCenter
-                    color: Theme.flameGlow
-                    font.family: "JetBrainsMono NFM"
-                    font.pixelSize: 25 * root.s
-                }
-
-                Text {
-                    width: parent.width
-                    text: root.distro !== "" ? root.distro : "Linux"
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
-                    color: Theme.subtle
-                    font.family: Theme.font
-                    font.pixelSize: 9.5 * root.s
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
-            }
-
-            // Thin divider separates the visual identity from the data.
-            Rectangle {
-                width: 1
-                height: parent.height
-                color: Theme.hairSoft
-            }
-
-            Column {
-                id: detailColumn
-                width: parent.width - identityColumn.width
-                    - profileLayout.spacing * 2 - 1
-                spacing: 10 * root.s
-
-                Column {
-                    width: parent.width
-                    spacing: 3 * root.s
-
                     Text {
                         width: parent.width
-                        text: (root.userName !== "" ? root.userName : "user")
-                            + "@"
-                            + (root.hostName !== "" ? root.hostName : "computer")
+                        text: root.userName !== ""
+                            ? root.userName : "user"
+                        horizontalAlignment: Text.AlignHCenter
                         color: Theme.cream
-                        font.family: "JetBrainsMono NFM"
-                        font.pixelSize: 12 * root.s
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: root.sessionInfo.kind + ": " + root.sessionInfo.name
-                        color: Theme.subtle
                         font.family: Theme.font
-                        font.pixelSize: 10 * root.s
+                        font.pixelSize: 12 * root.s
+                        font.weight: Font.Medium
                         elide: Text.ElideRight
                     }
                 }
 
                 Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.hair
+                    width: 1
+                    height: parent.height
+                    color: Theme.hairSoft
                 }
 
-                Row {
-                    id: factsRow
+                Column {
+                    id: factsColumn
                     width: parent.width
-                    spacing: 9 * root.s
+                        - avatarColumn.width
+                        - profileLayout.spacing * 2 - 1
+                    spacing: 10 * root.s
 
-                    Column {
-                        id: systemFacts
-                        width: (parent.width - factsRow.spacing * 2 - 1) / 2
+                    Row {
+                        width: parent.width
                         spacing: 8 * root.s
 
                         Text {
-                            text: "SYSTEM"
-                            color: Theme.faint
-                            font.family: Theme.font
-                            font.pixelSize: 8.5 * root.s
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: 1.1 * root.s
+                            text: root.distroGlyph
+                            color: Theme.flameGlow
+                            font.family: "JetBrainsMono NFM"
+                            font.pixelSize: 24 * root.s
+                            anchors.verticalCenter: parent.verticalCenter
                         }
-
-                        Repeater {
-                            model: [
-                                { label: "KERNEL", value: root.kernel },
-                                { label: "SHELL", value: root.shellName },
-                                { label: "UPTIME", value: root.uptime },
-                                { label: "PACKAGES", value: root.pkgCount }
-                            ]
-                            delegate: Fact {}
-                        }
-                    }
-
-                    Rectangle {
-                        width: 1
-                        height: Math.max(systemFacts.implicitHeight,
-                                         hardwareFacts.implicitHeight)
-                        color: Theme.hairSoft
-                    }
-
-                    Column {
-                        id: hardwareFacts
-                        width: systemFacts.width
-                        spacing: 8 * root.s
 
                         Text {
-                            text: "HARDWARE"
-                            color: Theme.faint
+                            width: parent.width - 32 * root.s
+                            text: root.distro !== ""
+                                ? root.distro : "Linux"
+                            color: Theme.cream
                             font.family: Theme.font
-                            font.pixelSize: 8.5 * root.s
+                            font.pixelSize: 14 * root.s
                             font.weight: Font.DemiBold
-                            font.letterSpacing: 1.1 * root.s
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Row {
+                        id: factsRow
+                        width: parent.width
+                        spacing: 12 * root.s
+
+                        Column {
+                            id: systemFacts
+                            width: (parent.width - factsRow.spacing - 1) / 2
+                            spacing: 7 * root.s
+
+                            Repeater {
+                                model: [
+                                    { label: "HOSTNAME", value: root.hostName },
+                                    { label: "KERNEL", value: root.kernel },
+                                    { label: "WM", value: root.sessionInfo.name },
+                                    { label: "SHELL", value: root.shellName },
+                                    { label: "UPTIME", value: root.uptime }
+                                ]
+                                delegate: Fact {}
+                            }
                         }
 
-                        Repeater {
-                            model: [
-                                { label: "CPU", value: root.cpu },
-                                { label: "GPU", value: root.gpu },
-                                { label: "MEMORY", value: root.memUsed },
-                                { label: "DISK", value: root.diskUsed }
-                            ]
-                            delegate: Fact {}
+                        Rectangle {
+                            width: 1
+                            height: Math.max(
+                                systemFacts.implicitHeight,
+                                hardwareFacts.implicitHeight
+                            )
+                            color: Theme.hairSoft
+                        }
+
+                        Column {
+                            id: hardwareFacts
+                            width: systemFacts.width
+                            spacing: 7 * root.s
+
+                            Repeater {
+                                model: [
+                                    { label: "CPU", value: root.cpu },
+                                    { label: "GPU", value: root.gpu },
+                                    { label: "PACKAGES", value: root.pkgCount },
+                                    { label: "MEMORY", value: root.memUsed },
+                                    { label: "DISK", value: root.diskUsed }
+                                ]
+                                delegate: Fact {}
+                            }
                         }
                     }
                 }
@@ -561,6 +540,5 @@ SettingsSurface {
         }
 
         Item { width: 1; height: 4 * root.s }
-
     }
 }

@@ -27,6 +27,7 @@ SettingsSurface {
         { item: profileTile, kind: "nav", surface: "profile" }
     ]
 
+
     Column {
         id: content
         anchors.top: parent.top
@@ -34,7 +35,7 @@ SettingsSurface {
         anchors.right: parent.right
         spacing: 0
 
-        SettingsHeader {
+                SettingsHeader {
             s: root.s
             glyph: "設"
             title: "SETTINGS"
@@ -43,7 +44,7 @@ SettingsSurface {
 
         Item { width: 1; height: 12 * root.s }
 
-        SettingsRow {
+                SettingsRow {
             id: dispTile
             surface: root
             icon: "monitor"
@@ -58,7 +59,8 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
-        SettingsRow {
+
+                SettingsRow {
             id: ifaceTile
             surface: root
             icon: "mixer"
@@ -74,7 +76,7 @@ SettingsSurface {
             }
         }
 
-        SettingsRow {
+                SettingsRow {
             id: themeTile
             surface: root
             icon: "palette"
@@ -89,7 +91,8 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
-        SettingsRow {
+
+                SettingsRow {
             id: dockTile
             surface: root
             icon: "app-window"
@@ -103,7 +106,8 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
-        SettingsRow {
+
+                SettingsRow {
             id: profileTile
             surface: root
             icon: "user"
