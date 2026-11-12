@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import Quickshell.Io
 
 import "../Singletons"
 import "../components"
@@ -53,6 +54,13 @@ PanelWindow {
     readonly property var allEntries:
         DesktopEntries.applications.values
 
+    property var steamGameIcons: ({})
+    readonly property string steamIconMapPath:
+        (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache"))
+        + "/ukishima/steam-icons/active.json"
+    readonly property string steamIconScript:
+        Config.hyprPath("scripts", "steam-game-icons.py")
+
     function fallbackEntry(appId, toplevel) {
         var id = String(appId || "");
 
@@ -60,16 +68,58 @@ PanelWindow {
             return null;
 
         var title = id;
-
         if (toplevel && toplevel.title)
             title = String(toplevel.title);
 
+        var steamInfo = root.steamGameIcons[id.toLowerCase()] || null;
+
         return {
             id: id,
-            name: title,
-            icon: id,
+            name: steamInfo && steamInfo.name ? String(steamInfo.name) : title,
+            icon: steamInfo && steamInfo.icon ? String(steamInfo.icon) : id,
             startupClass: id
         };
+    }
+
+    FileView {
+        id: steamIconMapFile
+        path: root.steamIconMapPath
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+
+        onLoaded: {
+            try {
+                root.steamGameIcons = JSON.parse(steamIconMapFile.text());
+            } catch (e) {
+                root.steamGameIcons = ({});
+                console.warn("Ukishima: mappa icone Steam non valida:", e);
+            }
+        }
+
+        onFileChanged: reload()
+        onLoadFailed: root.steamGameIcons = ({})
+    }
+
+    Process {
+        id: steamIconScanProc
+        command: ["python3", root.steamIconScript]
+        running: true
+
+        onExited: {
+            steamIconMapFile.reload();
+        }
+    }
+
+    Timer {
+        interval: 4000
+        running: true
+        repeat: true
+
+        onTriggered: {
+            if (!steamIconScanProc.running)
+                steamIconScanProc.running = true;
+        }
     }
 
     /**
@@ -320,11 +370,34 @@ PanelWindow {
     }
 
     function pinEntry(entry) {
-        if (!entry || !entry.id || isPinned(entry))
+        if (!entry || !entry.id)
             return;
 
-        var next = Flags.dockApps.slice();
-        next.push(String(entry.id));
+        var resolved = Apps.resolveEntry(String(entry.id), allEntries);
+        var pinId = String(resolved && resolved.id ? resolved.id : entry.id);
+        var next = [];
+        var found = false;
+
+        for (var i = 0; i < Flags.dockApps.length; i++) {
+            var oldId = String(Flags.dockApps[i]);
+            var oldEntry = Apps.resolveEntry(oldId, allEntries);
+            var same = oldId.toLowerCase() === pinId.toLowerCase()
+                || (oldEntry && oldEntry.id
+                    && String(oldEntry.id).toLowerCase() === pinId.toLowerCase());
+
+            if (same) {
+                if (!found) {
+                    next.push(pinId);
+                    found = true;
+                }
+            } else {
+                next.push(oldId);
+            }
+        }
+
+        if (!found)
+            next.push(pinId);
+
         Flags.dockApps = next;
     }
 

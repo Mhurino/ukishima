@@ -253,8 +253,7 @@ Item {
         color: Theme.cardTop
         border.width: 1
         border.color: Theme.frameBorder
-        visible: root.active
-              && !root.pinned
+        visible: !root.pinned
               && root.entry
               && root.hovered
         opacity: visible ? 1 : 0
