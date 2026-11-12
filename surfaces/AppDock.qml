@@ -117,10 +117,64 @@ PanelWindow {
         repeat: true
 
         onTriggered: {
+            Hyprland.refreshToplevels();
             if (!steamIconScanProc.running)
                 steamIconScanProc.running = true;
         }
     }
+
+    // Supporta sia finestre Wayland sia XWayland.
+function toplevelAppId(toplevel) {
+if (!toplevel)
+return "";
+
+var wl = toplevel.wayland;
+var ipc = toplevel.lastIpcObject || ({});
+
+return String((wl && wl.appId)
+|| ipc.class
+|| ipc.initialClass
+|| "");
+}
+
+function toplevelIsMinimized(toplevel) {
+if (!toplevel)
+return true;
+
+if (toplevel.wayland)
+return !!toplevel.wayland.minimized;
+
+var ipc = toplevel.lastIpcObject || ({});
+return ipc.hidden === true || ipc.mapped === false;
+}
+
+function focusToplevel(toplevel) {
+if (!toplevel)
+return;
+
+if (toplevel.wayland) {
+toplevel.wayland.activate();
+return;
+}
+
+var address = root.normalizedWindowAddress(toplevel);
+if (address)
+Hyprland.dispatch("focuswindow address:0x" + address);
+}
+
+function closeToplevel(toplevel) {
+if (!toplevel)
+return;
+
+if (toplevel.wayland) {
+toplevel.wayland.close();
+return;
+}
+
+var address = root.normalizedWindowAddress(toplevel);
+if (address)
+Hyprland.dispatch("closewindow address:0x" + address);
+}
 
     /**
      * One logical entry per application currently visible in this monitor's
@@ -144,7 +198,7 @@ PanelWindow {
         for (var i = 0; i < tops.length; i++) {
             var t = tops[i];
 
-            if (!t || !t.monitor || !t.wayland || t.wayland.minimized)
+            if (!t || !t.monitor || root.toplevelIsMinimized(t))
                 continue;
 
             if (t.monitor.name !== root.monitorName)
@@ -159,11 +213,12 @@ PanelWindow {
             if (workspaceName.indexOf("special:") === 0)
                 continue;
 
-            var appId = String(t.wayland.appId || "");
+            var appId = root.toplevelAppId(t);
             if (appId.length === 0)
                 continue;
 
-            var entry = Apps.resolveEntry(appId, allEntries);
+            var isSteamGame = /^steam_app_[0-9]+$/i.test(appId);
+            var entry = isSteamGame ? null : Apps.resolveEntry(appId, allEntries);
 
             if (!entry)
                 entry = root.fallbackEntry(appId, t);
@@ -490,16 +545,17 @@ PanelWindow {
         for (var i = 0; i < tops.length; i++) {
             var t = tops[i];
 
-            if (!t || !t.monitor || !t.wayland || t.wayland.minimized)
+            if (!t || !t.monitor || root.toplevelIsMinimized(t))
                 continue;
             if (t.monitor.name !== root.monitorName)
                 continue;
 
-            var appId = String(t.wayland.appId || "");
+            var appId = root.toplevelAppId(t);
             if (appId.length === 0)
                 continue;
 
-            var resolved = Apps.resolveEntry(appId, allEntries);
+            var isSteamGame = /^steam_app_[0-9]+$/i.test(appId);
+            var resolved = isSteamGame ? null : Apps.resolveEntry(appId, allEntries);
 
             if (resolved && String(resolved.id) === String(entry.id))
                 return t;
@@ -546,15 +602,15 @@ PanelWindow {
 
             var top = running[i].toplevel;
 
-            if (top && top.wayland) {
-                top.wayland.close();
+            if (top) {
+                root.closeToplevel(top);
                 return;
             }
         }
     }
 
     function activateToplevel(toplevel) {
-        if (!toplevel || !toplevel.wayland)
+        if (!toplevel)
             return;
         if (toplevel.monitor && toplevel.monitor.name !== root.monitorName)
             return;
@@ -563,11 +619,10 @@ PanelWindow {
         if (ws && (!currentWorkspace || ws.id !== currentWorkspace.id)) {
             ws.activate();
             Qt.callLater(function () {
-                if (toplevel && toplevel.wayland)
-                    toplevel.wayland.activate();
+                root.focusToplevel(toplevel);
             });
         } else {
-            toplevel.wayland.activate();
+            root.focusToplevel(toplevel);
         }
     }
 
@@ -577,26 +632,20 @@ PanelWindow {
 
         var running = findRunningEntry(entry);
 
-        if (running && running.workspace) {
+        if (running) {
             var ws = running.workspace;
 
-            // First move to the workspace containing the application.
-            if (!currentWorkspace || ws.id !== currentWorkspace.id) {
+            if (ws && (!currentWorkspace || ws.id !== currentWorkspace.id)) {
                 ws.activate();
-
-                // Once the workspace is active, focus the actual window.
                 Qt.callLater(function() {
-                    if (running.wayland)
-                        running.wayland.activate();
+                    root.focusToplevel(running);
                 });
-            } else if (running.wayland) {
-                running.wayland.activate();
+            } else {
+                root.focusToplevel(running);
             }
-
             return;
         }
 
-        // Not running: launch the desktop entry.
         if (entry.execute)
             entry.execute();
     }
@@ -723,18 +772,20 @@ PanelWindow {
         var tops = Hyprland.toplevels.values;
         for (var i = 0; i < tops.length; i++) {
             var t = tops[i];
-            if (!t || !t.monitor || !t.wayland || t.monitor.name !== root.monitorName)
+            if (!t || !t.monitor || t.monitor.name !== root.monitorName
+                    || root.toplevelIsMinimized(t))
                 continue;
 
             var address = root.normalizedWindowAddress(t);
             if (!address || pending.previous[address])
                 continue;
 
-            var appId = String(t.wayland.appId || "");
+            var appId = root.toplevelAppId(t);
             if (!appId)
                 continue;
 
-            var resolved = Apps.resolveEntry(appId, root.allEntries);
+            var isSteamGame = /^steam_app_[0-9]+$/i.test(appId);
+            var resolved = isSteamGame ? null : Apps.resolveEntry(appId, root.allEntries);
             var matches = (resolved
                     && String(resolved.id) === pending.entryId)
                 || appId.toLowerCase() === pending.entryId.toLowerCase();
