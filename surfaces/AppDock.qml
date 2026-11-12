@@ -135,7 +135,8 @@ PanelWindow {
                     workspaceLabel: workspaceName,
                     workspaceHere: here,
                     running: true,
-                    active: active
+                    active: active,
+                    windows: [t]
                 };
 
                 byId[key] = existing;
@@ -144,6 +145,7 @@ PanelWindow {
             }
 
             // Prefer the active window, then a window on the current workspace.
+            existing.windows.push(t);
             var better =
                 (active && !existing.active)
                 || (here && !existing.workspaceHere);
@@ -155,6 +157,45 @@ PanelWindow {
                 existing.workspaceHere = here;
                 existing.active = active;
             }
+        }
+
+        // Put the active window first, then windows on the active workspace.
+        for (var wi = 0; wi < out.length; wi++) {
+            out[wi].windows.sort(function (a, b) {
+                var aa = !!(a && a.activated);
+                var ba = !!(b && b.activated);
+                if (aa !== ba) return aa ? -1 : 1;
+                var ah = !!(activeWs && a && a.workspace && a.workspace.id === activeWs.id);
+                var bh = !!(activeWs && b && b.workspace && b.workspace.id === activeWs.id);
+                if (ah !== bh) return ah ? -1 : 1;
+                return 0;
+            });
+        }
+
+        // Put the active window first, then windows on the active workspace.
+        for (var wi = 0; wi < out.length; wi++) {
+            out[wi].windows.sort(function (a, b) {
+                var aa = !!(a && a.activated);
+                var ba = !!(b && b.activated);
+                if (aa !== ba) return aa ? -1 : 1;
+                var ah = !!(activeWs && a && a.workspace && a.workspace.id === activeWs.id);
+                var bh = !!(activeWs && b && b.workspace && b.workspace.id === activeWs.id);
+                if (ah !== bh) return ah ? -1 : 1;
+                return 0;
+            });
+        }
+
+        // Put the active window first, then windows on the active workspace.
+        for (var wi = 0; wi < out.length; wi++) {
+            out[wi].windows.sort(function (a, b) {
+                var aa = !!(a && a.activated);
+                var ba = !!(b && b.activated);
+                if (aa !== ba) return aa ? -1 : 1;
+                var ah = !!(activeWs && a && a.workspace && a.workspace.id === activeWs.id);
+                var bh = !!(activeWs && b && b.workspace && b.workspace.id === activeWs.id);
+                if (ah !== bh) return ah ? -1 : 1;
+                return 0;
+            });
         }
 
         return out;
@@ -193,6 +234,7 @@ PanelWindow {
                 dockId: id,
                 pinned: true,
                 toplevel: null,
+                windows: [],
                 workspace: null,
                 workspaceLabel: "",
                 workspaceHere: false,
@@ -203,6 +245,7 @@ PanelWindow {
             for (var j = 0; j < running.length; j++) {
                 if (String(running[j].entry.id).toLowerCase() === String(id).toLowerCase()) {
                     item.toplevel = running[j].toplevel;
+                    item.windows = running[j].windows || (running[j].toplevel ? [running[j].toplevel] : []);
                     item.workspace = running[j].workspace;
                     item.workspaceLabel = running[j].workspaceLabel;
                     item.workspaceHere = running[j].workspaceHere;
@@ -376,6 +419,8 @@ PanelWindow {
 
             if (!t || !t.monitor || !t.wayland || t.wayland.minimized)
                 continue;
+            if (t.monitor.name !== root.monitorName)
+                continue;
 
             var appId = String(t.wayland.appId || "");
             if (appId.length === 0)
@@ -432,6 +477,24 @@ PanelWindow {
                 top.wayland.close();
                 return;
             }
+        }
+    }
+
+    function activateToplevel(toplevel) {
+        if (!toplevel || !toplevel.wayland)
+            return;
+        if (toplevel.monitor && toplevel.monitor.name !== root.monitorName)
+            return;
+
+        var ws = toplevel.workspace;
+        if (ws && (!currentWorkspace || ws.id !== currentWorkspace.id)) {
+            ws.activate();
+            Qt.callLater(function () {
+                if (toplevel && toplevel.wayland)
+                    toplevel.wayland.activate();
+            });
+        } else {
+            toplevel.wayland.activate();
         }
     }
 
@@ -587,7 +650,7 @@ PanelWindow {
         var tops = Hyprland.toplevels.values;
         for (var i = 0; i < tops.length; i++) {
             var t = tops[i];
-            if (!t || !t.wayland)
+            if (!t || !t.monitor || !t.wayland || t.monitor.name !== root.monitorName)
                 continue;
 
             var address = root.normalizedWindowAddress(t);
@@ -730,7 +793,7 @@ PanelWindow {
     readonly property bool dockShown:
         Flags.dockEnabled
         && !monFullscreen
-        && (Flags.dockAlwaysVisible || hoverReveal)
+        && (Flags.dockAlwaysVisible || hoverReveal || edgeReveal.containsMouse)
 
     screen: screenTarget
     visible:
@@ -831,10 +894,8 @@ PanelWindow {
         acceptedButtons: Qt.NoButton
 
         onEntered: {
-            if (!Flags.dockAlwaysVisible) {
-                hideTimer.stop();
-                root.hoverReveal = true;
-            }
+            hideTimer.stop();
+            root.hoverReveal = true;
         }
 
         onExited: {
@@ -1143,6 +1204,7 @@ PanelWindow {
                     active: modelData.active
                     running: modelData.running
                     toplevel: modelData.toplevel
+                    windows: modelData.windows || (modelData.toplevel ? [modelData.toplevel] : [])
                     workspaceHere: modelData.workspaceHere
                     workspaceLabel: modelData.workspaceLabel
                     pinned: modelData.pinned === true
@@ -1172,6 +1234,9 @@ PanelWindow {
 
                     onActivated:
                         (entry) => root.activateEntry(entry)
+
+                    onWindowActivated:
+                        (toplevel) => root.activateToplevel(toplevel)
 
                     onCloseRequested:
                         (entry) => root.closeEntry(entry)

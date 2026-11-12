@@ -635,6 +635,12 @@ function calendar(mon: string): void { root.toggleSurface(mon, "calendar"); }
             active: Flags.dockEnabled
             source: "surfaces/AppDock.qml"
 
+            onStatusChanged: {
+                console.warn("Ukishima AppDock loader status:", status);
+                if (status === Loader.Error)
+                    console.error("Ukishima: impossibile caricare surfaces/AppDock.qml");
+            }
+
             onLoaded: {
                 item.screenTarget = modelData;
 

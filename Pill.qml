@@ -116,10 +116,11 @@ Item {
     readonly property bool wallpaperSettingsOpen: surface === "wallpapersettings"
     readonly property bool profileOpen: surface === "profile"
     readonly property bool dockOpen: surface === "dock"
+    readonly property bool modulesOpen: surface === "modules"
     readonly property bool settingsLike:
         appearanceOpen || displayOpen || themeOpen || interfaceOpen
         || rightclickOpen || surfacestylesOpen
-        || fontpickerOpen || wallpaperSettingsOpen || profileOpen || dockOpen
+        || fontpickerOpen || wallpaperSettingsOpen || profileOpen || dockOpen || modulesOpen
     readonly property bool hasMedia: Players.list.length > 0
 
     readonly property var netDevices: (typeof Networking !== "undefined" && Networking && Networking.devices) ? Networking.devices.values : []
@@ -419,6 +420,7 @@ Item {
         rightclick: { size: () => Qt.size(appearanceW, surfaceItem(ldRightClick).implicitHeight + 29 * s), ame: () => surfaceItem(ldRightClick) },
         surfacestyles: { size: () => Qt.size(appearanceW, surfaceItem(ldStyles).implicitHeight + 29 * s), ame: () => surfaceItem(ldStyles) },
         dock:       { size: () => Qt.size(appearanceW, surfaceItem(ldDock).implicitHeight + 29 * s), ame: () => surfaceItem(ldDock) },
+        modules:    { size: () => Qt.size(appearanceW, surfaceItem(ldModules).implicitHeight + 29 * s), ame: () => surfaceItem(ldModules) },
         fontpicker: { size: () => Qt.size(fontpickerW, surfaceItem(ldFontpicker).implicitHeight + 29 * s), ame: () => surfaceItem(ldFontpicker) },
         wallpapersettings: { size: () => Qt.size(appearanceW, surfaceItem(ldWallpaperSettings).implicitHeight + 29 * s), ame: () => surfaceItem(ldWallpaperSettings) },
         profile:   { size: () => { const it = surfaceItem(ldProfile); return Qt.size(profileW, it.implicitHeight + 29 * s); }, ame: () => surfaceItem(ldProfile) }
@@ -451,6 +453,7 @@ Item {
         rightclick: () => ldRightClick,
         surfacestyles: () => ldStyles,
         dock: () => ldDock,
+        modules: () => ldModules,
         fontpicker: () => ldFontpicker,
         wallpapersettings: () => ldWallpaperSettings,
         profile: () => ldProfile
@@ -658,6 +661,8 @@ Item {
             return ldDisplay.item;
         if (pill.themeOpen)
             return ldTheme.item;
+        if (pill.modulesOpen)
+            return ldModules.item;
         if (pill.interfaceOpen)
             return ldInterface.item;
         if (pill.dockOpen)
@@ -744,6 +749,10 @@ Item {
         }
         if (pill.surfacestylesOpen) {
             pill.requestSurface("appearance");
+            return;
+        }
+        if (pill.modulesOpen) {
+            pill.requestSurface("theme");
             return;
         }
         if (pill.fontpickerOpen || pill.wallpaperSettingsOpen) {
@@ -3046,6 +3055,7 @@ onClicked: {
 
                 Item {
                     id: sysmonIcon
+                    visible: Flags.pillShowSysmon
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3071,6 +3081,7 @@ onClicked: {
 
                 Item {
                     id: recorderIcon
+                    visible: Flags.pillShowRecorder
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3124,6 +3135,7 @@ onClicked: {
 
                 Item {
                     id: wallpaperIcon
+                    visible: Flags.pillShowWallpaper
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3149,6 +3161,7 @@ onClicked: {
 
                 Item {
                     id: timerIcon
+                    visible: Flags.pillShowTimer
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3186,6 +3199,7 @@ onClicked: {
 
                 Item {
                     id: scratchIcon
+                    visible: Flags.pillShowScratch
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3237,6 +3251,7 @@ onClicked: {
 
                 Item {
                     id: launcherIcon
+                    visible: Flags.pillShowLauncher
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3295,6 +3310,7 @@ onClicked: {
 
                 Item {
                     id: powerIcon
+                    visible: Flags.pillShowPower
                     anchors.verticalCenter: parent.verticalCenter
                     width: 17 * pill.s
                     height: 17 * pill.s
@@ -3680,6 +3696,18 @@ onClicked: {
             morphCloseness: pill.morphCloseness
             onRequestClose: pill.requestClose()
             onRequestSurface: (name) => pill.requestSurface(name)
+        }
+    }
+
+    Loader {
+        id: ldModules
+        active: false
+        anchors.fill: parent
+        sourceComponent: ModulesSurface {
+            s: pill.s
+            open: pill.modulesOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
         }
     }
 

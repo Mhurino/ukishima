@@ -6,6 +6,14 @@ flags_file="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
 WPDIR=$(jq -r '.wallpaperDir // ""' "$flags_file" 2>/dev/null || echo "")
 FPS=$(jq -r '.wallpaperFps // 60' "$flags_file" 2>/dev/null || echo 60)
 case "$FPS" in 15|24|30|60) ;; *) FPS=60 ;; esac
+FIT=$(jq -r '.wallpaperFit // "crop"' "$flags_file" 2>/dev/null || echo crop)
+case "$FIT" in crop|fit|stretch|no) ;; *) FIT=crop ;; esac
+case "$FIT" in
+    no)      MPV_FIT_OPTS="video-unscaled=yes panscan=0" ;;
+    fit)     MPV_FIT_OPTS="panscan=0" ;;
+    stretch) MPV_FIT_OPTS="keepaspect=no panscan=0" ;;
+    *)       MPV_FIT_OPTS="panscan=1.0" ;;
+esac
 if [ -z "$WPDIR" ]; then
     # No explicit folder set: adopt an existing collection in the usual spots.
     # Two or more images counts as a collection, a single stray file does not,
@@ -154,6 +162,7 @@ apply_visual() {
             ;;
     esac
     awww img ${oflag[@]+"${oflag[@]}"} "$show" \
+        --resize "$FIT" \
         --transition-type wave \
         --transition-angle 30 \
         --transition-wave "60,30" \
@@ -161,7 +170,7 @@ apply_visual() {
         --transition-step 90
     if [ "$show" != "$pic" ] && ! is_video "$pic"; then
         sleep 0.9
-        awww img ${oflag[@]+"${oflag[@]}"} "$pic" --transition-type none
+        awww img ${oflag[@]+"${oflag[@]}"} "$pic" --resize "$FIT" --transition-type none
     fi
 }
 
@@ -196,7 +205,7 @@ sync_videos() {
     sleep 0.8
     while IFS=$'\t' read -r o pic; do
         [ -n "$o" ] || continue
-        setsid -f mpvpaper -p -o "no-audio loop-file=inf hwdec=auto panscan=1.0 fps=$FPS" "$o" "$pic" >/dev/null 2>&1
+        setsid -f mpvpaper -p -o "no-audio loop-file=inf hwdec=auto $MPV_FIT_OPTS fps=$FPS" "$o" "$pic" >/dev/null 2>&1
     done <<< "$desired"
 }
 
@@ -326,6 +335,38 @@ if [ "$cmd" = "init" ]; then
         exit 0
     fi
     restore_all
+elif [ "$cmd" = "fit" ]; then
+    # The selected value is passed explicitly to avoid racing flags.json writes.
+    requested_fit="${2:-$FIT}"
+    case "$requested_fit" in crop|fit|stretch|no) FIT="$requested_fit" ;; *) FIT=crop ;; esac
+    case "$FIT" in
+        no)      MPV_FIT_OPTS="video-unscaled=yes panscan=0" ;;
+        fit)     MPV_FIT_OPTS="panscan=0" ;;
+        stretch) MPV_FIT_OPTS="keepaspect=no panscan=0" ;;
+        *)       MPV_FIT_OPTS="panscan=1.0" ;;
+    esac
+    # Rebuild a missing map from the last selected local wallpaper when possible.
+    if [ ! -s "$MAP" ] && [ -s "$STATE" ]; then
+        last_pic=$(cat "$STATE")
+        [ -f "$last_pic" ] && map_put_all "$last_pic"
+    fi
+    # Re-apply the current per-monitor wallpaper map without replacing it.
+    if [ -s "$MAP" ]; then
+        while IFS=$'\t' read -r o current_pic; do
+            [ -n "$o" ] && [ -n "$current_pic" ] && [ -f "$current_pic" ] || continue
+            apply_visual "$current_pic" "$o"
+        done < "$MAP"
+    fi
+    # Force video instances to restart with the new fit options.
+    if timeout 3 pgrep -x mpvpaper >/dev/null 2>&1; then
+        pkill -x mpvpaper 2>/dev/null || true
+        for _ in $(seq 1 10); do
+            timeout 3 pgrep -x mpvpaper >/dev/null 2>&1 || break
+            sleep 0.1
+        done
+    fi
+    sync_videos
+    exit 0
 elif [ "$cmd" = "set" ]; then
     pic="${2:-}"
     [ -f "$pic" ] || exit 1

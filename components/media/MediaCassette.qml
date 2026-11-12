@@ -10,12 +10,109 @@ Item {
     property var host: null
 
     readonly property real s: deck.host ? deck.host.s : 1
-    readonly property real shellW: 340 * s
+    // Geometria del gruppo: custodia aperta, musicassetta e collegamenti.
+    readonly property real shellW: 300 * s
     readonly property real shellH: 142 * s
+    readonly property real caseW: 108 * s
+    readonly property real caseH: 132 * s
+    readonly property real caseGap: 10 * s
     readonly property real railW: 112 * s
-    readonly property real gap: 14 * s
-    readonly property real groupW: shellW + gap + railW
+    readonly property real gap: 12 * s
+    readonly property real groupW: caseW + caseGap + shellW + gap + railW
     readonly property real groupX: Math.max(8 * s, (width - groupW) / 2)
+    readonly property real shellX: groupX + caseW + caseGap
+
+    // ---------------------------------------------------------
+    // CUSTODIA APERTA E COPERTINA DEL BRANO
+    // ---------------------------------------------------------
+
+    Item {
+        id: caseBody
+
+        x: deck.groupX
+        y: (deck.shellH - deck.caseH) / 2 + 4 * deck.s
+        width: deck.caseW
+        height: deck.caseH
+
+        // Guscio trasparente della custodia.
+        Rectangle {
+            anchors.fill: parent
+            radius: 4 * deck.s
+            color: Qt.alpha(Theme.cardTop, 0.48)
+            border.width: 1
+            border.color: Qt.alpha(Theme.cream, 0.28)
+        }
+
+        // Coperchio aperto con la copertina del brano corrente.
+        Rectangle {
+            id: caseLid
+            x: 3 * deck.s
+            y: 3 * deck.s
+            width: parent.width - 6 * deck.s
+            height: 96 * deck.s
+            radius: 3 * deck.s
+            color: Qt.alpha(Theme.cardBot, 0.72)
+            border.width: 1
+            border.color: Qt.alpha(Theme.cream, 0.24)
+
+            MediaArt {
+                anchors.centerIn: parent
+                width: 88 * deck.s
+                height: 88 * deck.s
+                host: deck.host
+                lineColor: Qt.alpha(Theme.cream, 0.22)
+            }
+        }
+
+        // Cerniera e vaschetta inferiore in plastica.
+        Rectangle {
+            id: caseHinge
+            x: 7 * deck.s
+            y: 98 * deck.s
+            width: parent.width - 14 * deck.s
+            height: 2 * deck.s
+            radius: deck.s
+            color: Qt.alpha(Theme.cream, 0.34)
+        }
+
+        Rectangle {
+            id: caseTray
+            x: 3 * deck.s
+            y: 101 * deck.s
+            width: parent.width - 6 * deck.s
+            height: 28 * deck.s
+            radius: 3 * deck.s
+            color: Qt.alpha(Theme.cardBot, 0.82)
+            border.width: 1
+            border.color: Qt.alpha(Theme.cream, 0.20)
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 5 * deck.s
+                radius: 2 * deck.s
+                color: Qt.alpha(Theme.tileBg, 0.75)
+                border.width: 1
+                border.color: Qt.alpha(Theme.cream, 0.12)
+            }
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 24 * deck.s
+
+                Repeater {
+                    model: 2
+                    delegate: Rectangle {
+                        width: 8 * deck.s
+                        height: 8 * deck.s
+                        radius: width / 2
+                        color: Theme.cardTop
+                        border.width: 1
+                        border.color: Qt.alpha(Theme.cream, 0.28)
+                    }
+                }
+            }
+        }
+    }
 
     // ---------------------------------------------------------
     // CORPO DELLA MUSICASSETTA
@@ -24,7 +121,7 @@ Item {
     Rectangle {
         id: shell
 
-        x: deck.groupX
+        x: deck.shellX
         y: 4 * deck.s
         width: deck.shellW
         height: deck.shellH
@@ -106,7 +203,7 @@ Item {
                 id: leftReel
 
                 anchors.left: parent.left
-                anchors.leftMargin: 82 * deck.s
+                anchors.leftMargin: 68 * deck.s
                 anchors.verticalCenter: parent.verticalCenter
 
                 s: deck.s
@@ -118,7 +215,7 @@ Item {
                 id: rightReel
 
                 anchors.right: parent.right
-                anchors.rightMargin: 82 * deck.s
+                anchors.rightMargin: 68 * deck.s
                 anchors.verticalCenter: parent.verticalCenter
 
                 s: deck.s
@@ -361,25 +458,26 @@ Item {
                 color: Theme.cream
             }
 
-            // Pallino classico.
+            // Indicatore della posizione corrente, ben visibile sulla traccia.
             Rectangle {
                 x: Math.max(
                     0,
                     Math.min(
-                        parent.width - width,
-                        parent.width * seekBar.progress - width / 2
+                        seekBar.width - width,
+                        seekBar.width * seekBar.progress - width / 2
                     )
                 )
 
                 anchors.verticalCenter: parent.verticalCenter
 
-                width: 8 * deck.s
-                height: 8 * deck.s
+                width: 10 * deck.s
+                height: 10 * deck.s
                 radius: width / 2
 
                 color: Theme.cream
-                border.width: 1
+                border.width: 2 * deck.s
                 border.color: Theme.cardBot
+                z: 2
             }
 
             MouseArea {
@@ -388,14 +486,18 @@ Item {
                 enabled: seekBar.canSeek
                 cursorShape: Qt.PointingHandCursor
 
-                function seekAt(x) {
+                function seekAt(mouseX) {
                     if (!deck.host || !deck.host.lengthSec)
-                        return
+                        return;
+
+                    // La MouseArea sporge di 4 unità per lato:
+                    // riportiamo il click alle coordinate della traccia.
+                    var trackX = mouseX - 4 * deck.s;
 
                     deck.host.dragFrac = Math.max(
                         0,
-                        Math.min(1, x / Math.max(1, width))
-                    )
+                        Math.min(1, trackX / Math.max(1, seekBar.width))
+                    );
                 }
 
                 onPressed: (event) => {

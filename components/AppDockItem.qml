@@ -15,6 +15,7 @@ Item {
     property bool hovered: body.containsMouse
     property bool running: false
     property var toplevel: null
+    property var windows: []
 
     readonly property bool windowFloating: {
         var win = root.toplevel;
@@ -30,6 +31,9 @@ Item {
     property real magnification: 1
     property bool tooltipVisible: false
     property bool confirmVisible: false
+    property bool previewHover: false
+    property bool previewArmed: false
+    readonly property bool windowPreviewVisible: false
 
     // Drag-to-reorder: only for pinned apps that are not currently running.
     readonly property bool dragEnabled: pinned && !!entry
@@ -51,6 +55,7 @@ Item {
     signal pinRequested(var entry)
     signal unpinRequested(var entry, string dockId)
     signal dragDropped(var entry, string dockId, real delta)
+    signal windowActivated(var toplevel)
 
     readonly property real tileWidth: root.vertical
         ? (root.size + 16) * s
@@ -293,8 +298,30 @@ Item {
         repeat: false
 
         onTriggered: {
-            if (root.hovered)
+            if (root.hovered && !root.windowPreviewVisible)
                 root.tooltipVisible = true;
+        }
+    }
+
+    Timer {
+        id: previewOpenTimer
+        interval: 420
+        repeat: false
+        onTriggered: {
+            if (root.hovered && root.running && root.windows.length > 1) {
+                root.tooltipVisible = false;
+                root.previewArmed = true;
+            }
+        }
+    }
+
+    Timer {
+        id: previewCloseTimer
+        interval: 180
+        repeat: false
+        onTriggered: {
+            if (!root.hovered && !root.previewHover)
+                root.previewArmed = false;
         }
     }
 
@@ -309,13 +336,19 @@ Item {
         onPressed: root.wasDragged = false
 
         onEntered: {
+            previewCloseTimer.stop();
             root.tooltipVisible = false;
             tooltipTimer.restart();
+            if (root.running && root.windows.length > 1)
+                previewOpenTimer.restart();
         }
 
         onExited: {
             tooltipTimer.stop();
+            previewOpenTimer.stop();
             root.tooltipVisible = false;
+            if (root.windows.length > 1)
+                previewCloseTimer.restart();
         }
 
         onClicked: (mouse) => {
@@ -326,6 +359,10 @@ Item {
 
             if (mouse.button === Qt.RightButton) {
                 tooltipTimer.stop();
+                previewOpenTimer.stop();
+                previewCloseTimer.stop();
+                root.previewArmed = false;
+                root.previewHover = false;
                 root.tooltipVisible = false;
 
                     if (root.pinned || root.running)
@@ -364,6 +401,8 @@ Item {
                 root.dragging = true;
                 root.wasDragged = true;
                 tooltipTimer.stop();
+                previewOpenTimer.stop();
+                root.previewArmed = false;
                 root.tooltipVisible = false;
                 return;
             }
@@ -391,6 +430,9 @@ Item {
             && root.entry
             && root.entry.name
             && String(root.entry.name).trim() !== ""
+            && !root.windowPreviewVisible
+            && !root.windowPreviewVisible
+            && !root.windowPreviewVisible
 
         implicitWidth: Math.min(
             280 * root.s,
@@ -427,6 +469,7 @@ Item {
             }
         }
     }
+
 
     PopupWindow {
         id: removePopup

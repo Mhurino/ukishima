@@ -154,8 +154,9 @@ SettingsSurface {
         out.push({ item: glassRow, kind: "toggle", get: function () { return Flags.glass; }, set: function (v) { Flags.glass = v; } });
         if (Flags.glass)
             out.push({ item: glassTextRow, kind: "seg", vals: [0, 0.5, 1], get: function () { return Flags.glassTransparency; }, set: function (v) { Flags.glassTransparency = v; } });
-        out.push({ item: wallpaperSettingsRow, kind: "nav", surface: "wallpapersettings" });
         out.push({ item: fontRow, kind: "nav", surface: "fontpicker" });
+        out.push({ item: surfaceStylesRow, kind: "nav", surface: "surfacestyles" });
+        out.push({ item: wallpaperSettingsRow, kind: "nav", surface: "wallpapersettings" });
         return out;
     }
 
@@ -169,7 +170,7 @@ SettingsSurface {
         SettingsHeader {
             s: root.s
             glyph: "色"
-            title: "THEME"
+            title: "APPEARANCE"
             showBack: true
         }
 
@@ -439,9 +440,9 @@ SettingsSurface {
         SettingsRow {
             id: glassRow
             surface: root
-            name: "Transparency mode"
-            icon: "droplet"
-            sub: "Translucent palette-tinted surfaces"
+            name: "Glass effect"
+            icon: "layers"
+            sub: "Enable glass across the shell, media and dock"
             LinkToggle {
                 s: root.s
                 on: Flags.glass
@@ -452,9 +453,9 @@ SettingsSurface {
         SettingsRow {
             id: glassTextRow
             surface: root
-            name: "Transparency"
+            name: "Glass transparency"
             icon: "droplet"
-            sub: "Choose glass transparency"
+            sub: "Adjust the transparency of glass surfaces"
             visible: Flags.glass
             enabled: Flags.glass
             SettingsSeg {
@@ -678,6 +679,23 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
+
+        SettingsRow {
+            id: surfaceStylesRow
+            surface: root
+            name: "Surface Styles"
+            icon: "layers"
+            sub: "Layouts for the Pill, Media player and Scratchpad"
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: surfaceStylesRow.focused ? Theme.cream : Theme.iconDim
+                stroke: 1.9
+            }
+        }
+
+
         SettingsRow {
             id: wallpaperSettingsRow
             surface: root

@@ -260,11 +260,17 @@ PillSurface {
 
     onTitleChanged: if (playing && active) pulseAnim.restart()
 
-    Timer {
-        interval: 500
-        running: root.active && root.playing
-        repeat: true
-        onTriggered: if (root.player) root.player.positionChanged();
+    // Aggiorna la posizione MPRIS a ogni frame durante la riproduzione.
+    FrameAnimation {
+        running: root.active
+            && root.player !== null
+            && root.player.playbackState === MprisPlaybackState.Playing
+
+        onTriggered: {
+            const p = root.player;
+            if (p)
+                p.positionChanged();
+        }
     }
 
     Process {

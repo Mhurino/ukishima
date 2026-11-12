@@ -18,17 +18,20 @@ Singleton {
     property alias time12h: adapter.time12h
     property alias clockSeconds: adapter.clockSeconds
     property alias mainDisplay: adapter.mainDisplay
+    property alias expandTo: adapter.expandTo
         property alias showGlyphs: adapter.showGlyphs
     property alias paletteMode: adapter.paletteMode
     property alias oled: adapter.oled
     property alias showColorPalettes: adapter.showColorPalettes
     property alias wallpaperDir: adapter.wallpaperDir
     property alias wallpaperFps: adapter.wallpaperFps
+    property alias wallpaperFit: adapter.wallpaperFit
     property alias waywallenEnabled: adapter.waywallenEnabled
     property alias waywallenWallpaperDir: adapter.waywallenWallpaperDir
     property alias randomScope: adapter.randomScope
     property alias uiScale: adapter.uiScale
     property alias reduceMotion: adapter.reduceMotion
+    property alias motionStyle: adapter.motionStyle
     property alias manualHue: adapter.manualHue
     property alias manualDark: adapter.manualDark
     property alias manualSat: adapter.manualSat
@@ -36,10 +39,16 @@ Singleton {
     property alias pillOpacity: adapter.pillOpacity
     property alias pillBlur: adapter.pillBlur
     property alias glass: adapter.glass
-    property alias glassText: adapter.glassText
     property alias accentOverride: adapter.accentOverride
     property alias glassTransparency: adapter.glassTransparency
     property alias autoHide: adapter.autoHide
+    property alias pillShowSysmon: adapter.pillShowSysmon
+    property alias pillShowRecorder: adapter.pillShowRecorder
+    property alias pillShowTimer: adapter.pillShowTimer
+    property alias pillShowWallpaper: adapter.pillShowWallpaper
+    property alias pillShowScratch: adapter.pillShowScratch
+    property alias pillShowLauncher: adapter.pillShowLauncher
+    property alias pillShowPower: adapter.pillShowPower
     property alias topGap: adapter.topGap
     property alias appGap: adapter.appGap
     property alias recordCountdown: adapter.recordCountdown
@@ -106,6 +115,7 @@ Singleton {
             property bool clockSeconds: false
             property string mainDisplay: "minimal"
             /** What the media card's Expand control opens: "media" keeps the surface as the main screen, "pill" swaps to the expanded pill. */
+                        property string expandTo: "pill"
                         property bool showGlyphs: true
             property string paletteMode: "static"
             property bool oled: false
@@ -113,6 +123,7 @@ Singleton {
             /** Explicit wallpaper folder override. Empty means autodetect: the dir wallpaper.sh last resolved (ukishima-wallpaper-dir state file), then ~/Pictures/Wallpapers. Lives in user state so an in-app update never clobbers a custom folder. */
             property string wallpaperDir: ""
             property int wallpaperFps: 60
+            property string wallpaperFit: "crop"
             /** Optional Waywallen Flatpak wallpaper integration. */
             property bool waywallenEnabled: false
             /** Extra folder Waywallen Flatpak may read. */
@@ -129,6 +140,7 @@ Singleton {
             property string randomScope: "all"
             property real uiScale: 1.0
             property bool reduceMotion: false
+            property string motionStyle: "standard"
             property int manualHue: 30
             property bool manualDark: true
             property real manualSat: 0.5
@@ -136,11 +148,17 @@ Singleton {
             property real pillOpacity: 1.0
             property bool pillBlur: false
             property bool glass: true
-            property real glassText: 0
             //* Accent override: a "#rrggbb" hex that wins over the palette for every warm token. Empty follows the scheme.
             property string accentOverride: ""
             property real glassTransparency: 0.5
             property bool autoHide: false
+            property bool pillShowSysmon: true
+            property bool pillShowRecorder: true
+            property bool pillShowTimer: true
+            property bool pillShowWallpaper: true
+            property bool pillShowScratch: true
+            property bool pillShowLauncher: true
+            property bool pillShowPower: true
             /** Top margin as a fraction of the shipped 8px. 0 sits the pill flush to the screen edge. */
             property real topGap: 1.0
             /** Pill-to-window band as a fraction of the shipped 12px. 0 tucks the windows flush under the pill. */
@@ -176,7 +194,7 @@ Singleton {
 
             // Native app dock.
             property bool dockEnabled: true
-            property bool dockAlwaysVisible: false
+            property bool dockAlwaysVisible: true
             property int dockSize: 42
             property list<string> dockApps: []
             property bool dockSortByWorkspace: false

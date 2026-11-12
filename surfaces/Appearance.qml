@@ -21,9 +21,8 @@ SettingsSurface {
 
     rows: [
         { item: dispTile, kind: "nav", surface: "display" },
-        { item: themeTile, kind: "nav", surface: "theme" },
-        { item: stylesTile, kind: "nav", surface: "surfacestyles" },
         { item: ifaceTile, kind: "nav", surface: "interface" },
+        { item: themeTile, kind: "nav", surface: "theme" },
         { item: dockTile, kind: "nav", surface: "dock" },
         { item: profileTile, kind: "nav", surface: "profile" }
     ]
@@ -47,7 +46,7 @@ SettingsSurface {
         SettingsRow {
             id: dispTile
             surface: root
-            glyph: "時"
+            icon: "monitor"
             name: "Display"
             sub: "Pill layout · time · glyphs"
 
@@ -59,43 +58,10 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
-
-        SettingsRow {
-            id: themeTile
-            surface: root
-            glyph: "色"
-            name: "Theme"
-            sub: "Light, dark, dynamic or manual"
-
-            GlyphIcon {
-                width: 16 * root.s
-                height: 16 * root.s
-                name: "chevron-right"
-                color: root.focusRowItem === themeTile ? Theme.cream : Theme.iconDim
-                stroke: 1.9
-            }
-        }
-
-        SettingsRow {
-            id: stylesTile
-            surface: root
-            glyph: "枠"
-            name: "Surface Styles"
-            sub: "Visual layouts for the pill and surfaces"
-
-            GlyphIcon {
-                width: 16 * root.s
-                height: 16 * root.s
-                name: "chevron-right"
-                color: root.focusRowItem === stylesTile ? Theme.cream : Theme.iconDim
-                stroke: 1.9
-            }
-        }
-
         SettingsRow {
             id: ifaceTile
             surface: root
-            glyph: "面"
+            icon: "mixer"
             name: "Interface"
             sub: "Scale, motion, auto-hide"
 
@@ -109,9 +75,24 @@ SettingsSurface {
         }
 
         SettingsRow {
+            id: themeTile
+            surface: root
+            icon: "palette"
+            name: "Appearance"
+            sub: "Theme, glass, colors and wallpaper"
+
+            GlyphIcon {
+                width: 16 * root.s
+                height: 16 * root.s
+                name: "chevron-right"
+                color: root.focusRowItem === themeTile ? Theme.cream : Theme.iconDim
+                stroke: 1.9
+            }
+        }
+        SettingsRow {
             id: dockTile
             surface: root
-            glyph: "埠"
+            icon: "app-window"
             name: "Dock"
             sub: "Position, size and visibility"
             GlyphIcon {
@@ -122,11 +103,10 @@ SettingsSurface {
                 stroke: 1.9
             }
         }
-
         SettingsRow {
             id: profileTile
             surface: root
-            glyph: "我"
+            icon: "user"
             name: "Profile"
             sub: "User and system information"
             last: true

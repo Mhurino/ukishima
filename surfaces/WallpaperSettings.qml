@@ -72,6 +72,36 @@ SettingsSurface {
         fpsSetProc.running = true;
     }
 
+    property bool fitApplyQueued: false
+    property string queuedFit: ""
+
+    function setWallpaperFit(value) {
+        if (Flags.waywallenEnabled || ["crop", "fit", "stretch", "no"].indexOf(value) < 0)
+            return;
+        Flags.wallpaperFit = value;
+        if (fitApplyProc.running) {
+            root.fitApplyQueued = true;
+            root.queuedFit = value;
+            return;
+        }
+        fitApplyProc.command = ["bash", Config.hyprPath("scripts", "wallpaper.sh"), "fit", value];
+        fitApplyProc.running = true;
+    }
+
+    Process {
+        id: fitApplyProc
+        command: ["bash", Config.hyprPath("scripts", "wallpaper.sh"), "fit", String(Flags.wallpaperFit)]
+        onExited: {
+            if (root.fitApplyQueued) {
+                const nextFit = root.queuedFit;
+                root.fitApplyQueued = false;
+                root.queuedFit = "";
+                fitApplyProc.command = ["bash", Config.hyprPath("scripts", "wallpaper.sh"), "fit", nextFit];
+                fitApplyProc.running = true;
+            }
+        }
+    }
+
     onActiveChanged: {
         if (active)
             Qt.callLater(root.refreshFps);
@@ -150,6 +180,8 @@ SettingsSurface {
             get: function () { return root.fpsValue; },
             set: function (v) { root.setFps(v); }
         });
+        if (!Flags.waywallenEnabled)
+            out.push({ item: fitRow, kind: "seg", vals: ["crop", "fit", "stretch", "no"], get: function () { return Flags.wallpaperFit; }, set: function (v) { root.setWallpaperFit(v); } });
         out.push({ item: paletteRow, kind: "toggle", get: function () { return Flags.showColorPalettes; }, set: function (v) { Flags.showColorPalettes = v; } });
         if (Flags.waywallenEnabled)
             out.push({ item: waywallenOpenRow, kind: "text", activate: function () { Waywallen.openUI(); } });
@@ -208,7 +240,7 @@ SettingsSurface {
             id: fpsRow
             surface: root
             name: "Animated wallpaper FPS"
-            icon: "gauge"
+            icon: "video"
             sub: root.fpsError.length > 0
                 ? root.fpsError
                 : (Flags.waywallenEnabled
@@ -230,6 +262,41 @@ SettingsSurface {
         }
 
         SettingsRow {
+            id: paletteRow
+            surface: root
+            name: "Show color palettes"
+            icon: "palette"
+            sub: "Show palette dots in the wallpaper picker"
+            LinkToggle {
+                s: root.s
+                on: Flags.showColorPalettes
+                onToggled: Flags.showColorPalettes = !Flags.showColorPalettes
+            }
+        }
+
+        SettingsRow {
+            id: fitRow
+            visible: !Flags.waywallenEnabled
+            surface: root
+            name: "Wallpaper fit"
+            icon: "image"
+            sub: "How local wallpapers fill the screen"
+
+            SettingsSeg {
+                s: root.s
+                compact: true
+                options: [
+                    { label: "Cover", value: "crop" },
+                    { label: "Contain", value: "fit" },
+                    { label: "Stretch", value: "stretch" },
+                    { label: "Center", value: "no" }
+                ]
+                value: Flags.wallpaperFit
+                onPicked: (v) => root.setWallpaperFit(v)
+            }
+        }
+
+        SettingsRow {
             id: waywallenOpenRow
             visible: Flags.waywallenEnabled
             surface: root
@@ -242,19 +309,6 @@ SettingsSurface {
                 name: "chevron-right"
                 color: waywallenOpenRow.focused ? Theme.cream : Theme.iconDim
                 stroke: 1.9
-            }
-        }
-
-        SettingsRow {
-            id: paletteRow
-            surface: root
-            name: "Show color palettes"
-            icon: "palette"
-            sub: "Show palette dots in the wallpaper picker"
-            LinkToggle {
-                s: root.s
-                on: Flags.showColorPalettes
-                onToggled: Flags.showColorPalettes = !Flags.showColorPalettes
             }
         }
 
