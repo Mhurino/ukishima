@@ -92,6 +92,7 @@ Singleton {
     // Surface styles currently supported by this fork.
     property alias styleScratch: adapter.styleScratch
     property alias styleMedia: adapter.styleMedia
+    property alias styleWeather: adapter.styleWeather
 
     FileView {
         id: file
@@ -136,6 +137,7 @@ Singleton {
             // Scratchpad deck: default, cassette, index, console or ash.
             property string styleScratch: "default"
             property string styleMedia: "default"
+            property string styleWeather: "default"
             /** Super+B random target: "all" repaints every monitor, "cursor" only the one under the pointer. */
             property string randomScope: "all"
             property real uiScale: 1.0

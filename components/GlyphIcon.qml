@@ -38,6 +38,7 @@ Item {
         "palette": { d: "M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2v-1a2 2 0 0 1 2-2h1c1.1 0 2-.9 2-2a10 10 0 0 0-9-11z M7.5 11.5a1 1 0 1 0 .01 0 M9.5 7.5a1 1 0 1 0 .01 0 M14 6.5a1 1 0 1 0 .01 0 M17 10.5a1 1 0 1 0 .01 0", fill: false },
         "scaling": { d: "M3 7V3h4 M17 3h4v4 M21 17v4h-4 M7 21H3v-4 M9 12h6", fill: false },
         "waves": { d: "M2 8c2.5-3 5-3 7.5 0s5 3 7.5 0 M2 16c2.5-3 5-3 7.5 0s5 3 7.5 0", fill: false },
+        "wind": { d: "M12.8 19.6A2 2 0 1 0 14 16H2 M17.5 8A2.5 2.5 0 1 1 20 10.5H2 M9.8 4.4A2 2 0 1 1 11 8H2", fill: false },
         "sparkles": { d: "M12 3l1.7 5.1 5.1 1.7-5.1 1.7L12 16.6l-1.7-5.1-5.1-1.7 5.1-1.7z M5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z", fill: false },
         "gallery-horizontal": { d: "M3 7h12v10H3z M17 9l4-2v10l-4-2 M1 9v6 M6 10h6 M6 13h6", fill: false },
         "image": { d: "M3 4h18v16H3z M3 16l5-5 4 4 3-3 6 6 M15 8h.01", fill: false },

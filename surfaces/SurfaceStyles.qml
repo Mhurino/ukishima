@@ -14,6 +14,8 @@ SettingsSurface {
     Component.onCompleted: {
         if (["default", "matrix", "cassette"].indexOf(Flags.styleMedia) < 0)
             Flags.styleMedia = "default";
+        if (["default", "breeze"].indexOf(Flags.styleWeather) < 0)
+            Flags.styleWeather = "default";
     }
 
     readonly property var displayChoices: [
@@ -43,6 +45,11 @@ SettingsSurface {
         { label: "Ash", value: "ash" }
     ]
 
+    readonly property var weatherStyleChoices: [
+        { label: "Default", value: "default" },
+        { label: "Breeze", value: "breeze" }
+    ]
+
     rows: [
         {
             item: pillStyleRow,
@@ -70,6 +77,13 @@ SettingsSurface {
             vals: ["default", "cassette", "index", "console", "ash"],
             get: function () { return Flags.styleScratch; },
             set: function (v) { Flags.styleScratch = v; }
+        },
+        {
+            item: weatherStyleRow,
+            kind: "seg",
+            vals: ["default", "breeze"],
+            get: function () { return Flags.styleWeather; },
+            set: function (v) { Flags.styleWeather = v; }
         }
     ]
 
@@ -145,7 +159,6 @@ SettingsSurface {
             icon: "type"
             sub: "Choose the notes deck layout"
             z: root.openPicker === 3 ? 20 : 0
-            last: true
 
             SettingsDropdown {
                 s: root.s
@@ -155,6 +168,28 @@ SettingsSurface {
                 onRequestToggle: root.openPicker = root.openPicker === 3 ? 0 : 3
                 onPicked: (v) => {
                     Flags.styleScratch = v;
+                    root.openPicker = 0;
+                }
+            }
+        }
+
+        SettingsRow {
+            id: weatherStyleRow
+            surface: root
+            name: "Weather"
+            icon: "cloud"
+            sub: "Choose the weather surface layout"
+            z: root.openPicker === 4 ? 20 : 0
+            last: true
+
+            SettingsDropdown {
+                s: root.s
+                options: root.weatherStyleChoices
+                value: Flags.styleWeather
+                open: root.openPicker === 4
+                onRequestToggle: root.openPicker = root.openPicker === 4 ? 0 : 4
+                onPicked: (v) => {
+                    Flags.styleWeather = v;
                     root.openPicker = 0;
                 }
             }

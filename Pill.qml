@@ -3409,7 +3409,23 @@ onClicked: {
         id: ldWeather
         active: false
         anchors.fill: parent
-        sourceComponent: WeatherSurface {
+        sourceComponent: Flags.styleWeather === "breeze"
+            ? weatherBreezeComponent : weatherDefaultComponent
+    }
+
+    Component {
+        id: weatherDefaultComponent
+        WeatherSurface {
+            s: pill.s
+            open: pill.weatherOpen
+            morphCloseness: pill.morphCloseness
+            onRequestClose: pill.requestClose()
+        }
+    }
+
+    Component {
+        id: weatherBreezeComponent
+        WeatherSurfaceBreeze {
             s: pill.s
             open: pill.weatherOpen
             morphCloseness: pill.morphCloseness

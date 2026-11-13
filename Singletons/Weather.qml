@@ -176,8 +176,10 @@ Singleton {
         command: ["curl", "-s", "--max-time", "10",
             "https://api.open-meteo.com/v1/forecast?latitude=" + root.lat
             + "&longitude=" + root.lon
+            + "&temperature_unit=celsius"
             + "&current=temperature_2m,weather_code,is_day,relative_humidity_2m"
-            + "&hourly=temperature_2m,weather_code&forecast_hours=24"
+            + "&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&forecast_hours=24"
+            + "&wind_speed_unit=kmh"
             + "&daily=weather_code,temperature_2m_max,relative_humidity_2m_mean&forecast_days=5&timezone=auto"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -189,12 +191,24 @@ Singleton {
                     var rows = [];
                     var h = d.hourly;
                     if (h && h.time && h.temperature_2m && h.weather_code) {
-                        var n = Math.min(h.time.length, h.temperature_2m.length, h.weather_code.length);
+                        var windSpeeds = h.wind_speed_10m || [];
+                        var windDirections = h.wind_direction_10m || [];
+                        var n = Math.min(
+                            h.time.length,
+                            h.temperature_2m.length,
+                            h.weather_code.length,
+                            windSpeeds.length,
+                            windDirections.length
+                        );
                         for (var i = 0; i < n; i++) {
                             rows.push({
                                 hour: h.time[i].slice(11, 13),
                                 temp: Math.round(h.temperature_2m[i]),
-                                code: h.weather_code[i]
+                                code: h.weather_code[i],
+                                windSpeed: typeof windSpeeds[i] === "number"
+                                    ? Math.round(windSpeeds[i]) : null,
+                                windDirection: typeof windDirections[i] === "number"
+                                    ? Math.round(windDirections[i]) : null
                             });
                         }
                     }
