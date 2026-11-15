@@ -14,7 +14,6 @@ import colorsys
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -156,19 +155,6 @@ def ensure_contrast(color, bg, ratio):
     return to_hex(colorsys.hls_to_rgb(h, hi if dark_bg else lo, s))
 
 
-def backup_gtk_file(path):
-    """Preserve a pre-existing GTK config file before changing it."""
-    if not path.exists() and not path.is_symlink():
-        return
-    backup = path.with_name(path.name + ".ukishima-backup")
-    if backup.exists() or backup.is_symlink():
-        return
-    if path.is_symlink():
-        backup.symlink_to(os.readlink(path))
-    else:
-        shutil.copy2(path, backup)
-
-
 def ensure_gtk_import(directory, pairs):
     """Append the generated palette import while retaining the previous theme."""
     for name, imp in pairs.items():
@@ -176,7 +162,6 @@ def ensure_gtk_import(directory, pairs):
         main = directory / name
         try:
             if main.is_symlink():
-                backup_gtk_file(main)
                 target = Path(os.readlink(main))
                 if not target.is_absolute():
                     target = directory / target
@@ -186,7 +171,6 @@ def ensure_gtk_import(directory, pairs):
             elif main.is_file():
                 current = main.read_text()
                 if line not in current:
-                    backup_gtk_file(main)
                     if not current.endswith("\n"):
                         current += "\n"
                     main.write_text(current + line + "\n")
@@ -221,7 +205,6 @@ def render_gtk(tone, dark):
         d3 = Path.home() / ".config" / "gtk-3.0"
         d3.mkdir(parents=True, exist_ok=True)
         palette3 = d3 / "ukishima.css"
-        backup_gtk_file(palette3)
         palette3.write_text(gtk_body(dark))
         ensure_gtk_import(d3, {"gtk.css": "ukishima.css"})
 
@@ -229,8 +212,6 @@ def render_gtk(tone, dark):
         d4.mkdir(parents=True, exist_ok=True)
         palette4 = d4 / "ukishima.css"
         dark4 = d4 / "ukishima-dark.css"
-        backup_gtk_file(palette4)
-        backup_gtk_file(dark4)
         palette4.write_text(gtk_body(tone))
         dark4.write_text(gtk_body(dark))
         ensure_gtk_import(d4, {"gtk.css": "ukishima.css", "gtk-dark.css": "ukishima-dark.css"})

@@ -4,7 +4,7 @@
 Default mode validates without writing. --apply updates the private Qt6ct
 palette and a separate KDE color scheme, then notifies running KDE apps.
 Existing Nordic.colors, widget styles, fonts, icons and GTK theme names are
-not edited. --restore restores the Qt6ct/KDE settings changed by this tool.
+not edited. No configuration backups are created.
 """
 
 import argparse
@@ -26,9 +26,6 @@ QT_SCHEME = HOME / ".config/qt6ct/colors/ukishima-live.conf"
 KDE_GLOBALS = HOME / ".config/kdeglobals"
 DOLPHIN_CONFIG = HOME / ".config/dolphinrc"
 KDE_SCHEME = HOME / ".local/share/color-schemes/UkishimaLive.colors"
-BACKUP_DIR = HOME / ".local/state/ukishima/backups"
-QT_BACKUP = BACKUP_DIR / "qt6ct.conf.before-live-sync"
-KDE_STATE = BACKUP_DIR / "kde-live-state.json"
 KDE_GROUPS = (
     "Colors:Button",
     "Colors:Selection",
@@ -344,24 +341,7 @@ def atomic_write(path, content, default_mode=0o600):
         raise
 
 
-def capture_kde_state():
-    kde_text = KDE_GLOBALS.read_text(encoding="utf-8") if KDE_GLOBALS.exists() else ""
-    dolphin_text = DOLPHIN_CONFIG.read_text(encoding="utf-8") if DOLPHIN_CONFIG.exists() else ""
-    return {
-        "kdeglobals_existed": KDE_GLOBALS.exists(),
-        "dolphinrc_existed": DOLPHIN_CONFIG.exists(),
-        "general_color_scheme": get_ini_value(kde_text, "General", "ColorScheme"),
-        "kde_color_sections": {group: get_ini_section(kde_text, group) for group in KDE_GROUPS},
-        "dolphin_color_scheme": get_ini_value(dolphin_text, "UiSettings", "ColorScheme"),
-    }
-
-
 def apply_kde(colors, kde_scheme_text, kde_sections):
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    if not KDE_STATE.exists():
-        state = capture_kde_state()
-        atomic_write(KDE_STATE, json.dumps(state, indent=2) + "\n")
-
     kde_text = KDE_GLOBALS.read_text(encoding="utf-8") if KDE_GLOBALS.exists() else ""
     kde_text = set_ini_key(kde_text, "General", "ColorScheme", SCHEME_ID)
     for group, block in kde_sections.items():
@@ -403,44 +383,11 @@ def notify_kde_palette_changed():
     return False
 
 
-def restore_kde():
-    if not KDE_STATE.is_file():
-        raise FileNotFoundError(f"Backup KDE non trovato: {KDE_STATE}")
-    state = json.loads(KDE_STATE.read_text(encoding="utf-8"))
-    kde_text = KDE_GLOBALS.read_text(encoding="utf-8") if KDE_GLOBALS.exists() else ""
-    kde_text = set_ini_key(kde_text, "General", "ColorScheme", state["general_color_scheme"])
-    for group, old_block in state["kde_color_sections"].items():
-        kde_text = replace_ini_section(kde_text, group, old_block)
-    if state["kdeglobals_existed"]:
-        atomic_write(KDE_GLOBALS, kde_text)
-    else:
-        KDE_GLOBALS.unlink(missing_ok=True)
-
-    dolphin_text = DOLPHIN_CONFIG.read_text(encoding="utf-8") if DOLPHIN_CONFIG.exists() else ""
-    dolphin_text = set_ini_key(dolphin_text, "UiSettings", "ColorScheme", state["dolphin_color_scheme"])
-    if state["dolphinrc_existed"]:
-        atomic_write(DOLPHIN_CONFIG, dolphin_text)
-    else:
-        DOLPHIN_CONFIG.unlink(missing_ok=True)
-    KDE_SCHEME.unlink(missing_ok=True)
-    notify_kde_palette_changed()
-    print("Impostazioni KDE e Dolphin precedenti ripristinate.")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="applica le palette Qt6ct e KDE")
     parser.add_argument("--dry-run", action="store_true", help="verifica senza modificare file (predefinito)")
-    parser.add_argument("--restore", action="store_true", help="ripristina le impostazioni precedenti")
     args = parser.parse_args()
-
-    if args.restore:
-        if QT_BACKUP.is_file():
-            atomic_write(QT_CONFIG, QT_BACKUP.read_text(encoding="utf-8"))
-            QT_SCHEME.unlink(missing_ok=True)
-            print("Configurazione Qt6ct originale ripristinata.")
-        restore_kde()
-        return
 
     if not COLORS_FILE.is_file():
         raise FileNotFoundError(f"File colori Ukishima non trovato: {COLORS_FILE}")
@@ -463,17 +410,12 @@ def main():
         print("Nessun file è stato modificato. Per applicare: aggiungi --apply.")
         return
 
-    if not QT_BACKUP.exists():
-        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(QT_CONFIG, QT_BACKUP)
     atomic_write(QT_SCHEME, qt_scheme, 0o644)
     atomic_write(QT_CONFIG, updated_qt_config)
     apply_kde(colors, kde_scheme, kde_sections)
     notified = notify_kde_palette_changed()
     print("Palette Ukishima applicata a Qt6ct e KDE.")
     print(f"Palette KDE: {KDE_SCHEME}")
-    print(f"Backup Qt6ct: {QT_BACKUP}")
-    print(f"Backup impostazioni KDE/Dolphin: {KDE_STATE}")
     print("Notifica cambio palette KDE inviata." if notified else "Palette scritta; notifica live non disponibile.")
 
 
