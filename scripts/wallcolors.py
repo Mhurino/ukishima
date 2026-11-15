@@ -11,6 +11,7 @@ a neutral grey ramp. matugen still builds the dark base16 the always-dark termin
 reads; the pill JSON carries surfaces, accent and the contrast-matched text.
 """
 import colorsys
+import hashlib
 import json
 import os
 import re
@@ -199,6 +200,99 @@ def gtk_body(pill):
             + "\n".join("@define-color %s %s;" % kv for kv in mapping) + "\n")
 
 
+def gtk4_body(pill):
+    """Modern CSS variables for GTK4 and libadwaita 1.6+."""
+    values = {
+        "--accent-bg-color": pill["primary"],
+        "--accent-fg-color": ensure_contrast(pill["bright"], pill["primary"], 4.5),
+        "--accent-color": ensure_contrast(pill["primary"], pill["surface"], 3.0),
+        "--window-bg-color": pill["surface"],
+        "--window-fg-color": pill["cream"],
+        "--view-bg-color": pill["surface_container_low"],
+        "--view-fg-color": pill["cream"],
+        "--headerbar-bg-color": pill["surface_container"],
+        "--headerbar-fg-color": pill["cream"],
+        "--headerbar-backdrop-color": pill["surface_container"],
+        "--sidebar-bg-color": pill["surface_container_low"],
+        "--sidebar-fg-color": pill["cream"],
+        "--sidebar-backdrop-color": pill["surface_container_low"],
+        "--card-bg-color": pill["surface_container"],
+        "--card-fg-color": pill["cream"],
+        "--popover-bg-color": pill["surface_container_high"],
+        "--popover-fg-color": pill["cream"],
+        "--dialog-bg-color": pill["surface_container_highest"],
+        "--dialog-fg-color": pill["cream"],
+        "--border-color": pill["outline"],
+    }
+    modern = "\\n/* Ukishima: GTK4/libadwaita palette */\\nwindow {\\n"
+    modern += "".join(f"  {key}: {value};\\n" for key, value in values.items())
+    modern += "}\\n"
+    return gtk_body(pill) + modern
+
+
+def refresh_libadwaita_css(directory, palette_css):
+    """Change a stable marker so libadwaita can notice the user CSS update."""
+    main = directory / "gtk.css"
+    try:
+        if not main.is_file():
+            return
+        digest = hashlib.sha256(palette_css.encode()).hexdigest()[:12]
+        marker = f"/* Ukishima live palette: {digest} */"
+        current = main.read_text()
+        import re
+        current = re.sub(
+            r"(?m)^/\\* Ukishima live palette: [0-9a-f]{12} \\*/\\n?",
+            "", current
+        )
+        updated = current.rstrip() + "\\n" + marker + "\\n"
+        if updated != current:
+            main.write_text(updated)
+    except OSError:
+        pass
+
+
+def refresh_gtk_settings():
+    schema = "org.gnome.desktop.interface"
+
+    def get_value(key):
+        return subprocess.check_output(
+            ["gsettings", "get", schema, key],
+            text=True
+        ).strip().strip("'")
+
+    def set_value(key, value):
+        subprocess.run(
+            ["gsettings", "set", schema, key, value],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    try:
+        theme = get_value("gtk-theme")
+        scheme = get_value("color-scheme")
+
+        try:
+            temporary_scheme = (
+                "prefer-light" if scheme == "prefer-dark"
+                else "prefer-dark"
+            )
+            set_value("color-scheme", temporary_scheme)
+            set_value("color-scheme", scheme)
+
+            temporary_theme = (
+                "Adwaita" if theme != "Adwaita" else "Breeze"
+            )
+            set_value("gtk-theme", temporary_theme)
+            set_value("gtk-theme", theme)
+        finally:
+            set_value("gtk-theme", theme)
+            set_value("color-scheme", scheme)
+
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        print(f"Ukishima: refresh GTK non riuscito: {error}")
+
+
 def render_gtk(tone, dark):
     """Generate GTK3/GTK4 palette files and make them override theme colours last."""
     try:
@@ -212,9 +306,11 @@ def render_gtk(tone, dark):
         d4.mkdir(parents=True, exist_ok=True)
         palette4 = d4 / "ukishima.css"
         dark4 = d4 / "ukishima-dark.css"
-        palette4.write_text(gtk_body(tone))
-        dark4.write_text(gtk_body(dark))
+        gtk4_css = gtk4_body(tone)
+        palette4.write_text(gtk4_css)
+        dark4.write_text(gtk4_body(dark))
         ensure_gtk_import(d4, {"gtk.css": "ukishima.css", "gtk-dark.css": "ukishima-dark.css"})
+        refresh_libadwaita_css(d4, gtk4_css)
     except OSError:
         pass
 
@@ -275,6 +371,7 @@ def main():
     (CACHE / "colors.json").write_text(json.dumps(pill, indent=2) + "\n")
     render_fastfetch(pill)
     render_gtk(pill, dark_pill)
+    refresh_gtk_settings()
 
     # Apply the generated accent to running GTK/libadwaita and Qt6ct apps.
     # The helper is deliberately non-fatal: wallpaper and palette generation
