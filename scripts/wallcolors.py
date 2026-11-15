@@ -295,6 +295,15 @@ def main():
     render_fastfetch(pill)
     render_gtk(pill, dark_pill)
 
+    # Apply the generated accent to running GTK/libadwaita and Qt6ct apps.
+    # The helper is deliberately non-fatal: wallpaper and palette generation
+    # must continue even if a desktop integration is unavailable.
+    live_sync = Path(__file__).with_name("live-theme-sync.py")
+    if live_sync.is_file():
+        try:
+            subprocess.run([sys.executable, str(live_sync), "--apply"], check=False, timeout=12)
+        except (OSError, subprocess.SubprocessError) as error:
+            print(f"Live theme sync: {error}", file=sys.stderr)
     try:
         b = {k: v["dark"]["color"] for k, v in
              matugen(tint(hue, sat, 0.45) if chromatic else "#787878")["base16"].items()}
