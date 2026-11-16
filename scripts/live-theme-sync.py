@@ -165,6 +165,10 @@ def make_kde_scheme(colors):
             "Colors:Header", colors["surface_container"],
             colors["surface_container_low"], colors["cream"], colors["dim"], colors,
         ),
+        "Colors:Header][Inactive": kde_color_group(
+            "Colors:Header][Inactive", colors["surface_container"],
+            colors["surface_container_low"], colors["cream"], colors["dim"], colors,
+        ),
         "Colors:Selection": kde_color_group(
             "Colors:Selection", colors["primary_container"],
             colors["primary_container"], colors["on_primary_container"],
@@ -250,17 +254,21 @@ def patch_appearance(text):
 
 def section_bounds(text, section):
     lines = text.splitlines(keepends=True)
+    target_header = "[" + section + "]"
+    header_re = re.compile(r"^\s*((?:\[[^]]+\])+)\s*(?:[;#].*)?$")
     target = None
     end = len(lines)
+
     for i, line in enumerate(lines):
-        match = re.match(r"^\s*\[([^]]+)\]", line)
+        match = header_re.match(line.rstrip("\r\n"))
         if not match:
             continue
-        if target is None and match.group(1).strip() == section:
+        if target is None and match.group(1) == target_header:
             target = i
         elif target is not None:
             end = i
             break
+
     return lines, target, end
 
 
