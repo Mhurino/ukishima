@@ -28,6 +28,7 @@ DOLPHIN_CONFIG = HOME / ".config/dolphinrc"
 KDE_SCHEME = HOME / ".local/share/color-schemes/UkishimaLive.colors"
 KDE_GROUPS = (
     "Colors:Button",
+    "Colors:Header",
     "Colors:Selection",
     "Colors:Tooltip",
     "Colors:View",
@@ -159,6 +160,10 @@ def make_kde_scheme(colors):
         "Colors:Button": kde_color_group(
             "Colors:Button", colors["surface_container_high"],
             colors["surface_container"], colors["cream"], colors["dim"], colors,
+        ),
+        "Colors:Header": kde_color_group(
+            "Colors:Header", colors["surface_container"],
+            colors["surface_container_low"], colors["cream"], colors["dim"], colors,
         ),
         "Colors:Selection": kde_color_group(
             "Colors:Selection", colors["primary_container"],
@@ -403,7 +408,7 @@ def main():
     if not args.apply:
         print("TEST OK: colori Ukishima validi.")
         print("Qt6ct: 21 colori per ciascuno dei 3 gruppi.")
-        print("KDE: 5 gruppi colore (Button, Selection, Tooltip, View, Window).")
+        print("KDE: 6 gruppi colore (Button, Header, Selection, Tooltip, View, Window).")
         print(f"Palette Qt6ct: {QT_SCHEME}")
         print(f"Palette KDE: {KDE_SCHEME}")
         print("Dolphin seguirà la palette KDE di sistema; Nordic.colors resta intatto.")
