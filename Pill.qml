@@ -129,6 +129,25 @@ Item {
     readonly property var wifiNets: (wifiDev && wifiDev.networks) ? wifiDev.networks.values : []
     readonly property var wifiActive: wifiNets.find(function(n) { return n && n.connected }) || null
     readonly property real wifiLevel: (wifiActive && wifiActive.signalStrength) || 0
+
+    // Segnala quando il Wi-Fi e' collegato ma Internet non e' disponibile.
+    // Unknown e controlli disabilitati non generano falsi allarmi.
+    readonly property bool wifiInternetUnavailable: {
+        if (!wifiOn || wifiActive === null
+                || typeof Networking === "undefined" || !Networking
+                || !Networking.canCheckConnectivity
+                || !Networking.connectivityCheckEnabled) {
+            return false;
+        }
+
+        const state = Networking.connectivity;
+        return state === NetworkConnectivity.None
+            || state === NetworkConnectivity.Limited
+            || state === NetworkConnectivity.Portal;
+    }
+
+    readonly property color wifiSignalColor:
+        wifiInternetUnavailable ? Theme.vermLit : Theme.iconDim
     readonly property var btAdapter: (typeof Bluetooth !== "undefined" && Bluetooth) ? Bluetooth.defaultAdapter : null
     readonly property bool btOn: btAdapter ? btAdapter.enabled === true : false
 
@@ -2100,7 +2119,8 @@ Workspaces {
                                 anchors.bottom: parent.bottom
                                 color: pill.wifiOn && pill.wifiActive !== null
                                        && pill.wifiLevel > index * 0.25
-                                       ? Theme.iconDim : Qt.alpha(Theme.iconDim, 0.25)
+                                       ? pill.wifiSignalColor
+                                       : Qt.alpha(pill.wifiSignalColor, 0.25)
                             }
                         }
                     }
@@ -2499,8 +2519,8 @@ Workspaces {
                                 anchors.bottom: parent.bottom
                                 radius: width / 2
                                 color: lit
-                                    ? Theme.iconDim
-                                    : Qt.alpha(Theme.iconDim, 0.16)
+                                    ? pill.wifiSignalColor
+                                    : Qt.alpha(pill.wifiSignalColor, 0.16)
 
                                 Behavior on height {
                                     NumberAnimation {
