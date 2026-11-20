@@ -62,6 +62,17 @@ Item {
     })
 
     readonly property int unloadKeepMax: 4
+    // Solo superfici statiche, senza delegate o processi interni.
+    // Le superfici complesse restano in cache per evitare crash Qt Quick.
+    readonly property var unloadSafeSurfaces: ({
+        battery: true,
+        appearance: true,
+        display: true,
+        surfacestyles: true,
+        dock: true,
+        interface: true,
+        rightclick: true
+    })
     property var closedAt: ({})
 
     onSurfaceChanged: {
@@ -526,12 +537,39 @@ Item {
             return false;
         }
 
-        // Hotfix temporaneo: non modificare Loader.active a runtime.
-        // In alcune combinazioni Qt Quick/Quickshell, disattivare un Loader
-        // con Repeater e binding annidati può provocare un crash nativo.
-        // Rimuoviamo solo il timer di bookkeeping e lasciamo viva la superficie.
+        // Le superfici con Repeater/ListView/Process/Timer restano residenti:
+        // in passato il loro scaricamento ha provocato crash nativi.
+        if (!Flags.memorySaver || !pill.unloadSafeSurfaces[name]) {
+            delete pill.closedAt[name];
+            return false;
+        }
+
+        const factory = pill.loaders[name];
+        const ld = factory ? factory() : null;
+        if (!ld || !ld.active) {
+            delete pill.closedAt[name];
+            return false;
+        }
+
         delete pill.closedAt[name];
-        return false;
+
+        // Esegui la modifica fuori dal ciclo di valutazione dei binding.
+        // Se la superficie viene riaperta o richiusa nel frattempo, annulla.
+        Qt.callLater(function() {
+            if (!Flags.memorySaver || name === pill.surface
+                    || pill.closedAt[name] !== undefined)
+                return;
+
+            const currentFactory = pill.loaders[name];
+            const target = currentFactory ? currentFactory() : null;
+            if (!target || !target.active)
+                return;
+
+            target.active = false;
+            Qt.callLater(pill.reapJs);
+        });
+
+        return true;
     }
 
     Timer {
@@ -3358,9 +3396,10 @@ onClicked: {
     }
 
     /**
-     * Morphing surfaces, one latch-once Loader each (see surfaceItem). Eager,
+     * Morphing surfaces, one lazy Loader each (see surfaceItem). Eager,
      * they dominated startup and per-monitor RAM; now a surface is built
-     * synchronously on its first open and kept. Each loader fills the pill so
+     * on first open. The Memory Saver releases only the static allowlist;
+     * complex views stay cached. Each loader fills the pill so
      * the PillSurface inside anchors exactly as it did as a direct child.
      *
      * The hot trio preloads shortly after startup: the mixer needs its Pipewire

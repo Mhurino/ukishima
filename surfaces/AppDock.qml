@@ -54,12 +54,7 @@ PanelWindow {
     readonly property var allEntries:
         DesktopEntries.applications.values
 
-    property var steamGameIcons: ({})
-    readonly property string steamIconMapPath:
-        (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache"))
-        + "/ukishima/steam-icons/active.json"
-    readonly property string steamIconScript:
-        Config.hyprPath("scripts", "steam-game-icons.py")
+    readonly property var steamGameIcons: DockState.steamGameIcons
 
     function fallbackEntry(appId, toplevel) {
         var id = String(appId || "");
@@ -79,48 +74,6 @@ PanelWindow {
             icon: steamInfo && steamInfo.icon ? String(steamInfo.icon) : id,
             startupClass: id
         };
-    }
-
-    FileView {
-        id: steamIconMapFile
-        path: root.steamIconMapPath
-        blockLoading: true
-        watchChanges: true
-        printErrors: false
-
-        onLoaded: {
-            try {
-                root.steamGameIcons = JSON.parse(steamIconMapFile.text());
-            } catch (e) {
-                root.steamGameIcons = ({});
-                console.warn("Ukishima: mappa icone Steam non valida:", e);
-            }
-        }
-
-        onFileChanged: reload()
-        onLoadFailed: root.steamGameIcons = ({})
-    }
-
-    Process {
-        id: steamIconScanProc
-        command: ["python3", root.steamIconScript]
-        running: true
-
-        onExited: {
-            steamIconMapFile.reload();
-        }
-    }
-
-    Timer {
-        interval: 4000
-        running: true
-        repeat: true
-
-        onTriggered: {
-            Hyprland.refreshToplevels();
-            if (!steamIconScanProc.running)
-                steamIconScanProc.running = true;
-        }
     }
 
     // Supporta sia finestre Wayland sia XWayland.
