@@ -7,6 +7,7 @@ Singleton {
     id: root
     readonly property string scriptPath: Config.hyprPath("scripts", "waywallen.sh")
     property string requestedMode: ""
+    property bool openCooldown: false
     readonly property bool busy: actionProc.running
 
     function setEnabled(enabled) {
@@ -26,8 +27,10 @@ Singleton {
     }
 
     function openUI() {
-        if (openProc.running)
+        if (openProc.running || root.openCooldown)
             return;
+        root.openCooldown = true;
+        openCooldownTimer.start();
         openProc.command = ["bash", root.scriptPath, "open"];
         openProc.running = true;
     }
@@ -61,6 +64,13 @@ Singleton {
     }
 
     Process { id: openProc; command: [] }
+
+    Timer {
+        id: openCooldownTimer
+        interval: 1800
+        repeat: false
+        onTriggered: root.openCooldown = false
+    }
 
     Process {
         id: grantProc

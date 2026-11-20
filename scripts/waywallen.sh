@@ -333,7 +333,22 @@ case "${1:-}" in
     enable) enable_integration ;;
     start) start_integration ;;
     disable) disable_integration ;;
-    open) require_flatpak; nohup flatpak run "$APP_ID" >/dev/null 2>&1 </dev/null & ;;
+    open)
+        require_flatpak
+        command -v busctl >/dev/null 2>&1 || {
+            echo "busctl non trovato" >&2
+            exit 1
+        }
+        if ! busctl --user call \
+            org.waywallen.waywallen.Daemon \
+            /org/waywallen/waywallen/Daemon \
+            org.waywallen.waywallen.Daemon1 \
+            OpenUi >/dev/null 2>&1; then
+            notify "Impossibile aprire Waywallen: il daemon non risponde su D-Bus."
+            echo "Metodo D-Bus OpenUi non disponibile. Verifica ukishima-waywallen.service." >&2
+            exit 1
+        fi
+        ;;
     grant-folder) grant_folder "${2:-}" ;;
     layer-shell) run_layer_shell ;;
     *) echo "Uso: $0 {enable|start|disable|open|grant-folder PATH|layer-shell}" >&2; exit 2 ;;
