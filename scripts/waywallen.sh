@@ -35,34 +35,150 @@ grant_folder() {
     flatpak override --user "--filesystem=$folder:ro" "$APP_ID"
     notify "Accesso concesso. Aggiungi la cartella in Waywallen → Libraries."
 }
+# Version-aware Waywallen layer-shell installer
 install_layer_shell() {
-    [ -x "$LAYER_BIN" ] && return 0
-    command -v curl >/dev/null 2>&1 || { echo "curl non trovato" >&2; return 1; }
-    command -v jq >/dev/null 2>&1 || { echo "jq non trovato" >&2; return 1; }
-    command -v tar >/dev/null 2>&1 || { echo "tar non trovato" >&2; return 1; }
-    command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum non trovato" >&2; return 1; }
     local arch asset url digest archive bin share_dir
+    local installed_version latest_version newest_version staged staged_version backup
+
+    if ! command -v curl >/dev/null 2>&1; then
+        if [ -x "$LAYER_BIN" ]; then
+            echo "curl non disponibile: mantengo il layer-shell installato."
+            return 0
+        fi
+        echo "curl non trovato" >&2
+        return 1
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        if [ -x "$LAYER_BIN" ]; then
+            echo "jq non disponibile: mantengo il layer-shell installato."
+            return 0
+        fi
+        echo "jq non trovato" >&2
+        return 1
+    fi
+
+    installed_version=""
+    if [ -x "$LAYER_BIN" ]; then
+        installed_version="$("$LAYER_BIN" --version 2>/dev/null | awk '{print $NF}' || true)"
+    fi
+
     case "$(uname -m)" in
         x86_64|amd64) arch="x86_64" ;;
         aarch64|arm64) arch="aarch64" ;;
-        *) notify "Architettura non supportata: $(uname -m)"; echo "Architettura non supportata" >&2; return 1 ;;
+        *)
+            notify "Architettura non supportata: $(uname -m)"
+            echo "Architettura non supportata" >&2
+            return 1
+            ;;
     esac
+
     TMP_WORKDIR="$(mktemp -d)"
-    curl -fsSL "https://api.github.com/repos/waywallen/waywallen-display/releases/latest" -o "$TMP_WORKDIR/release.json"
-    asset="$(jq -r --arg arch "$arch" '.assets[] | select(.name | startswith("waywallen-layer-shell-") and endswith("-" + $arch + ".tar.gz")) | [.browser_download_url, .digest] | @tsv' "$TMP_WORKDIR/release.json" | head -n 1)"
-    [ -n "$asset" ] || { echo "Asset layer-shell non trovato per $arch" >&2; return 1; }
+
+    if ! curl -fsSL \
+        "https://api.github.com/repos/waywallen/waywallen-display/releases/latest" \
+        -o "$TMP_WORKDIR/release.json"; then
+        if [ -x "$LAYER_BIN" ]; then
+            echo "Impossibile controllare gli aggiornamenti: mantengo la versione installata."
+            return 0
+        fi
+        echo "Impossibile scaricare le informazioni della release Waywallen." >&2
+        return 1
+    fi
+
+    latest_version="$(jq -r '.tag_name // empty' "$TMP_WORKDIR/release.json" | sed 's/^v//')"
+
+    [[ "$latest_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+        echo "Versione dell'ultima release non valida: $latest_version" >&2
+        return 1
+    }
+
+    # Non reinstallare né effettuare downgrade se la versione presente
+    # è uguale o più recente dell'ultima release pubblicata.
+    if [[ "$installed_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        newest_version="$(printf '%s\n%s\n' "$installed_version" "$latest_version" | sort -V | tail -n 1)"
+
+        if [ "$newest_version" = "$installed_version" ]; then
+            echo "Waywallen layer-shell già aggiornato: $installed_version"
+            rm -rf -- "$TMP_WORKDIR"
+            TMP_WORKDIR=""
+            return 0
+        fi
+    fi
+
+    command -v tar >/dev/null 2>&1 || {
+        echo "tar non trovato" >&2
+        return 1
+    }
+    command -v sha256sum >/dev/null 2>&1 || {
+        echo "sha256sum non trovato" >&2
+        return 1
+    }
+
+    asset="$(jq -r --arg arch "$arch" \
+        '.assets[] | select(.name | startswith("waywallen-layer-shell-") and endswith("-" + $arch + ".tar.gz")) | [.browser_download_url, .digest] | @tsv' \
+        "$TMP_WORKDIR/release.json" | head -n 1)"
+
+    [ -n "$asset" ] || {
+        echo "Asset layer-shell non trovato per $arch" >&2
+        return 1
+    }
+
     IFS=$'\t' read -r url digest <<< "$asset"
-    [[ "$digest" == sha256:* ]] || { echo "La release non espone un digest SHA-256; installazione interrotta." >&2; return 1; }
+
+    [[ "$digest" == sha256:* ]] || {
+        echo "La release non espone un digest SHA-256; installazione interrotta." >&2
+        return 1
+    }
+
     archive="$TMP_WORKDIR/layer-shell.tar.gz"
     curl -fL "$url" -o "$archive"
+
     printf '%s  %s\n' "${digest#sha256:}" "$archive" | sha256sum -c -
+
     mkdir -p "$TMP_WORKDIR/unpacked" "$HOME/.local/bin" "$HOME/.local/share"
     tar -xzf "$archive" -C "$TMP_WORKDIR/unpacked"
+
     bin="$(find "$TMP_WORKDIR/unpacked" -type f -name waywallen-layer-shell -print -quit)"
-    [ -n "$bin" ] || { echo "Il pacchetto non contiene waywallen-layer-shell" >&2; return 1; }
-    install -Dm755 "$bin" "$LAYER_BIN"
+
+    [ -n "$bin" ] || {
+        echo "Il pacchetto non contiene waywallen-layer-shell" >&2
+        return 1
+    }
+
+    # Prepara il nuovo eseguibile senza toccare quello attualmente funzionante.
+    staged="$HOME/.local/bin/.waywallen-layer-shell.new.$$"
+    install -m755 "$bin" "$staged"
+
+    staged_version="$("$staged" --version 2>/dev/null | awk '{print $NF}' || true)"
+
+    if [ "$staged_version" != "$latest_version" ]; then
+        rm -f "$staged"
+        echo "Versione del binario scaricato inattesa: $staged_version (attesa $latest_version)" >&2
+        return 1
+    fi
+
+    # Backup del binario attuale prima della sostituzione.
+    if [ -x "$LAYER_BIN" ]; then
+        backup="$LAYER_BIN.bak-$(date +%Y%m%d-%H%M%S)"
+        cp -p "$LAYER_BIN" "$backup" || {
+            rm -f "$staged"
+            echo "Backup del vecchio binario fallito: aggiornamento annullato." >&2
+            return 1
+        }
+        echo "Backup del vecchio layer-shell: $backup"
+    fi
+
+    # Sostituzione atomica, dopo verifica della versione.
+    mv -f "$staged" "$LAYER_BIN"
+
     share_dir="$(dirname "$bin")/share"
-    if [ -d "$share_dir" ]; then cp -a "$share_dir/." "$HOME/.local/share/"; fi
+    if [ -d "$share_dir" ]; then
+        cp -a "$share_dir/." "$HOME/.local/share/"
+    fi
+
+    echo "Waywallen layer-shell aggiornato a $latest_version"
+
     rm -rf -- "$TMP_WORKDIR"
     TMP_WORKDIR=""
 }

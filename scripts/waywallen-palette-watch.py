@@ -2,6 +2,7 @@
 """Monitora gli sfondi attivi di Waywallen e aggiorna la palette Ukishima."""
 from pathlib import Path
 import importlib.util
+import json
 import os
 import sys
 import time
@@ -19,6 +20,36 @@ STATE_ROOT = Path(os.environ.get(
     "XDG_STATE_HOME", str(Path.home() / ".local/state")
 ))
 
+
+def activate_pending(wallpaper_id, item):
+    """Conferma lo stato Ukishima solo quando il wallpaper differito è attivo."""
+    pending_file = STATE_ROOT / "ukishima" / "waywallen-pending-apply.json"
+
+    try:
+        pending = json.loads(pending_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+
+    if str(pending.get("id", "")) != str(wallpaper_id):
+        return False
+
+    resource = str(item.get("resource") or pending.get("resource") or "")
+    if not resource:
+        return False
+
+    state_file = STATE_ROOT / "ukishima-wallpaper"
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+
+    state_tmp = state_file.with_suffix(".tmp")
+    state_tmp.write_text(resource + "\n", encoding="utf-8")
+    state_tmp.replace(state_file)
+
+    try:
+        pending_file.unlink()
+    except FileNotFoundError:
+        pass
+
+    return True
 
 def presentation_snapshot(event_bytes):
     """Estrae gli sfondi attivi dall'evento Waywallen."""
@@ -127,6 +158,13 @@ def watch_connection():
                         file=sys.stderr, flush=True,
                     )
                     continue
+
+                if activate_pending(wallpaper_id, item):
+                    print(
+                        f"Attivazione confermata: stato Ukishima aggiornato "
+                        f"per {item.get('name', wallpaper_id)}",
+                        flush=True,
+                    )
 
                 if already_synced(item):
                     print(

@@ -9,6 +9,7 @@ BUS = "org.waywallen.waywallen.Daemon"
 OBJ = "/org/waywallen/waywallen/Daemon"
 IFACE = "org.waywallen.waywallen.Daemon1"
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+REQUEST_TIMEOUT = 25
 
 # Eventi asincroni ricevuti durante le richieste al daemon.
 PENDING_EVENTS = []
@@ -150,7 +151,7 @@ def get_ws_port():
 def connect_ws():
     port = get_ws_port()
     sock = socket.create_connection(("127.0.0.1", port), timeout=5)
-    sock.settimeout(12)
+    sock.settimeout(REQUEST_TIMEOUT)
     key = base64.b64encode(os.urandom(16)).decode("ascii")
     request = (f"GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUpgrade: websocket\r\n"
                f"Connection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n")
@@ -170,7 +171,7 @@ def connect_ws():
 def request(sock, request_id, request_field, body=b""):
     payload = pb_uint(1, request_id) + pb_bytes(request_field, body)
     ws_send(sock, payload)
-    deadline = time.monotonic() + 12
+    deadline = time.monotonic() + REQUEST_TIMEOUT
     while time.monotonic() < deadline:
         frame = ws_recv_message(sock)
         # Conserva gli eventi ricevuti prima della risposta alla richiesta.
@@ -464,20 +465,52 @@ def apply_entry(sock, item, output="", request_id=100):
     response = request(sock, request_id, 22, body)  # WallpaperApplyRequest
     result = first(response, 22, 2, b"")
     applied = parse_fields(result)
+    deferred = bool(first(applied, 5, 0, 0))
     resource = item["resource"]
-    state_root = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
+
+    state_root = Path(os.environ.get(
+        "XDG_STATE_HOME", str(Path.home() / ".local/state")
+    ))
     state_file = state_root / "ukishima-wallpaper"
+    pending_file = state_root / "ukishima" / "waywallen-pending-apply.json"
+
+    if deferred:
+        # Waywallen ha accettato la richiesta, ma non ha ancora attivato
+        # uno dei renderer. La registriamo senza dichiararla già corrente.
+        pending_file.parent.mkdir(parents=True, exist_ok=True)
+        pending_tmp = pending_file.with_suffix(".tmp")
+        pending_tmp.write_text(
+            json.dumps({
+                "id": str(item["id"]),
+                "resource": resource,
+            }, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        pending_tmp.replace(pending_file)
+
+        print(
+            f"Richiesta inviata a Waywallen: {item['name'] or resource}. "
+            "Attivazione differita: lo stato sarà aggiornato quando lo sfondo partirà."
+        )
+        return
+
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state_tmp = state_file.with_suffix(".tmp")
     state_tmp.write_text(resource + "\n", encoding="utf-8")
     state_tmp.replace(state_file)
+
+    # Una nuova applicazione immediata sostituisce eventuali richieste pendenti.
+    try:
+        pending_file.unlink()
+    except FileNotFoundError:
+        pass
+
     try:
         sync_shell_palette(item, state_root)
     except Exception as exc:
-        # La palette non deve impedire l'applicazione del wallpaper.
         print("Aggiornamento palette Ukishima: " + str(exc), file=sys.stderr)
-    print(f"Sfondo impostato con Waywallen: {item['name'] or resource}")
 
+    print(f"Sfondo impostato con Waywallen: {item['name'] or resource}")
 
 
 def read_waywallen_settings(sock):
