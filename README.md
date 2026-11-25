@@ -12,6 +12,11 @@ This fork extends the original project with a particular focus on:
 
 * Hyprland integration
 * workspace-aware application management
+* integrated countdown Timer
+* clipboard history with image previews
+* persistent Scratchpad notes with autosave and pinning
+* Open-Meteo weather surface with editable location
+* configurable Surface Styles for the pill, media player, Scratchpad, and Weather
 * native application dock
 * music management and playback
 * per-application audio control
@@ -23,6 +28,17 @@ This fork extends the original project with a particular focus on:
 * Wayland-native components
 
 ---
+
+## Documentation
+
+The repository includes focused guides for the features and integrations in this fork:
+
+* [Feature guide](docs/FEATURES.md) — pill navigation, Timer, Clipboard, Scratchpad, Weather, themes, Surface Styles, and feature map.
+* [Application Dock](docs/DOCK.md) — pinning, workspace-aware windows, positions, reveal behavior, and floating actions.
+* [Media and Beats](docs/MEDIA-BEATS.md) — MPRIS player controls, visual styles, local music, and online stations.
+* [Recording and audio](docs/RECORDING-AUDIO.md) — GPU Screen Recorder, quick capture, 30-second replay, PipeWire mixer, and quick controls.
+* [System surfaces](docs/SYSTEM-SURFACES.md) — Launcher, Calendar, Inbox, Wi-Fi, Bluetooth, Battery, System Monitor, Power, and Hyprland behavior.
+* [Waywallen integration](docs/WAYWALLEN.md) — setup, settings, systemd services, layer-shell updates, NVIDIA compatibility, Steam Wallpaper Engine content, and palette synchronization.
 
 ## Dependencies
 
@@ -270,68 +286,27 @@ The configuration system is intended to keep user-facing settings separate from 
 
 # Wallpaper Integration: Waywallen and Wallpaper Engine
 
-This fork can optionally connect Ukishima to [Waywallen](https://github.com/waywallen/waywallen), allowing wallpapers from Waywallen's catalog to be browsed and applied from Ukishima's wallpaper strip.
+This fork integrates [Waywallen](https://github.com/waywallen/waywallen) as an optional wallpaper backend. Ukishima can browse and apply entries from Waywallen's catalog while keeping its own local wallpaper workflow available.
 
-## Waywallen
+The integration includes:
 
-The optional integration provides:
+* A catalog bridge between Ukishima and the Waywallen daemon.
+* A Hyprland layer-shell display client.
+* Per-wallpaper animated-video FPS settings (15, 24, 30, or 60).
+* Automatic synchronization of Ukishima's dynamic palette when wallpapers are changed in Waywallen.
+* Managed user-level systemd services for the daemon, layer-shell client, and palette watcher.
+* NVIDIA Web-renderer compatibility configuration when an NVIDIA GPU is detected.
+* An explicit layer-shell updater, separate from normal startup.
 
-* Browsing and applying wallpapers listed in Waywallen's catalog from the Ukishima wallpaper picker
-* Support for catalog entries such as videos and plugin-provided wallpaper types
-* Wallpaper preview thumbnails when the source provides them; video thumbnails can be generated locally when needed
-* Shell palette updates based on the selected wallpaper when dynamic palette mode is enabled
+Enable Waywallen from **Settings → Appearance → Wallpaper**. The same page exposes the Waywallen toggle, FPS, palette dots, the Waywallen application, and custom library-folder access.
 
-Install and configure Waywallen separately. Enable the Waywallen integration from Ukishima's appearance/theme settings. Waywallen's daemon and its Hyprland layer-shell display client must be running for plugin-rendered wallpapers to appear on the desktop.
-
-### Automatic shell palette synchronization
-
-The `ukishima-waywallen-palette.service` keeps the Ukishima shell colors in sync when wallpapers are changed directly in the Waywallen application, not only when they are selected through Ukishima's `Super+W` wallpaper picker.
-
-The service listens to Waywallen's local WebSocket presentation events, identifies the active wallpaper in the catalog, and reuses Ukishima's existing palette-generation logic. Depending on the selected wallpaper and its available image or preview, it updates the palette and reloads the supported shell configurations.
-
-The monitor is a lightweight Python process running as a user-level systemd service. It starts automatically with the user session once enabled.
-
-#### Enable the service
-
-From the repository root, run:
-
-```bash
-bash scripts/enable-waywallen-palette-sync.sh
-```
-
-The script validates the Python and Bash files, configures the Waywallen integration through the existing setup script, and enables and starts `ukishima-waywallen-palette.service`. The Waywallen daemon and layer-shell integration are also started as part of this setup.
-
-#### Check status and logs
-
-```bash
-systemctl --user status ukishima-waywallen-palette.service --no-pager
-journalctl --user -u ukishima-waywallen-palette.service -f
-```
-
-#### Disable automatic synchronization
-
-```bash
-systemctl --user disable --now ukishima-waywallen-palette.service
-```
-
-Run the enable script again to restore automatic synchronization. Wallpapers without a readable source image or preview may not provide enough information to generate a new palette.
+For complete setup instructions, service management, troubleshooting, NVIDIA behavior, manual layer-shell updates, and Steam Workshop/Wallpaper Engine support, see the [Waywallen integration guide](docs/WAYWALLEN.md).
 
 ## Wallpaper Engine through Steam
 
-Wallpaper Engine content can be exposed to Waywallen through the external [Open Wallpaper Engine plugin](https://github.com/waywallen/open-wallpaper-engine). It provides a scene renderer and a web renderer for supported Wallpaper Engine content.
+Wallpaper Engine content is supported through the external [Open Wallpaper Engine plugin](https://github.com/waywallen/open-wallpaper-engine). Install the plugin in Waywallen, add the relevant Steam Workshop content directory under **Libraries**, and grant Flatpak read-only access to custom folders through Ukishima when needed.
 
-### Setup
-
-1. Install Waywallen and install the Open Wallpaper Engine plugin using its [official releases](https://github.com/waywallen/open-wallpaper-engine/releases) and the plugin's instructions.
-2. In Waywallen, add the relevant Steam Workshop or Wallpaper Engine content directory under **Libraries** and allow the library scan to finish.
-3. Ensure Waywallen has filesystem access to that library. With Flatpak, grant access to custom directories when needed.
-4. Enable Waywallen in Ukishima, open the wallpaper strip, and refresh the catalog if necessary.
-
-The plugin's upstream README states that its prebuilt releases support the Flatpak and AppImage editions of Waywallen. Source builds and distribution-packaged versions may require a separately built or packaged plugin; follow the plugin's current instructions.
-
-Only items successfully discovered by Waywallen and supported by the installed renderer/plugin will work. Preview availability varies by source. Waywallen manages rendering and transitions for wallpapers applied through its catalog, while Ukishima continues to manage its local wallpaper workflow.
-
----
+Actual support depends on the installed plugin/renderer and the wallpaper itself. Scene/Web playback and preview availability are not guaranteed for every Workshop item.
 
 # Kanji and Glyph Mode
 
@@ -439,6 +414,11 @@ This repository is a **personal fork of the original Ukishima project**.
 It contains substantial modifications and additional functionality that are not part of upstream Ukishima, including:
 
 * Beats
+* Integrated countdown Timer
+* Clipboard history and image previews
+* Persistent Scratchpad notes with pinning and autosave
+* Open-Meteo weather surface and editable city
+* Configurable Surface Styles and interface behavior
 * Native application Dock
 * Workspace-aware application management
 * Per-application volume control
@@ -448,6 +428,9 @@ It contains substantial modifications and additional functionality that are not 
 * Additional configuration options
 * Kanji/glyph extensions
 * Additional UI and interaction improvements
+* Waywallen daemon supervision and clean Flatpak lifecycle
+* Automatic NVIDIA Web-renderer compatibility workaround
+* Explicit, opt-in Waywallen layer-shell updates
 
 The repository is primarily maintained for personal use, experimentation, customization, and continued development.
 
