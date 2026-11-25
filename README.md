@@ -1,473 +1,209 @@
-# Ukishima — Personal Fork
+# Ukishima
 
-A personal fork of [Ukishima](https://github.com/amanhex/ukishima), extended and maintained as a customized desktop shell for **Quickshell**, **Wayland**, and **Hyprland**.
+\<p align="center">
+&#x20; \<strong>A personal desktop shell built with Quickshell, QML and Hyprland.\</strong>
+&#x20; \<br>
+&#x20; A modular Wayland interface for navigation, applications, media and system controls.
+\</p>
 
-This fork preserves the original Ukishima architecture and visual philosophy while introducing additional components, integrations, configuration options, and desktop workflows developed for personal use.
+\<p align="center">
+&#x20; \<a href="#features">Features\</a> ·
+&#x20; \<a href="#screenshots">Screenshots\</a> ·
+&#x20; \<a href="#installation">Installation\</a> ·
+&#x20; \<a href="#documentation">Documentation\</a> ·
+&#x20; \<a href="[https://github.com/amanhex/Ukishima](https://github.com/amanhex/Ukishima)">Original project\</a>
+\</p>
 
-## Overview
-
-Ukishima is a modular desktop shell built with Quickshell and QML. It provides a unified interface for desktop navigation, system controls, media, application management, recording, and configuration.
-
-This fork extends the original project with a particular focus on:
-
-* Hyprland integration
-* workspace-aware application management
-* integrated countdown Timer
-* clipboard history with image previews
-* persistent Scratchpad notes with autosave and pinning
-* Open-Meteo weather surface with editable location
-* configurable Surface Styles for the pill, media player, Scratchpad, and Weather
-* native application dock
-* music management and playback
-* per-application audio control
-* screen recording and instant replay
-* customized top-bar functionality
-* configurable shell behavior
-* Kanji and glyph-based interface elements
-* consistent animations and visual design
-* Wayland-native components
+\<p align="center">
+&#x20; \<img src="screenshots/main-shell.png" alt="Ukishima main shell" width="100%">
+\</p>
 
 ---
+
+Ukishima is a desktop shell built with **Quickshell and Qt Quick**, designed around a compact pill interface and a collection of integrated surfaces.
+
+This repository is a personal fork of [amanhex/Ukishima](https://github.com/amanhex/Ukishima). It preserves the original project's visual direction while adding new interfaces, Hyprland integrations, application management and desktop workflows.
+
+The goal is to keep the desktop visually coherent: controls, applications, media and system information are brought together in one configurable environment.
+
+## Features
+
+| Area                         | Features                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Pill and navigation**      | Per-monitor interface, expandable surfaces, configurable shortcuts and right-click navigation           |
+| **Application Dock**         | Pinned applications, running windows, workspace-aware grouping, edge reveal and multiple positions      |
+| **Appearance**               | Light, Dark, Dynamic and Manual palettes, OLED mode, custom accents, transparency, fonts and animations |
+| **Media**                    | MPRIS playback controls, album artwork, multiple-player selection and alternative visual styles         |
+| **Beats**                    | Separate interface for local music and configured online stations                                       |
+| **System tools**             | Launcher, Calendar, Timer, Clipboard, Scratchpad, Weather, Wi-Fi, Bluetooth, Battery and System Monitor |
+| **Recording**                | GPU Screen Recorder integration, screen/window/region capture, audio controls and replay                |
+| **Wallpaper**                | Local wallpaper workflow, dynamic palette synchronization and optional Waywallen integration            |
+| **Application installation** | Launcher drop installer for AppImages, packages, archives, fonts and wallpapers                         |
+
+The shell is designed to react to the current monitor, workspace and window state. Individual surfaces share the same theme and animation system.
+
+## Screenshots
+
+| Shell and navigation | Application Dock |
+| -------------------- | ---------------- |
+|                      |                  |
+
+| Top bar |   | Media and Beats |   |
+| ------- | - | --------------- | - |
+|         |   |                 |   |
+
+| Audio controls | System Monitor |
+| -------------- | -------------- |
+|                |                |
+
+| Screen recording | Beats |
+| ---------------- | ----- |
+|                  |       |
+
+## Highlights
+
+### A configurable shell
+
+The pill is the main entry point to Ukishima's surfaces. It adapts to the active monitor and Hyprland state, and provides configurable shortcuts and navigation.
+
+The appearance settings include:
+
+- Light, Dark, Dynamic and Manual palettes.
+- OLED mode and custom accent colors.
+- Glass effects and transparency.
+- Interface scaling and font selection.
+- Animation styles and reduced motion.
+- Auto-hide and Memory Saver options.
+- Configurable modules and right-click navigation.
+
+### A native application Dock
+
+The Dock is implemented as a Quickshell surface rather than a separate desktop application.
+
+It supports pinned applications, automatically detected running windows, application grouping, multiple positions, adjustable size, edge reveal and fullscreen-aware visibility.
+
+See [Application Dock](docs/DOCK.md).
+
+### Media and Beats
+
+The Media surface controls compatible MPRIS players. It can show track information and artwork, expose playback controls and switch between active players.
+
+Beats is a separate interface for local music and configured online stations.
+
+**Beats requires an external helper script** at `~/.config/hypr/UserScripts/UkishimaBeats.sh`. That helper is not included in this repository.
+
+See [Media and Beats](docs/MEDIA-BEATS.md).
+
+### Desktop tools
+
+Ukishima brings together several everyday tools:
+
+- **Launcher:** application search, usage-based ranking and calculator.
+- **Calendar:** local events, recurring entries and reminders.
+- **Timer:** presets and custom countdowns.
+- **Clipboard:** clipboard history with image previews.
+- **Scratchpad:** persistent notes with autosave and pinning.
+- **Weather:** Open-Meteo forecasts and editable location.
+- **System surfaces:** network, Bluetooth, battery, notifications and system monitoring.
+
+See [Feature guide](docs/FEATURES.md) and [System surfaces](docs/SYSTEM-SURFACES.md).
+
+### Screen recording and audio
+
+The Recorder surface integrates GPU Screen Recorder for monitor, window and region capture, with configurable quality, frame rate, cursor and audio inputs.
+
+The replay action saves the most recent 30 seconds through `gsr-cli`. It depends on an already running GPU Screen Recorder instance with its replay buffer available.
+
+The Mixer exposes PipeWire output and input controls, including per-application audio streams.
+
+See [Recording and audio](docs/RECORDING-AUDIO.md).
+
+### Wallpapers and Waywallen
+
+Ukishima retains its local wallpaper workflow and can optionally integrate [Waywallen](https://github.com/waywallen/waywallen).
+
+The integration adds a wallpaper catalog bridge, a Hyprland layer-shell client, animated wallpaper settings and dynamic palette synchronization.
+
+Waywallen is a separate Flatpak application and must be installed independently.
+
+See [Waywallen integration](docs/WAYWALLEN.md).
+
+### Application installer
+
+The launcher can handle dropped files through `scripts/app-install.sh`.
+
+Supported categories include:
+
+- AppImage applications.
+- Native package formats supported by the available package manager.
+- Flatpak reference files.
+- Compressed archives and ZIP files.
+- TTF and OTF fonts.
+- Wallpaper images.
+
+AppImage metadata inspection executes the supplied file with `--appimage-extract`. Only use AppImages from sources you trust.
+
+## Installation
+
+### Requirements
+
+The shell is built for:
+
+- Linux
+- Wayland
+- Hyprland
+- Quickshell
+- Qt Quick
+
+Additional utilities are used by individual integrations. The installation script checks for tools such as `jq`, `curl`, `python3`, ImageMagick, FFmpeg, NetworkManager, BlueZ, PipeWire-related components and Wayland utilities.
+
+Some optional features also use GPU Screen Recorder, `mpvpaper`, `matugen`, `ddcutil`, `kdialog` or `zenity`.
+
+### Clone and launch
+
+```bash
+git clone --branch mie-modifiche https://github.com/Mhurino/ukishima.git
+cd ukishima
+./launch.sh
+```
+
+The launcher uses `qs` when available, otherwise it falls back to `quickshell`.
+
+### Installation script
+
+The repository also includes `install.sh`. It copies the project into:
+
+```text
+~/.local/share/quickshell/ukishima
+```
+
+The destination can be changed through `UKISHIMA_INSTALL_ROOT`.
+
+**Important:** when `rsync` is available, the installer uses `rsync --delete`. Check the destination before running it: files in the destination that are not present in the source can be removed.
+
+The script prints the dependencies it cannot find and the launch command for the installed copy.
 
 ## Documentation
 
-The repository includes focused guides for the features and integrations in this fork:
+| Guide                                          | Contents                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Feature guide](docs/FEATURES.md)              | Pill, navigation, Timer, Clipboard, Scratchpad, Weather and appearance         |
+| [Application Dock](docs/DOCK.md)               | Layout, positions, pinned apps, running windows and interactions               |
+| [Media and Beats](docs/MEDIA-BEATS.md)         | MPRIS, playback, local music and online stations                               |
+| [Recording and audio](docs/RECORDING-AUDIO.md) | Recorder, replay, capture settings and PipeWire Mixer                          |
+| [System surfaces](docs/SYSTEM-SURFACES.md)     | Launcher, Calendar, Inbox, networking, battery and system tools                |
+| [Waywallen integration](docs/WAYWALLEN.md)     | Setup, services, wallpaper rendering, NVIDIA compatibility and troubleshooting |
 
-* [Feature guide](docs/FEATURES.md) — pill navigation, Timer, Clipboard, Scratchpad, Weather, themes, Surface Styles, and feature map.
-* [Application Dock](docs/DOCK.md) — pinning, workspace-aware windows, positions, reveal behavior, and floating actions.
-* [Media and Beats](docs/MEDIA-BEATS.md) — MPRIS player controls, visual styles, local music, and online stations.
-* [Recording and audio](docs/RECORDING-AUDIO.md) — GPU Screen Recorder, quick capture, 30-second replay, PipeWire mixer, and quick controls.
-* [System surfaces](docs/SYSTEM-SURFACES.md) — Launcher, Calendar, Inbox, Wi-Fi, Bluetooth, Battery, System Monitor, Power, and Hyprland behavior.
-* [Waywallen integration](docs/WAYWALLEN.md) — setup, settings, systemd services, layer-shell updates, NVIDIA compatibility, Steam Wallpaper Engine content, and palette synchronization.
+## Project status
 
-## Dependencies
+This is an independently maintained personal fork. Its additional features and implementation can evolve separately from the original project.
 
-The core shell requires:
+The repository is intended for customization, experimentation and continued development. It is not the official Ukishima distribution.
 
-* **Quickshell**
-* **Qt / Qt Quick**
-* **Wayland**
-* **Hyprland**
+## Credits
 
-Additional components may require the following tools:
+The original Ukishima project and its authors:
 
-* **PipeWire**
-* **WirePlumber**
-* **PulseAudio/PipeWire-compatible audio utilities**
-* **FFmpeg**
-* **wl-screenrec** or the recording backend used by the local recording scripts
-* **grim** / other Wayland capture utilities where applicable
-* **slurp** where region selection is required
-* **playerctl** for media-player integration where supported
-* **Network filesystem utilities** for remote music libraries, such as SMB/CIFS support
+[**amanhex/Ukishima**](https://github.com/amanhex/Ukishima)
 
-The exact dependencies depend on which parts of the shell are enabled.
-
-For a complete installation, all components used by the recording, media, audio, and network-library workflows should be installed.
-
----
-
-## Installation and Running
-
-Clone the repository and enter the project directory:
-
-```bash
-git clone https://github.com/Mhurino/ukishima.git
-cd ukishima
-```
-
-The shell can then be launched through Quickshell using the appropriate configuration entry point.
-
-### Running a second instance
-
-This fork is also designed to allow a second Ukishima instance to be launched independently when required.
-
-This is useful for testing changes, running an isolated configuration, or developing a component without replacing the currently running shell instance.
-
-A second instance should be launched using a separate Quickshell process/configuration rather than replacing the existing session.
-
-> The exact command may depend on the local Quickshell configuration and the way the shell is started in the Hyprland session.
-
----
-
-# Beats
-
-**Beats** is an integrated music interface developed for this fork.
-
-It provides separate workflows for local and online music, including:
-
-* Local music library browsing
-* Local music search
-* Online music search
-* Playback controls
-* Music management
-* Separate local and online views
-* Network-based music libraries
-* Fast browsing of large collections
-* Integration with the shell's visual and animation system
-
-### Local music libraries
-
-The local library can operate on music stored on a mounted network filesystem.
-
-This allows a remote music collection to be exposed locally while keeping the interface integrated into Ukishima.
-
-The local search implementation is designed to avoid unnecessary filesystem operations and is suitable for large collections and network-mounted storage.
-
-### Online music
-
-Beats also provides an online workflow for searching and playing music without requiring the local library to contain the requested content.
-
-The local and online workflows are intentionally separated to keep searching and library management predictable.
-
----
-
-# Application Dock
-
-This fork introduces a native application dock implemented directly within Ukishima.
-
-The dock is not a separate desktop application. It is implemented as a Quickshell surface and uses the same visual components, themes, animations, and interaction model as the rest of the shell.
-
-## Dock positions
-
-The dock supports:
-
-* Bottom
-* Left
-* Right
-* Top-left
-* Top-right
-
-The top-corner configurations are treated as overlays and do not reserve permanent screen space.
-
-## Dock behavior
-
-The dock supports:
-
-* Hidden-by-default edge activation
-* Optional always-visible mode
-* Configurable size
-* Configurable reveal duration
-* Application pinning
-* Application launching
-* Active application indication
-* Running application indication
-* Workspace-aware application detection
-* Workspace indicators
-* Workspace switching when activating applications located on another workspace
-* Launcher/search integration
-* Middle-click application closing
-* Fullscreen-aware visibility
-* Optional screen-space reservation
-* Subtle visual indication when the dock is hidden
-
-The dock can therefore act both as a traditional launcher and as a workspace-aware representation of currently running applications.
-
-## Application interaction
-
-Left-clicking an application activates it.
-
-If the application is running on another workspace, the dock can use the application's workspace information to provide context and switch to the relevant workspace.
-
-Middle-clicking a running application requests that its corresponding window be closed.
-
-The launcher/search entry is integrated with the existing Ukishima launcher rather than relying on a separate application menu.
-
----
-
-# Audio and Per-Application Volume Control
-
-The shell includes functionality for controlling audio at the application level.
-
-Instead of exposing only the global system volume, individual application streams can be adjusted independently.
-
-This allows different applications to maintain separate volume levels while the main system volume remains unchanged.
-
-Typical use cases include:
-
-* Lowering a music player while keeping system sounds audible
-* Adjusting a browser independently from other applications
-* Controlling individual media streams
-* Managing multiple simultaneous audio sources
-
-This functionality relies on the PipeWire/WirePlumber audio stack and exposes the available application streams through the shell interface.
-
----
-
-# Screen Recording and 30-Second Replay
-
-This fork includes an integrated screen-recording workflow designed for Wayland and Hyprland.
-
-One of the main features is an **instant 30-second replay buffer**.
-
-Instead of starting a recording manually after an event occurs, the recording process continuously maintains a short rolling buffer. When the user requests a replay, the most recent 30 seconds can be saved as a video file.
-
-This is particularly useful for:
-
-* Capturing unexpected events
-* Recording short gameplay moments
-* Demonstrating software behavior
-* Capturing bugs
-* Creating short desktop demonstrations
-
-## 30-second replay workflow
-
-The recording process maintains the rolling buffer in the background.
-
-When the replay action is triggered:
-
-1. The current recording buffer is accessed.
-2. The most recent 30 seconds are preserved.
-3. The resulting recording is written to the configured output location.
-4. The recording process continues running so that another replay can be captured later.
-
-The workflow is designed to operate without requiring the user to manually start a new recording before every event.
-
-### Starting the replay recorder
-
-The replay recorder is started through the recording script integrated with the fork.
-
-The recommended setup is to start the recorder together with the Hyprland/Ukishima session so that the replay buffer is continuously available.
-
-The recording command and output path are configurable through the local recording scripts.
-
----
-
-# Top Bar Customization
-
-A significant part of this fork consists of customizations to the **top bar and its associated shell surfaces**.
-
-The top bar is not treated as a static panel. Its behavior, appearance, spacing, content, and interaction model have been adapted to work with the rest of the Ukishima environment.
-
-Customizations include:
-
-* Custom layout and spacing
-* Dynamic shell elements
-* Hyprland-aware information
-* Custom system indicators
-* Integrated controls
-* Surface and popup interaction
-* Custom animations and transitions
-* Theme-aware components
-* Glyph/Kanji presentation
-* Context-sensitive visibility
-* Custom positioning and alignment
-* Integration with the application's and workspace's current state
-
-The intention is to keep the top bar visually consistent with the rest of the shell while allowing individual components to behave dynamically according to the current desktop state.
-
-Additional surfaces can be opened from the top bar without requiring separate desktop applications.
-
----
-
-# Appearance and Configuration
-
-The settings system has been extended to expose configuration for the functionality introduced by this fork.
-
-Available configuration includes:
-
-* Interface scaling
-* Themes
-* Fonts
-* Reduced-motion behavior
-* Auto-hide behavior
-* Dock enable/disable state
-* Dock position
-* Dock size
-* Dock visibility mode
-* Dock reveal duration
-* Application pinning
-* Kanji/glyph display mode
-* Additional shell behavior
-
-The configuration system is intended to keep user-facing settings separate from the implementation of individual components.
-
----
-
-# Wallpaper Integration: Waywallen and Wallpaper Engine
-
-This fork integrates [Waywallen](https://github.com/waywallen/waywallen) as an optional wallpaper backend. Ukishima can browse and apply entries from Waywallen's catalog while keeping its own local wallpaper workflow available.
-
-The integration includes:
-
-* A catalog bridge between Ukishima and the Waywallen daemon.
-* A Hyprland layer-shell display client.
-* Per-wallpaper animated-video FPS settings (15, 24, 30, or 60).
-* Automatic synchronization of Ukishima's dynamic palette when wallpapers are changed in Waywallen.
-* Managed user-level systemd services for the daemon, layer-shell client, and palette watcher.
-* NVIDIA Web-renderer compatibility configuration when an NVIDIA GPU is detected.
-* An explicit layer-shell updater, separate from normal startup.
-
-Enable Waywallen from **Settings → Appearance → Wallpaper**. The same page exposes the Waywallen toggle, FPS, palette dots, the Waywallen application, and custom library-folder access.
-
-For complete setup instructions, service management, troubleshooting, NVIDIA behavior, manual layer-shell updates, and Steam Workshop/Wallpaper Engine support, see the [Waywallen integration guide](docs/WAYWALLEN.md).
-
-## Wallpaper Engine through Steam
-
-Wallpaper Engine content is supported through the external [Open Wallpaper Engine plugin](https://github.com/waywallen/open-wallpaper-engine). Install the plugin in Waywallen, add the relevant Steam Workshop content directory under **Libraries**, and grant Flatpak read-only access to custom folders through Ukishima when needed.
-
-Actual support depends on the installed plugin/renderer and the wallpaper itself. Scene/Web playback and preview availability are not guaranteed for every Workshop item.
-
-# Kanji and Glyph Mode
-
-Ukishima provides an optional glyph/Kanji-oriented interface mode.
-
-When enabled, supported interface elements can use dedicated glyphs instead of standard textual labels.
-
-This fork extends the system to additional components and configuration surfaces, including the application dock.
-
-The glyph system is integrated into the same theme and component architecture used by the standard interface.
-
----
-
-# Hyprland Integration
-
-The fork makes extensive use of Hyprland's desktop state to provide context-aware behavior.
-
-The shell integrates with:
-
-* Monitors
-* Workspaces
-* Toplevel windows
-* Active window state
-* Application identifiers
-* Fullscreen state
-* Wayland layer-shell surfaces
-
-This allows components such as the application dock, top bar, and other surfaces to react to the current state of the desktop.
-
-Fullscreen applications can automatically suppress shell components where appropriate, preventing overlays from interfering with fullscreen content.
-
----
-
-# Wayland and Layer-Shell Architecture
-
-The additional shell surfaces are implemented using Wayland layer-shell functionality through Quickshell.
-
-This allows the fork to provide:
-
-* Overlay surfaces
-* Screen-edge interfaces
-* Floating controls
-* Dock surfaces
-* Top-bar surfaces
-* Contextual popups
-
-without depending on a traditional desktop-panel framework.
-
-The architecture also allows different surfaces to use different exclusion and reservation behavior depending on their purpose.
-
----
-
-# Project Architecture
-
-The project is primarily implemented using:
-
-* Quickshell
-* QML
-* JavaScript
-* Wayland
-* Hyprland
-
-Additional functionality is organized into reusable components and surfaces wherever possible.
-
-Shared application-resolution logic is implemented through JavaScript utilities so that application entries can be resolved consistently by different shell components.
-
-This keeps application management independent from individual visual components and makes the dock and launcher easier to extend.
-
----
-
-# Design Principles
-
-This fork follows several principles.
-
-### Wayland-native integration
-
-Functionality should integrate with the Wayland and Hyprland environment rather than relying on unnecessary external desktop components.
-
-### Consistent visual language
-
-New interfaces should use the existing Ukishima theme, typography, animation system, and reusable components.
-
-### Context-aware behavior
-
-Components should respond to the current monitor, workspace, application, and window state where appropriate.
-
-### Minimal persistent UI
-
-Interfaces should remain unobtrusive and appear when needed rather than permanently occupying the desktop.
-
-### Configurable behavior
-
-User-facing behavior should preferably be exposed through the shell's configuration system.
-
-### Modular development
-
-New functionality should remain separated into components and surfaces where practical, allowing individual parts of the shell to be developed and tested independently.
-
----
-
-# Project Status
-
-This repository is a **personal fork of the original Ukishima project**.
-
-It contains substantial modifications and additional functionality that are not part of upstream Ukishima, including:
-
-* Beats
-* Integrated countdown Timer
-* Clipboard history and image previews
-* Persistent Scratchpad notes with pinning and autosave
-* Open-Meteo weather surface and editable city
-* Configurable Surface Styles and interface behavior
-* Native application Dock
-* Workspace-aware application management
-* Per-application volume control
-* Instant 30-second replay recording
-* Extended Hyprland integration
-* Customized top-bar behavior
-* Additional configuration options
-* Kanji/glyph extensions
-* Additional UI and interaction improvements
-* Waywallen daemon supervision and clean Flatpak lifecycle
-* Automatic NVIDIA Web-renderer compatibility workaround
-* Explicit, opt-in Waywallen layer-shell updates
-
-The repository is primarily maintained for personal use, experimentation, customization, and continued development.
-
-Features may therefore evolve independently from the upstream project.
-
----
-
-# Credits
-
-Original project:
-
-**Ukishima** by `amanhex`
-
-This repository is an independent personal fork and is not the official Ukishima project.
-
-Original project authors and contributors retain credit for the upstream work. All additional modifications and components in this repository are maintained independently.
-## Screenshots
-
-### Main Shell
-![Main Shell](screenshots/main-shell.png)
-
-### Top Bar
-![Top Bar](screenshots/top-bar.png)
-
-### Application Dock
-![Application Dock](screenshots/top-left-dock.png)
-
-### Audio Controls
-![Per-Application Volume Control](screenshots/audio-select.png)
-
-### Resource Monitor
-![Resource Monitor](screenshots/resource-monitor.png)
-
-### Screen Recording
-![Screen Recording](screenshots/recording.png)
-### Beats
-
-![Beats 1](screenshots/beat-1.png)
-
-![Beats 2](screenshots/beat-2.png)
+The original authors and contributors retain credit for their upstream work. Additional features and modifications in this repository are maintained independently.
