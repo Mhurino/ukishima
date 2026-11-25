@@ -1,22 +1,12 @@
 # Ukishima
 
-\<p align="center">
-&#x20; \<strong>A personal desktop shell built with Quickshell, QML and Hyprland.\</strong>
-&#x20; \<br>
-&#x20; A modular Wayland interface for navigation, applications, media and system controls.
-\</p>
+**A personal desktop shell built with Quickshell, QML and Hyprland.**
 
-\<p align="center">
-&#x20; \<a href="#features">Features\</a> ·
-&#x20; \<a href="#screenshots">Screenshots\</a> ·
-&#x20; \<a href="#installation">Installation\</a> ·
-&#x20; \<a href="#documentation">Documentation\</a> ·
-&#x20; \<a href="[https://github.com/amanhex/Ukishima](https://github.com/amanhex/Ukishima)">Original project\</a>
-\</p>
+A modular Wayland interface bringing navigation, applications, media and system controls together in one coherent desktop experience.
 
-\<p align="center">
-&#x20; \<img src="screenshots/main-shell.png" alt="Ukishima main shell" width="100%">
-\</p>
+![Ukishima main shell](screenshots/main-shell.png)
+
+[Features](#features) · [Screenshots](#screenshots) · [Installation](#installation) · [Documentation](#documentation) · [Original project](https://github.com/amanhex/Ukishima)
 
 ---
 
@@ -24,41 +14,53 @@ Ukishima is a desktop shell built with **Quickshell and Qt Quick**, designed aro
 
 This repository is a personal fork of [amanhex/Ukishima](https://github.com/amanhex/Ukishima). It preserves the original project's visual direction while adding new interfaces, Hyprland integrations, application management and desktop workflows.
 
-The goal is to keep the desktop visually coherent: controls, applications, media and system information are brought together in one configurable environment.
-
 ## Features
 
-| Area                         | Features                                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **Pill and navigation**      | Per-monitor interface, expandable surfaces, configurable shortcuts and right-click navigation           |
-| **Application Dock**         | Pinned applications, running windows, workspace-aware grouping, edge reveal and multiple positions      |
-| **Appearance**               | Light, Dark, Dynamic and Manual palettes, OLED mode, custom accents, transparency, fonts and animations |
-| **Media**                    | MPRIS playback controls, album artwork, multiple-player selection and alternative visual styles         |
-| **Beats**                    | Separate interface for local music and configured online stations                                       |
-| **System tools**             | Launcher, Calendar, Timer, Clipboard, Scratchpad, Weather, Wi-Fi, Bluetooth, Battery and System Monitor |
-| **Recording**                | GPU Screen Recorder integration, screen/window/region capture, audio controls and replay                |
-| **Wallpaper**                | Local wallpaper workflow, dynamic palette synchronization and optional Waywallen integration            |
-| **Application installation** | Launcher drop installer for AppImages, packages, archives, fonts and wallpapers                         |
+| Area | Features |
+|---|---|
+| **Pill and navigation** | Per-monitor interface, expandable surfaces, configurable shortcuts and right-click navigation |
+| **Application Dock** | Pinned applications, running windows, workspace-aware grouping, edge reveal and multiple positions |
+| **Appearance** | Light, Dark, Dynamic and Manual palettes, OLED mode, custom accents, transparency, fonts and animations |
+| **Media** | MPRIS playback controls, album artwork, multiple-player selection and alternative visual styles |
+| **Beats** | Separate interface for local music and configured online stations |
+| **System tools** | Launcher, Calendar, Timer, Clipboard, Scratchpad, Weather, Wi-Fi, Bluetooth, Battery and System Monitor |
+| **Recording** | GPU Screen Recorder integration, screen/window/region capture, audio controls and replay |
+| **Wallpaper** | Local wallpaper workflow, dynamic palette synchronization and optional Waywallen integration |
+| **Application installer** | Launcher drop installer for AppImages, packages, archives, fonts and wallpapers |
 
-The shell is designed to react to the current monitor, workspace and window state. Individual surfaces share the same theme and animation system.
+The shell reacts to the current monitor, workspace and window state. Individual surfaces share the same theme and animation system.
 
 ## Screenshots
 
-| Shell and navigation | Application Dock |
-| -------------------- | ---------------- |
-|                      |                  |
+### Shell and navigation
 
-| Top bar |   | Media and Beats |   |
-| ------- | - | --------------- | - |
-|         |   |                 |   |
+![Main shell](screenshots/main-shell.png)
 
-| Audio controls | System Monitor |
-| -------------- | -------------- |
-|                |                |
+### Top bar
 
-| Screen recording | Beats |
-| ---------------- | ----- |
-|                  |       |
+![Top bar](screenshots/top-bar.png)
+
+### Application Dock
+
+![Application Dock](screenshots/top-left-dock.png)
+
+### Audio controls
+
+![Audio controls](screenshots/audio-select.png)
+
+### System Monitor
+
+![System Monitor](screenshots/resource-monitor.png)
+
+### Screen recording
+
+![Screen recording](screenshots/recording.png)
+
+### Beats
+
+![Beats interface](screenshots/beat-1.png)
+
+![Beats interface](screenshots/beat-2.png)
 
 ## Highlights
 
@@ -66,7 +68,7 @@ The shell is designed to react to the current monitor, workspace and window stat
 
 The pill is the main entry point to Ukishima's surfaces. It adapts to the active monitor and Hyprland state, and provides configurable shortcuts and navigation.
 
-The appearance settings include:
+Appearance settings include:
 
 - Light, Dark, Dynamic and Manual palettes.
 - OLED mode and custom accent colors.
@@ -147,7 +149,7 @@ AppImage metadata inspection executes the supplied file with `--appimage-extract
 
 ### Requirements
 
-The shell is built for:
+The shell is designed for:
 
 - Linux
 - Wayland
@@ -155,7 +157,7 @@ The shell is built for:
 - Quickshell
 - Qt Quick
 
-Additional utilities are used by individual integrations. The installation script checks for tools such as `jq`, `curl`, `python3`, ImageMagick, FFmpeg, NetworkManager, BlueZ, PipeWire-related components and Wayland utilities.
+Additional utilities are used by individual integrations. The installation script checks for tools such as `jq`, `curl`, `python3`, ImageMagick, FFmpeg, NetworkManager, BlueZ, CAVA, cliphist and Wayland utilities.
 
 Some optional features also use GPU Screen Recorder, `mpvpaper`, `matugen`, `ddcutil`, `kdialog` or `zenity`.
 
@@ -185,14 +187,14 @@ The script prints the dependencies it cannot find and the launch command for the
 
 ## Documentation
 
-| Guide                                          | Contents                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------ |
-| [Feature guide](docs/FEATURES.md)              | Pill, navigation, Timer, Clipboard, Scratchpad, Weather and appearance         |
-| [Application Dock](docs/DOCK.md)               | Layout, positions, pinned apps, running windows and interactions               |
-| [Media and Beats](docs/MEDIA-BEATS.md)         | MPRIS, playback, local music and online stations                               |
-| [Recording and audio](docs/RECORDING-AUDIO.md) | Recorder, replay, capture settings and PipeWire Mixer                          |
-| [System surfaces](docs/SYSTEM-SURFACES.md)     | Launcher, Calendar, Inbox, networking, battery and system tools                |
-| [Waywallen integration](docs/WAYWALLEN.md)     | Setup, services, wallpaper rendering, NVIDIA compatibility and troubleshooting |
+| Guide | Contents |
+|---|---|
+| [Feature guide](docs/FEATURES.md) | Pill, navigation, Timer, Clipboard, Scratchpad, Weather and appearance |
+| [Application Dock](docs/DOCK.md) | Layout, positions, pinned apps, running windows and interactions |
+| [Media and Beats](docs/MEDIA-BEATS.md) | MPRIS, playback, local music and online stations |
+| [Recording and audio](docs/RECORDING-AUDIO.md) | Recorder, replay, capture settings and PipeWire Mixer |
+| [System surfaces](docs/SYSTEM-SURFACES.md) | Launcher, Calendar, Inbox, networking, battery and system tools |
+| [Waywallen integration](docs/WAYWALLEN.md) | Setup, services, wallpaper rendering, NVIDIA compatibility and troubleshooting |
 
 ## Project status
 
@@ -204,6 +206,6 @@ The repository is intended for customization, experimentation and continued deve
 
 The original Ukishima project and its authors:
 
-[**amanhex/Ukishima**](https://github.com/amanhex/Ukishima)
+**[amanhex/Ukishima](https://github.com/amanhex/Ukishima)**
 
 The original authors and contributors retain credit for their upstream work. Additional features and modifications in this repository are maintained independently.
