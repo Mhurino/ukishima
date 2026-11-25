@@ -147,6 +147,8 @@ AppImage metadata inspection executes the supplied file with `--appimage-extract
 
 ## Installation
 
+Ukishima can be launched directly from a cloned repository or copied into a dedicated user installation directory.
+
 ### Requirements
 
 The shell is designed for:
@@ -157,33 +159,92 @@ The shell is designed for:
 - Quickshell
 - Qt Quick
 
-Additional utilities are used by individual integrations. The installation script checks for tools such as `jq`, `curl`, `python3`, ImageMagick, FFmpeg, NetworkManager, BlueZ, CAVA, cliphist and Wayland utilities.
+The installation script checks for a number of command-line dependencies, including:
 
-Some optional features also use GPU Screen Recorder, `mpvpaper`, `matugen`, `ddcutil`, `kdialog` or `zenity`.
+- `jq`, `curl` and `python3`
+- ImageMagick (`magick`)
+- `awww` and `awww-daemon`
+- `ffmpeg`
+- NetworkManager (`nmcli`)
+- BlueZ (`bluetoothctl`)
+- `cava` and `cliphist`
+- `wl-paste` and `slurp`
+- `hyprsunset`
+- `notify-send` and `xdg-open`
 
-### Clone and launch
+Optional tools include GPU Screen Recorder, `mpvpaper`, `matugen`, `ddcutil`, `kdialog` and `zenity`.
+
+Requirements depend on which features are used. The installation script checks for missing commands and reports them; **it does not install system packages automatically**.
+
+### Option 1: Clone and launch
+
+Clone the personal fork and enter the directory:
 
 ```bash
 git clone --branch mie-modifiche https://github.com/Mhurino/ukishima.git
 cd ukishima
+```
+
+Launch the shell:
+
+```bash
 ./launch.sh
 ```
 
-The launcher uses `qs` when available, otherwise it falls back to `quickshell`.
+The launcher uses `qs -p` when `qs` is available. Otherwise, it falls back to `quickshell --path`.
 
-### Installation script
+Both commands launch the configuration directly from the repository directory. See the [Quickshell command-line documentation](https://quickshell.org/docs/v0.3.2/guide/introduction/) for details about path-based configuration loading.
 
-The repository also includes `install.sh`. It copies the project into:
+### Option 2: Install into the user directory
+
+From the cloned repository, run:
+
+```bash
+./install.sh
+```
+
+By default, the script copies the project into:
 
 ```text
 ~/.local/share/quickshell/ukishima
 ```
 
-The destination can be changed through `UKISHIMA_INSTALL_ROOT`.
+A custom destination can be selected with `UKISHIMA_INSTALL_ROOT`:
 
-**Important:** when `rsync` is available, the installer uses `rsync --delete`. Check the destination before running it: files in the destination that are not present in the source can be removed.
+```bash
+UKISHIMA_INSTALL_ROOT="$HOME/Applications/ukishima" ./install.sh
+```
 
-The script prints the dependencies it cannot find and the launch command for the installed copy.
+The installer:
+
+1. Copies the configuration, scripts, components and optional Hyprland modules.
+2. Checks for required and optional dependencies.
+3. Reports missing commands.
+4. Prints the command to launch the installed configuration.
+
+The launch command uses `qs --path` or, when necessary, `quickshell --path`, depending on the available executable.
+
+### Updating an existing installation
+
+When the destination already contains files, the installer first creates a backup under:
+
+```text
+${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/backups/
+```
+
+It then updates the files from the repository without deleting unrelated files already present in the destination.
+
+Files with matching names are updated, so local edits to those files are replaced by the repository versions. The backup retains the previous installation and its customizations.
+
+If the repository itself is already located in the installation directory, the installer skips the copy operation.
+
+### Optional Hyprland module
+
+The repository includes an optional Hyprland Lua module for the Ukishima layer blur rule.
+
+The installer prints the corresponding `source` directive with the actual installation path. Add that line to your Hyprland configuration only when you want to enable the rule.
+
+**The installer does not configure automatic startup in Hyprland.** Launching Ukishima at login remains a separate session configuration step.
 
 ## Documentation
 
