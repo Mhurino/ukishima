@@ -238,7 +238,8 @@ EOF
 }
 prepare_services() {
     require_flatpak
-    install_layer_shell
+    # Non aggiornare il layer-shell durante l avvio ordinario.
+    # L installazione iniziale resta gestita da run_layer_shell se manca il binario.
     local flags_file folder
     flags_file="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
     folder="$(jq -r '.waywallenWallpaperDir // ""' "$flags_file" 2>/dev/null || true)"
@@ -349,7 +350,8 @@ case "${1:-}" in
             exit 1
         fi
         ;;
+    update-layer-shell) install_layer_shell ;;
     grant-folder) grant_folder "${2:-}" ;;
     layer-shell) run_layer_shell ;;
-    *) echo "Uso: $0 {enable|start|disable|open|grant-folder PATH|layer-shell}" >&2; exit 2 ;;
+    *) echo "Uso: $0 {enable|start|disable|open|update-layer-shell|grant-folder PATH|layer-shell}" >&2; exit 2 ;;
 esac
