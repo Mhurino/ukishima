@@ -19,6 +19,50 @@ require_flatpak() {
     command -v flatpak >/dev/null 2>&1 || { echo "flatpak non trovato" >&2; notify "Flatpak non disponibile nel PATH."; return 1; }
     flatpak info "$APP_ID" >/dev/null 2>&1 || { echo "Flatpak $APP_ID non installato" >&2; notify "Installa prima Waywallen da Flatpak."; return 1; }
 }
+
+flatpak_app_running() {
+    flatpak ps --columns=application:full 2>/dev/null |
+        awk -v app="$APP_ID" '$1 == app { found = 1 } END { exit !found }'
+}
+
+# Keep systemd attached even when flatpak run exits after starting the app.
+run_daemon_supervisor() {
+    local started_at elapsed launch_status i
+    started_at=$SECONDS
+
+    if flatpak run --command=waywallen "$APP_ID" --no-ui; then
+        launch_status=0
+    else
+        launch_status=$?
+    fi
+
+    if [ "$launch_status" -ne 0 ]; then
+        echo "Avvio del daemon Waywallen fallito (codice $launch_status)." >&2
+        return "$launch_status"
+    fi
+
+    elapsed=$((SECONDS - started_at))
+    if [ "$elapsed" -ge 5 ] && ! flatpak_app_running; then
+        echo "Il daemon Waywallen è terminato; systemd tenterà il riavvio." >&2
+        return 1
+    fi
+
+    # A detached Flatpak instance can appear shortly after the launcher exits.
+    for i in $(seq 1 20); do
+        if flatpak_app_running; then
+            while flatpak_app_running; do
+                sleep 2
+            done
+            echo "Istanza Flatpak Waywallen terminata inaspettatamente." >&2
+            return 1
+        fi
+        sleep 1
+    done
+
+    echo "Il launcher è terminato senza lasciare un'istanza Waywallen attiva." >&2
+    return 1
+}
+
 expand_path() {
     local value="$1"
     if [ "$value" = "~" ]; then printf '%s\n' "$HOME"
@@ -196,9 +240,12 @@ After=basic.target
 
 [Service]
 Type=simple
-ExecStart=$flatpak_bin run --command=waywallen $APP_ID --no-ui
+ExecStart=$bash_bin "$script_path" daemon-supervisor
+ExecStop=-$flatpak_bin kill $APP_ID
+ExecStopPost=-$flatpak_bin kill $APP_ID
 Restart=on-failure
 RestartSec=3
+TimeoutStopSec=30
 
 [Install]
 WantedBy=default.target
@@ -208,6 +255,7 @@ EOF
 Description=Waywallen wallpaper layer-shell client for Hyprland
 Requires=$DAEMON_UNIT
 After=$DAEMON_UNIT
+PartOf=$DAEMON_UNIT
 
 [Service]
 Type=simple
@@ -238,9 +286,31 @@ EOF
 }
 prepare_services() {
     require_flatpak
-    # Non aggiornare il layer-shell durante l avvio ordinario.
-    # L installazione iniziale resta gestita da run_layer_shell se manca il binario.
-    local flags_file folder
+    local flags_file folder renderer_config_result
+
+    if ! renderer_config_result="$(python3 "$SCRIPT_DIR/waywallen-nvidia-compat.py")"; then
+        echo "Configurazione di compatibilità NVIDIA non riuscita." >&2
+        return 1
+    fi
+
+    case "$renderer_config_result" in
+        changed)
+            echo "Applicata la compatibilità del renderer Web per NVIDIA."
+            # The renderer setting is an identity setting: restart the old instance.
+            systemctl --user stop "$PALETTE_UNIT" "$LAYER_UNIT" "$DAEMON_UNIT"                 >/dev/null 2>&1 || true
+            flatpak kill "$APP_ID" >/dev/null 2>&1 || true
+            notify "Compatibilità NVIDIA Waywallen applicata."
+            ;;
+        unchanged|not-nvidia)
+            ;;
+        *)
+            echo "Risultato inatteso dalla configurazione NVIDIA: $renderer_config_result" >&2
+            return 1
+            ;;
+    esac
+
+    # Do not update layer-shell during normal startup.
+    # Initial installation is handled by run_layer_shell when the binary is missing.
     flags_file="${XDG_STATE_HOME:-$HOME/.local/state}/ukishima/flags.json"
     folder="$(jq -r '.waywallenWallpaperDir // ""' "$flags_file" 2>/dev/null || true)"
     if [ -n "$folder" ]; then
@@ -350,8 +420,9 @@ case "${1:-}" in
             exit 1
         fi
         ;;
+    daemon-supervisor) run_daemon_supervisor ;;
     update-layer-shell) install_layer_shell ;;
     grant-folder) grant_folder "${2:-}" ;;
     layer-shell) run_layer_shell ;;
-    *) echo "Uso: $0 {enable|start|disable|open|update-layer-shell|grant-folder PATH|layer-shell}" >&2; exit 2 ;;
+    *) echo "Uso: $0 {enable|start|disable|open|daemon-supervisor|update-layer-shell|grant-folder PATH|layer-shell}" >&2; exit 2 ;;
 esac
