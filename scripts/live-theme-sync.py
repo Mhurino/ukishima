@@ -371,30 +371,71 @@ def apply_kde(colors, kde_scheme_text, kde_sections):
 
 
 def notify_kde_palette_changed():
-    # KGlobalSettings::PaletteChanged = 0. This is a D-Bus signal, not a method.
+    # Notifica KConfigWatcher: richiede alle applicazioni KDE di
+    # rileggere i gruppi colore aggiornati in kdeglobals.
     gdbus = shutil.which("gdbus")
-    if gdbus:
-        result = subprocess.run(
-            [gdbus, "emit", "--session", "--object-path", "/KGlobalSettings",
-             "--signal", "org.kde.KGlobalSettings.notifyChange", "0", "0"],
-            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+    if not gdbus:
+        print(
+            "Notifica KDE non inviata: gdbus non disponibile.",
+            file=sys.stderr,
         )
-        if result.returncode == 0:
-            return True
-        print(f"Notifica KDE non inviata: {result.stderr.strip()}", file=sys.stderr)
-    dbus_send = shutil.which("dbus-send")
-    if dbus_send:
-        result = subprocess.run(
-            [dbus_send, "--session", "--type=signal", "/KGlobalSettings",
-             "org.kde.KGlobalSettings.notifyChange", "int32:0", "int32:0"],
-            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
-        )
-        if result.returncode == 0:
-            return True
-        print(f"Notifica KDE non inviata: {result.stderr.strip()}", file=sys.stderr)
-    print("Avviso: gdbus/dbus-send non disponibile; riaprire Dolphin per vedere la palette.", file=sys.stderr)
-    return False
+        return False
 
+    changed_groups = (
+        "{'General': [b'ColorScheme'], "
+        "'Colors:Button': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:Header': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:Header][Inactive': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:Selection': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:Tooltip': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:View': [b'BackgroundNormal', b'ForegroundNormal'], "
+        "'Colors:Window': [b'BackgroundNormal', b'ForegroundNormal']}"
+    )
+
+    result = subprocess.run(
+        [
+            gdbus, "emit",
+            "--session",
+            "--object-path", "/kdeglobals",
+            "--signal", "org.kde.kconfig.notify.ConfigChanged",
+            changed_groups,
+        ],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        print(
+            f"Notifica KConfigWatcher non inviata: {result.stderr.strip()}",
+            file=sys.stderr,
+        )
+        return False
+
+    # Mantiene anche la notifica KDE già prevista dal vecchio script.
+    global_signal = subprocess.run(
+        [
+            gdbus, "emit",
+            "--session",
+            "--object-path", "/KGlobalSettings",
+            "--signal", "org.kde.KGlobalSettings.notifyChange",
+            "0", "0",
+        ],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    if global_signal.returncode != 0:
+        print(
+            f"Avviso: notifica KGlobalSettings non inviata: "
+            f"{global_signal.stderr.strip()}",
+            file=sys.stderr,
+        )
+
+    return True
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
